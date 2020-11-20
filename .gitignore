@@ -1,2 +1,3 @@
 *.o
 picontrol
+picontrol_server
