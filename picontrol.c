@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	int x_0 = 0, y_0 = 0, nScreen_0 = 0;
+	int x_0, y_0, nScreen_0;
 	xdo_get_mouse_location(xdo, &x_0, &y_0, &nScreen_0);
 
 	if (xdo_move_mouse_relative(xdo, 100, 0) != 0) {
@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
 		return 2;
 	}
 
-	int x_f = 0, y_f = 0, nScreen_f = 0;
+	int x_f, y_f, nScreen_f;
 	xdo_get_mouse_location(xdo, &x_f, &y_f, &nScreen_f);
 
 	printf("x_0, y_0, nScreen_0: %d, %d, %d\n", x_0, y_0, nScreen_0);
