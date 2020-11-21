@@ -45,7 +45,12 @@ int main(int argc, char **argv) {
 
 		// Read the incoming message
 		while ((n = read(connfd, recvline, MAX_BUF-1)) > 0) {
-			printf("%s\n", recvline);
+			int cmd_size = (int)recvline[0];
+
+			printf("First byte: %x\n", recvline[0]);
+			printf("Second byte (char): %c\n", recvline[1]);
+			printf("Size: %d bytes = %d chars\n", cmd_size, (int)(cmd_size/sizeof(uint8_t)));
+			printf("%.*s|<-\n", cmd_size, &recvline[1]);
 			// TODO: Find a way to break once we know the message is finished.
 			// For testing, we'll assume that strlen(recvline) < MAX_BUF
 			break;
@@ -62,8 +67,12 @@ int main(int argc, char **argv) {
 		// TODO: when we need to send responses, we'll do them here
 		// snprintf((char *)buff, sizeof(buff), "RESPONSE_GOES_HERE");
 		// write(connfd, (char *)buff, strlen((char *)buff));
+		if ((close(listenfd)) < 0) {
+			fprintf(stderr, "Error closing the listening socket.\n");
+			return 1;
+		}
 		if ((close(connfd)) < 0) {
-			fprintf(stderr, "Error closing the socket connection.\n");
+			fprintf(stderr, "Error closing the new socket.\n");
 			return 1;
 		}
 
