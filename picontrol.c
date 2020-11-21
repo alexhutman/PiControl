@@ -1,8 +1,15 @@
 #include <xdo.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int main(int argc, char **argv) {
+	const char *ses_type = getenv("XDG_SESSION_TYPE");
+	if (strcmp(ses_type, "x11")) {
+		printf("You aren't running X.\n");
+		return 1;
+	}
+
 	const char *display = getenv("DISPLAY");
 	xdo_t *xdo = xdo_new(display);
 	if (xdo == NULL) {
