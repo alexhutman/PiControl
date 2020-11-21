@@ -1,5 +1,5 @@
-#ifndef _PICONTROL_COMMON_H
-#define _PICONTROL_COMMON_H
+#ifndef _PICTRL_COMMON_H
+#define _PICTRL_COMMON_H
 
 // Includes
 #include <arpa/inet.h>
@@ -20,17 +20,26 @@
 
 
 // Constants
-#define SERVER_PORT 14741
-#define MAX_BUF     4096
-#define MAX_CONNS   5 
+#define SERVER_PORT      14741
+#define MAX_BUF          4096
+
 // Only 1 client will be connected (i.e. sending commands) to the server at once, but we can tell
 // the others to get lost if there is an existing open connection.
+#define MAX_CONNS        5 
+
+// Timeout in seconds - if we haven't received a heartbeat or command in this amount of time, disconnect
+#define TIMEOUT_SECS     5
 
 
 // Types
 typedef enum {
-	PI_CTRL_ACK,        // Server: You are now connected - continue
+	// We have SYN and SYN_ACK but we don't really need an ACK.
+	PI_CTRL_SYN_ACK,    // Server: You are now connected - continue
 	PI_CTRL_BUSY,       // Server: Someone is already connected - you must disconnect
+
+	PI_CTRL_SYN,        // Client: Request to connect
+	PI_CTRL_HEARTBEAT,  // Client: Send heartbeat so server can disconnect if connection is lost
+	PI_CTRL_DISCONNECT, // Client: Let server know you are disconnecting
 
 	PI_CTRL_SET_NAME,   // Client: Send current name so server can say who is currently connected on a PI_CTRL_BUSY
 	PI_CTRL_MOUSE_MV,   // Client: Send x,y of relative position to move mouse to
@@ -38,7 +47,7 @@ typedef enum {
 	PI_CTRL_MOUSE_UP,   // Client: Say to press mouse up (no data required)
 	PI_CTRL_MOUSE_CLK,  // Client: Say to click (mouseup, then mousedown) mouse (no data required)
 	PI_CTRL_KEY_PRESS,  // Client: Send UTF-8 value of key to be pressed (details TBD)
-} PiControlCmd;
+} PiCtrlCmd;
 
 
 
