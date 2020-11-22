@@ -46,15 +46,26 @@ int main(int argc, char **argv) {
 	}
 
 	int connfd, n;
-	// uint8_t buff[MAX_BUF+1];
-	uint8_t recvline[MAX_BUF+1];
+	uint8_t buff[MAX_BUF+1];     // Send buffer
+	uint8_t recvline[MAX_BUF+1]; // Receive buffer
 
+
+	// Zero out the send and receive buffers to ensure that they are null-terminated
+	memset(buff, 0, MAX_BUF);
+	memset(recvline, 0, MAX_BUF);
 
 	//while(1) {
 	connfd = accept(listenfd, (struct sockaddr *)NULL, NULL);
-	
-	// Zero out the receive buffer to ensure that it is null-terminated
-	memset(recvline, 0, MAX_BUF);
+
+	// We got a connection - send them a PI_CTRL_SYN_ACK to let the client know that they are connected
+	buff[0] = (uint8_t)PI_CTRL_SYN_ACK;	
+	if (write(connfd, buff, 1) < 1) {
+		fprintf(stderr, "Error writing to socket.\n");
+		return -1;
+	}
+
+	// Clear the buffer again - we only changed 1 byte so change it back to zero
+	buff[0] = (uint8_t)0;
 
 	// Read the incoming message
 	while ((n = read(connfd, recvline, MAX_BUF-1)) > 0) {
