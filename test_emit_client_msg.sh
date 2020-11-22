@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# NOTE: this currently only makes sense with ASCII characters
 ADDR=localhost
 PORT=14741
 
@@ -12,6 +13,8 @@ cmd_hex=$( printf "%x" $cmd )
 msg_byte_len=${#msg}
 msg_byte_len_hex=$( printf "%x" $msg_byte_len )
 
-printf "Message: |%s|\nIt is %s = 0x%s bytes long.\n" "$msg" "$msg_byte_len" "$msg_byte_len_hex"
 printf "Command: 0x%s\n" "$cmd_hex"
-printf "%b%b%s" "\x$msg_byte_len_hex" "\x$cmd_hex" "$msg" | netcat $ADDR $PORT
+printf "Payload size: %s = 0x%s\n" "$msg_byte_len" "$msg_byte_len_hex"
+printf "Message: |%s|\n" "$msg"
+
+printf "%b%b%s" "\x$cmd_hex" "\x$msg_byte_len_hex" "$msg" | netcat $ADDR $PORT
