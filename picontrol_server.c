@@ -58,12 +58,20 @@ int main(int argc, char **argv) {
 
 	// Read the incoming message
 	while ((n = read(connfd, recvline, MAX_BUF-1)) > 0) {
-		int cmd_size = (int)recvline[0];
+		int msg_size = (int)recvline[0];
+		int cmd = (int)recvline[1];
 
-		printf("First byte: %x\n", recvline[0]);
-		printf("Second byte (char): %c\n", recvline[1]);
-		printf("Size: %d bytes = %d chars\n", cmd_size, (int)(cmd_size/sizeof(uint8_t)));
-		printf("%.*s|<-\n", cmd_size, &recvline[1]);
+		printf("Message size (1st byte): 0x%x\n", recvline[0]);
+		printf("Command (2nd byte): 0x%x\n", recvline[1]);
+		switch (cmd) {
+			case PI_CTRL_SET_NAME:
+				printf("Size: %d bytes = %d ASCII chars\n", msg_size, (int)(msg_size/sizeof(uint8_t)));
+				printf("%.*s|<-\n", msg_size, &recvline[2]);
+				break;
+			default:
+				printf("Invalid test. Message is not formatted correctly.\n");
+		}
+
 		// TODO: Find a way to break once we know the message is finished.
 		// For testing, we'll assume that strlen(recvline) < MAX_BUF
 		break;
