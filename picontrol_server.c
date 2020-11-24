@@ -46,26 +46,14 @@ int main(int argc, char **argv) {
 	}
 
 	int connfd, n;
-	uint8_t buff[MAX_BUF+1];     // Send buffer
 	uint8_t recvline[MAX_BUF+1]; // Receive buffer
 
 
 	// Zero out the send and receive buffers to ensure that they are null-terminated
-	memset(buff, 0, MAX_BUF);
 	memset(recvline, 0, MAX_BUF);
 
 	//while(1) {
 	connfd = accept(listenfd, (struct sockaddr *)NULL, NULL);
-
-	// We got a connection - send them a PI_CTRL_SYN_ACK to let the client know that they are connected
-	buff[0] = (uint8_t)PI_CTRL_SYN_ACK;	
-	if (write(connfd, buff, 1) < 1) {
-		fprintf(stderr, "Error writing to socket.\n");
-		return -1;
-	}
-
-	// Clear the buffer again - we only changed 1 byte so change it back to zero
-	buff[0] = (uint8_t)0;
 
 	// Read the incoming message
 	while ((n = read(connfd, recvline, MAX_BUF-1)) > 0) {
@@ -75,7 +63,8 @@ int main(int argc, char **argv) {
 		printf("Command (1st byte): 0x%x\n", recvline[0]);
 		printf("Payload size (2nd byte): 0x%x\n", recvline[1]);
 		switch (cmd) {
-			case PI_CTRL_SET_NAME:
+			case PI_CTRL_KEY_PRESS:
+				// Need to send the payload length since UTF-8 chars can be more than 1 byte long
 				printf("Size: %d bytes = %d ASCII chars\n", payload_size, (int)(payload_size/sizeof(uint8_t)));
 				printf("%.*s|<-\n", payload_size, &recvline[2]);
 				break;
@@ -96,9 +85,6 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	// TODO: when we need to send responses, we'll do them here
-	// snprintf((char *)buff, sizeof(buff), "RESPONSE_GOES_HERE");
-	// write(connfd, (char *)buff, strlen((char *)buff));
 	if ((close(listenfd)) < 0) {
 		fprintf(stderr, "Error closing the listening socket.\n");
 		return 1;

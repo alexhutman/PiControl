@@ -33,15 +33,8 @@
 
 // Types
 typedef enum {
-	// We have SYN and SYN_ACK but we don't really need an ACK.
-	PI_CTRL_SYN_ACK,    // Server: You are now connected - continue
-	PI_CTRL_BUSY,       // Server: Someone is already connected - you must disconnect
-
-	PI_CTRL_SYN,        // Client: Request to connect
 	PI_CTRL_HEARTBEAT,  // Client: Send heartbeat so server can disconnect if connection is lost
-	PI_CTRL_DISCONNECT, // Client: Let server know you are disconnecting
 
-	PI_CTRL_SET_NAME,   // Client: Send current name so server can say who is currently connected on a PI_CTRL_BUSY
 	PI_CTRL_MOUSE_MV,   // Client: Send x,y of relative position to move mouse to
 	PI_CTRL_MOUSE_DOWN, // Client: Say to press mouse down (no data required)
 	PI_CTRL_MOUSE_UP,   // Client: Say to press mouse up (no data required)
