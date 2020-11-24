@@ -25,7 +25,7 @@
 
 // Only 1 client will be connected (i.e. sending commands) to the server at once, but we can tell
 // the others to get lost if there is an existing open connection.
-#define MAX_CONNS        5 
+#define MAX_CONNS        1 
 
 // Timeout in seconds - if we haven't received a heartbeat or command in this amount of time, disconnect
 #define TIMEOUT_SECS     5
