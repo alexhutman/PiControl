@@ -4,6 +4,7 @@
  * (i.e. move the mouse or press keys)
  */
 #include "picontrol_common.h"
+#include <xdo.h>
 
 
 int setup_server() {
@@ -45,6 +46,14 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	const char *display = getenv("DISPLAY");
+	xdo_t *xdo = xdo_new(display);
+	if (xdo == NULL) {
+		printf("Unable to create xdo_t instance\n");
+		xdo_free(xdo);
+		return 1;
+	}
+
 	int connfd, n;
 	uint8_t recvline[MAX_BUF+1]; // Receive buffer
 
@@ -67,6 +76,7 @@ int main(int argc, char **argv) {
 				// Need to send the payload length since UTF-8 chars can be more than 1 byte long
 				printf("Size: %d bytes = %d ASCII chars\n", payload_size, (int)(payload_size/sizeof(uint8_t)));
 				printf("%.*s|<-\n", payload_size, &recvline[2]);
+				xdo_enter_text_window(xdo, CURRENTWINDOW, &recvline[2], 40000);
 				break;
 			default:
 				printf("Invalid test. Message is not formatted correctly.\n");
