@@ -23,13 +23,6 @@ int test_mv_mouse(xdo_t *xdo) {
 }
 
 int test_type(xdo_t *xdo) {
-	Window w;
-	if (xdo_get_active_window(xdo, &w) < 0) {
-		printf("Unable to get active window.\n");
-		return -1;
-	}
-	printf("Got window: %lx\n", w);
-
 	//uint8_t test_char[3] = {0xD0, 0xB8, 0};
 	char *test_char = "\xd0\xb8";
 	//char *test_char = "H";
@@ -40,7 +33,7 @@ int test_type(xdo_t *xdo) {
 		return -1;
 	}
 	*/
-	if (xdo_enter_text_window(xdo, CURRENTWINDOW, test_char, 6000) < 0) {
+	if (xdo_enter_text_window(xdo, CURRENTWINDOW, test_char, 20000) < 0) {
 		printf("Unable to type character.\n");
 		return -1;
 	}
