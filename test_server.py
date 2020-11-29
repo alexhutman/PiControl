@@ -1,5 +1,56 @@
+#######################################
+# Single character input - from https://stackoverflow.com/a/20865751
+
+class _Getch:
+    """Gets a single character from standard input.  Does not echo to the screen."""
+    def __init__(self):
+        try:
+            self.impl = _GetchWindows()
+        except ImportError:
+            self.impl = _GetchUnix()
+
+    def __call__(self): 
+        char = self.impl()
+        if char == '\x03':
+            raise KeyboardInterrupt
+        elif char == '\x04':
+            raise EOFError
+        return char
+
+class _GetchUnix:
+    def __init__(self):
+        import tty
+        import sys
+
+    def __call__(self):
+        import sys
+        import tty
+        import termios
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+
+
+class _GetchWindows:
+    def __init__(self):
+        import msvcrt
+
+    def __call__(self):
+        import msvcrt
+        return msvcrt.getch()
+
+
+getch = _Getch()
+#######################################
+
 import socket
 import sys
+import time
 
 from enum import IntEnum, auto
 
@@ -13,10 +64,6 @@ class PiControlCmd(IntEnum):
 
 ADDR = "localhost"
 PORT = 14741
-
-CMD = PiControlCmd.PI_CTRL_KEY_PRESS
-#TEST_MSG = "Alex's iPhone"
-TEST_MSG = "и"
 
 def create_sock():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -32,14 +79,36 @@ def receive_chunk(sock, size):
     return recv_chunk
 """
 
-sock = create_sock()
+def test_one_msg(sock):
+    cmd = PiControlCmd.PI_CTRL_KEY_PRESS
+    test_msg = "и".encode("utf8")
 
-try:
-    TEST_MSG = TEST_MSG.encode("utf8")
-    print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(CMD.name, len(TEST_MSG), TEST_MSG.hex()))
-    sock.send(bytes([CMD, len(TEST_MSG)]) + TEST_MSG)
+    print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(test_msg), test_msg.hex()))
+    sock.send(bytes([cmd, len(test_msg)]) + test_msg)
     #recv_cmd = PiControlCmd(int.from_bytes(msg[0], "big")).name
 
-finally:
-    sock.close()
+def test_multiple_msgs(sock):
+    cmd = PiControlCmd.PI_CTRL_KEY_PRESS
+    msg = "Hello, world!"
+    for char in msg:
+        enc_char = char.encode("utf8")
+        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(enc_char), enc_char.hex()))
+        sock.send(bytes([cmd, len(enc_char)]) + enc_char)
+        
+def test_continuous_msgs(sock):
+    cmd = PiControlCmd.PI_CTRL_KEY_PRESS
+    while True:
+        char = getch().encode("utf8")
+        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char.hex()))
+        sock.send(bytes([cmd, len(char)]) + char)
+        
 
+if __name__ == "__main__":
+    sock = create_sock()
+    try:
+        #test_one_msg(sock)
+        #test_multiple_msgs(sock)
+        test_continuous_msgs(sock)
+    finally:
+        print("Closing socket...")
+        sock.close()
