@@ -38,6 +38,13 @@ int setup_server() {
 	return listenfd;
 }
 
+void print_err_hex(char *msg) {
+	while (*msg) {
+		fprintf(stderr, "%02x", (unsigned int) *msg++);
+	}
+	fprintf(stderr, "\n");
+}
+
 
 int main(int argc, char **argv) {
 	int listenfd = setup_server();
@@ -54,57 +61,64 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	int connfd, n;
+	int connfd, n, cmd;
+	uint8_t payload_size; 
 	uint8_t recvline[MAX_BUF+1]; // Receive buffer
 
+	while(1) {
+		connfd = accept(listenfd, (struct sockaddr *)NULL, NULL);
+		
+		// Zero out the receive and internal buffers to ensure that they are null-terminated
+		memset(recvline, 0, MAX_BUF);
 
-	// Zero out the send and receive buffers to ensure that they are null-terminated
-	memset(recvline, 0, MAX_BUF);
+		// Read the incoming message
+		while ((n = read(connfd, recvline, MAX_BUF-1)) > 0) {
+			cmd = (int)recvline[0];
+			payload_size = (uint8_t)recvline[1];
 
-	//while(1) {
-	connfd = accept(listenfd, (struct sockaddr *)NULL, NULL);
+			// Set the next byte after to 0 in case the last received msg was longer than this one
+			*(&recvline[2] + n) = '\0';
 
-	// Read the incoming message
-	while ((n = read(connfd, recvline, MAX_BUF-1)) > 0) {
-		int cmd = (int)recvline[0];
-		int payload_size = (int)recvline[1];
+			printf("Command (1st byte): 0x%x\n", recvline[0]);
+			printf("Payload size (2nd byte): 0x%x\n", recvline[1]);
+			switch (cmd) {
+				case PI_CTRL_KEY_PRESS:
+					// Need to send the payload length since UTF-8 chars can be more than 1 byte long
+					printf("Size: %d bytes = %d ASCII chars\n", payload_size, (int)(payload_size/sizeof(uint8_t)));
+					printf("%.*s|<-\n", payload_size, &recvline[2]);
+					xdo_enter_text_window(xdo, CURRENTWINDOW, &recvline[2], 40000);
+					break;
+				default:
+					printf("Invalid test. Message is not formatted correctly.\n");
+			}
 
-		printf("Command (1st byte): 0x%x\n", recvline[0]);
-		printf("Payload size (2nd byte): 0x%x\n", recvline[1]);
-		switch (cmd) {
-			case PI_CTRL_KEY_PRESS:
-				// Need to send the payload length since UTF-8 chars can be more than 1 byte long
-				printf("Size: %d bytes = %d ASCII chars\n", payload_size, (int)(payload_size/sizeof(uint8_t)));
-				printf("%.*s|<-\n", payload_size, &recvline[2]);
-				xdo_enter_text_window(xdo, CURRENTWINDOW, &recvline[2], 40000);
-				break;
-			default:
-				printf("Invalid test. Message is not formatted correctly.\n");
+			// TODO: Find a way to break once we know the message is finished.
+			// For testing, we'll assume that strlen(recvline) < MAX_BUF
+			//break;
+
+			// When we do the above TODO, we need to clear the buffer on the next read
+			// memset(recvline, 0, MAX_BUF);
 		}
 
-		// TODO: Find a way to break once we know the message is finished.
-		// For testing, we'll assume that strlen(recvline) < MAX_BUF
-		break;
+		// They disconnected?
+		if (n < 0) {
+			fprintf(stderr, "Error reading from socket into buffer.\n");
+			return 1;
+		}
 
-		// When we do the above TODO, we need to clear the buffer on the next read
-		// memset(recvline, 0, MAX_BUF);
-	}
+		/*
+		// Close listening socket
+		if ((close(listenfd)) < 0) {
+			fprintf(stderr, "Error closing the listening socket.\n");
+			return 1;
+		}
+		*/
+		if ((close(connfd)) < 0) {
+			fprintf(stderr, "Error closing the new socket.\n");
+			return 1;
+		}
 
-	if (n < 0) {
-		fprintf(stderr, "Error reading from socket into buffer.\n");
-		return 1;
 	}
-
-	if ((close(listenfd)) < 0) {
-		fprintf(stderr, "Error closing the listening socket.\n");
-		return 1;
-	}
-	if ((close(connfd)) < 0) {
-		fprintf(stderr, "Error closing the new socket.\n");
-		return 1;
-	}
-
-	//}
 
 	return 0;
 }
