@@ -62,12 +62,20 @@ class PiControlCmd(IntEnum):
         PI_CTRL_MOUSE_CLK  = auto() # Client: Say to click (mouseup, then mousedown) mouse (no data required)
         PI_CTRL_KEY_PRESS  = auto() # Client: Send UTF-8 value of key to be pressed (details TBD)
 
-ADDR = "localhost"
 PORT = 14741
 
-def create_sock():
+def parse_args():
+    #TODO: maybe use argparse module
+    num_args = 1
+    if len(sys.argv) != num_args + 1: # +1 since first arg is the filename
+        print("Usage: python3 test_server.py <ADDRESS>")
+        sys.exit(1)
+
+    return sys.argv[1:]
+
+def create_sock(addr):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serv_addr = (ADDR, PORT)
+    serv_addr = (addr, PORT)
     sock.connect(serv_addr)
 
     return sock
@@ -113,10 +121,13 @@ def test_mouse_move(sock):
         print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(rel_mv), rel_mv.hex()))
         sock.send(bytes([cmd, len(rel_mv)]) + rel_mv)
 
-        time.sleep(0.01)
+        time.sleep(0.1)
 
 if __name__ == "__main__":
-    sock = create_sock()
+    args = parse_args()
+
+    addr = args[0]
+    sock = create_sock(addr)
     try:
         #test_one_msg(sock)
         #test_multiple_msgs(sock)
