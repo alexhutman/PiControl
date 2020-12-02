@@ -102,13 +102,24 @@ def test_continuous_msgs(sock):
         print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char.hex()))
         sock.send(bytes([cmd, len(char)]) + char)
         
+def test_mouse_move(sock):
+    cmd = PiControlCmd.PI_CTRL_MOUSE_MV
+    rel_x, rel_y = 1, 1
+
+    rel_mv = rel_x.to_bytes(1, 'big') + rel_y.to_bytes(1, 'big')
+    while True:
+        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(rel_mv), rel_mv.hex()))
+        sock.send(bytes([cmd, len(rel_mv)]) + rel_mv)
+
+        time.sleep(0.01)
 
 if __name__ == "__main__":
     sock = create_sock()
     try:
         #test_one_msg(sock)
         #test_multiple_msgs(sock)
-        test_continuous_msgs(sock)
+        #test_continuous_msgs(sock)
+        test_mouse_move(sock)
     finally:
         print("Closing socket...")
         sock.close()
