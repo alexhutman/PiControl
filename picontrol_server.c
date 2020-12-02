@@ -61,8 +61,9 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	int connfd, n, cmd;
-	uint8_t payload_size; 
+	int connfd, n;
+	uint_fast8_t cmd, payload_size;
+	int_fast8_t relX, relY;
 	uint8_t recvline[MAX_BUF+1]; // Receive buffer
 
 	while(1) {
@@ -73,8 +74,8 @@ int main(int argc, char **argv) {
 
 		// Read the incoming message
 		while ((n = read(connfd, recvline, MAX_BUF-1)) > 0) {
-			cmd = (int)recvline[0];
-			payload_size = (uint8_t)recvline[1];
+			cmd = (uint_fast8_t)recvline[0];
+			payload_size = (uint_fast8_t)recvline[1];
 
 			// Set the next byte after to 0 in case the last received msg was longer than this one
 			*(&recvline[2] + n) = '\0';
@@ -82,9 +83,24 @@ int main(int argc, char **argv) {
 			printf("Command (1st byte): 0x%x\n", recvline[0]);
 			printf("Payload size (2nd byte): 0x%x\n", recvline[1]);
 			switch (cmd) {
+				case PI_CTRL_MOUSE_MV:
+					// If the payload size is 2 bytes long, we can extract the relative X and Y mouse locations to move by
+					if (payload_size == 2) {
+						relX = (int_fast8_t)recvline[3];
+						relY = (int_fast8_t)recvline[4];
+
+						if (xdo_move_mouse_relative(xdo, relX, relY) != 0) {
+							fprintf(stderr, "Mouse was unable to be moved (%d, %d) relative units.\n", relX, relY);
+						}
+					}
+					else {
+						fprintf(stderr, "A PI_CTRL_MOUSE_MV message was sent with a %u byte payload instead"
+								"of a 2 byte payload.\n", payload_size);
+					}
+					break;
 				case PI_CTRL_KEY_PRESS:
 					// Need to send the payload length since UTF-8 chars can be more than 1 byte long
-					printf("Size: %d bytes = %d ASCII chars\n", payload_size, (int)(payload_size/sizeof(uint8_t)));
+					printf("Size: %u bytes = %d ASCII chars\n", payload_size, (int)(payload_size/sizeof(uint8_t)));
 					printf("%.*s|<-\n", payload_size, &recvline[2]);
 					xdo_enter_text_window(xdo, CURRENTWINDOW, &recvline[2], 40000);
 					break;
