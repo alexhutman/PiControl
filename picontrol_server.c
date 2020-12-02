@@ -95,8 +95,8 @@ int main(int argc, char **argv) {
 				case PI_CTRL_MOUSE_MV:
 					// If the payload size is 2 bytes long, we can extract the relative X and Y mouse locations to move by
 					if (payload_size == 2) {
-						relX = (int_fast8_t)recvline[3];
-						relY = (int_fast8_t)recvline[4];
+						relX = (int_fast8_t)recvline[2];
+						relY = (int_fast8_t)recvline[3];
 						printf("Moving mouse (%d, %d) relative units.\n\n", relX, relY);
 
 						if (xdo_move_mouse_relative(xdo, relX, relY) != 0) {
