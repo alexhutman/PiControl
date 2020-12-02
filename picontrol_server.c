@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
 			for (i = 0; i < payload_size; i++) {
 				printf("%02x", recvline[2 + i]);
 			}
-			printf("\n\n");
+			printf("\n");
 
 			switch (cmd) {
 				case PI_CTRL_MOUSE_MV:
@@ -97,6 +97,7 @@ int main(int argc, char **argv) {
 					if (payload_size == 2) {
 						relX = (int_fast8_t)recvline[3];
 						relY = (int_fast8_t)recvline[4];
+						printf("Moving mouse (%d, %d) relative units.\n\n", relX, relY);
 
 						if (xdo_move_mouse_relative(xdo, relX, relY) != 0) {
 							fprintf(stderr, "Mouse was unable to be moved (%d, %d) relative units.\n", relX, relY);
@@ -109,7 +110,7 @@ int main(int argc, char **argv) {
 					break;
 				case PI_CTRL_KEY_PRESS:
 					// Need to send the payload length since UTF-8 chars can be more than 1 byte long
-					printf("%.*s|<-\n", payload_size, &recvline[2]);
+					printf("%.*s|<-\n\n", payload_size, &recvline[2]);
 					xdo_enter_text_window(xdo, CURRENTWINDOW, &recvline[2], 40000);
 					break;
 				default:
