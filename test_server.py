@@ -98,9 +98,11 @@ def test_multiple_msgs(sock):
 def test_continuous_msgs(sock):
     cmd = PiControlCmd.PI_CTRL_KEY_PRESS
     while True:
-        char = getch().encode("utf8")
-        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char.hex()))
-        sock.send(bytes([cmd, len(char)]) + char)
+        char = getch()
+        enc_char = char.encode("utf8")
+        #print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(enc_char), char))
+        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(enc_char), char))
+        sock.send(bytes([cmd, len(enc_char)]) + enc_char)
         
 
 if __name__ == "__main__":
