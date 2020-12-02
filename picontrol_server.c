@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	int connfd, n;
+	int connfd, n, i;
 	uint_fast8_t cmd, payload_size;
 	int_fast8_t relX, relY;
 	uint8_t recvline[MAX_BUF+1]; // Receive buffer
@@ -74,6 +74,7 @@ int main(int argc, char **argv) {
 
 		// Read the incoming message
 		while ((n = read(connfd, recvline, MAX_BUF-1)) > 0) {
+			// TODO: maybe decide to make everything big endian for a standard
 			cmd = (uint_fast8_t)recvline[0];
 			payload_size = (uint_fast8_t)recvline[1];
 
@@ -81,7 +82,15 @@ int main(int argc, char **argv) {
 			*(&recvline[2] + n) = '\0';
 
 			printf("Command (1st byte): 0x%x\n", recvline[0]);
+
 			printf("Payload size (2nd byte): 0x%x\n", recvline[1]);
+
+			printf("Payload (hex): 0x");
+			for (i = 0; i < payload_size; i++) {
+				printf("%02x", recvline[2 + i]);
+			}
+			printf("\n\n");
+
 			switch (cmd) {
 				case PI_CTRL_MOUSE_MV:
 					// If the payload size is 2 bytes long, we can extract the relative X and Y mouse locations to move by
@@ -100,7 +109,6 @@ int main(int argc, char **argv) {
 					break;
 				case PI_CTRL_KEY_PRESS:
 					// Need to send the payload length since UTF-8 chars can be more than 1 byte long
-					printf("Size: %u bytes = %d ASCII chars\n", payload_size, (int)(payload_size/sizeof(uint8_t)));
 					printf("%.*s|<-\n", payload_size, &recvline[2]);
 					xdo_enter_text_window(xdo, CURRENTWINDOW, &recvline[2], 40000);
 					break;
