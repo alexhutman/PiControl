@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <netdb.h>
+#include <netinet/in.h>
+#include <net/if.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
