@@ -111,6 +111,15 @@ def test_continuous_msgs(sock):
         #print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(enc_char), char))
         print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(enc_char), char))
         sock.send(bytes([cmd, len(enc_char)]) + enc_char)
+
+def test_russian(sock):
+    cmd = PiControlCmd.PI_CTRL_KEY_PRESS
+    for char in "Здравствуйте":
+        enc_char = char.encode("utf8")
+        #print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(enc_char), char))
+        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(enc_char), char))
+        sock.send(bytes([cmd, len(enc_char)]) + enc_char)
+        time.sleep(0.3)
         
 def test_mouse_move(sock):
     cmd = PiControlCmd.PI_CTRL_MOUSE_MV
@@ -132,7 +141,8 @@ if __name__ == "__main__":
         #test_one_msg(sock)
         #test_multiple_msgs(sock)
         #test_continuous_msgs(sock)
-        test_mouse_move(sock)
+        #test_mouse_move(sock)
+        test_russian(sock)
     finally:
         print("Closing socket...")
         sock.close()
