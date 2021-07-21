@@ -11,11 +11,11 @@ class _Getch:
 
     def __call__(self): 
         char = self.impl()
-        if char in ['\x03', b'\x03']:
+        if char == b'\x03':
             raise KeyboardInterrupt
-        elif char in ['\x04', b'\x04']:
+        elif char == b'\x04':
             raise EOFError
-        return char if isinstance(char, bytes) else char.encode("utf8")
+        return char
 
 class _GetchUnix:
     def __init__(self):
@@ -33,7 +33,7 @@ class _GetchUnix:
             ch = sys.stdin.read(1)
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        return ch
+        return ch.encode("utf8")
 
 
 class _GetchWindows:
