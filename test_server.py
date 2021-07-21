@@ -1,13 +1,22 @@
+import socket
+import sys
+import time
+
+from enum import IntEnum, auto
+
 #######################################
 # Single character input - from https://stackoverflow.com/a/20865751
+try:
+    import msvcrt
+except ImportError:
+    import tty
+    import termios
+
 
 class _Getch:
     """Gets a single character from standard input.  Does not echo to the screen."""
     def __init__(self):
-        try:
-            self.impl = _GetchWindows()
-        except ImportError:
-            self.impl = _GetchUnix()
+        self.impl = _GetchWindows() if "msvcrt" in sys.modules else _GetchUnix()
 
     def __call__(self): 
         char = self.impl()
@@ -18,14 +27,7 @@ class _Getch:
         return char
 
 class _GetchUnix:
-    def __init__(self):
-        import tty
-        import sys
-
     def __call__(self):
-        import sys
-        import tty
-        import termios
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         try:
@@ -37,22 +39,12 @@ class _GetchUnix:
 
 
 class _GetchWindows:
-    def __init__(self):
-        import msvcrt
-
     def __call__(self):
-        import msvcrt
         return msvcrt.getch()
 
 
 getch = _Getch()
 #######################################
-
-import socket
-import sys
-import time
-
-from enum import IntEnum, auto
 
 class PiControlCmd(IntEnum):
         PI_CTRL_HEARTBEAT  = 0      # Client: Send heartbeat so server can disconnect if connection is lost
