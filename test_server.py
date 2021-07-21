@@ -11,11 +11,11 @@ class _Getch:
 
     def __call__(self): 
         char = self.impl()
-        if char == '\x03':
+        if char in ['\x03', b'\x03']:
             raise KeyboardInterrupt
-        elif char == '\x04':
+        elif char in ['\x04', b'\x04']:
             raise EOFError
-        return char
+        return char if isinstance(char, bytes) else char.encode("utf8")
 
 class _GetchUnix:
     def __init__(self):
@@ -99,27 +99,25 @@ def test_multiple_msgs(sock):
     cmd = PiControlCmd.PI_CTRL_KEY_PRESS
     msg = "Hello, world!"
     for char in msg:
-        enc_char = char.encode("utf8")
-        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(enc_char), enc_char.hex()))
-        sock.send(bytes([cmd, len(enc_char)]) + enc_char)
+        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char.hex()))
+        sock.send(bytes([cmd, len(char)]) + char)
+        time.sleep(0.3)
         
 def test_continuous_msgs(sock):
     cmd = PiControlCmd.PI_CTRL_KEY_PRESS
     while True:
         char = getch()
-        enc_char = char.encode("utf8")
-        #print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(enc_char), char))
-        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(enc_char), char))
-        sock.send(bytes([cmd, len(enc_char)]) + enc_char)
+        #print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char))
+        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char))
+        sock.send(bytes([cmd, len(char)]) + char)
 
 def test_russian(sock):
     cmd = PiControlCmd.PI_CTRL_KEY_PRESS
     for char in "Здравствуйте":
-        enc_char = char.encode("utf8")
-        #print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(enc_char), char))
-        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(enc_char), char))
-        sock.send(bytes([cmd, len(enc_char)]) + enc_char)
-        time.sleep(0.3)
+        #print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char))
+        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char))
+        sock.send(bytes([cmd, len(char)]) + char)
+        time.sleep(0.5)
         
 def test_mouse_move(sock):
     cmd = PiControlCmd.PI_CTRL_MOUSE_MV
@@ -140,9 +138,9 @@ if __name__ == "__main__":
     try:
         #test_one_msg(sock)
         #test_multiple_msgs(sock)
-        #test_continuous_msgs(sock)
+        test_continuous_msgs(sock)
         #test_mouse_move(sock)
-        test_russian(sock)
+        #test_russian(sock)
     finally:
         print("Closing socket...")
         sock.close()
