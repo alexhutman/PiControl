@@ -12,18 +12,13 @@ OBJS   = picontrol.o \
 NAME   = picontrol
 SERVER = picontrol_server
 
-#$(NAME): $(NAME).o
-#$(CC) -o $@ $< -l $(LIBS)
-
 .PHONY: test_xdo
 test_xdo: $(NAME).o
 	$(CC) -o $(NAME) $(NAME).o -l $(LIBS)
 
-#$(SERVER): $(SERVER).o
-#$(CC) -o $@ $< -l $(LIBS)
 .PHONY: test_server
-test_server: $(SERVER).o
-	$(CC) -o $(SERVER) $(SERVER).o -l $(LIBS)
+test_server: $(NAME)_iputils.o $(SERVER).o
+	$(CC) -o $(SERVER) $^ -l $(LIBS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $<
