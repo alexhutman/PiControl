@@ -1,5 +1,5 @@
 CC     = gcc
-CFLAGS = -O2
+CFLAGS = -O3
 LIBS   = xdo
 
 ifdef DEBUG
