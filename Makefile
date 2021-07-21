@@ -1,5 +1,10 @@
 CC     = gcc
+CFLAGS = -O2
 LIBS   = xdo
+
+ifdef DEBUG
+	override CFLAGS += -DPI_CTRL_DEBUG
+endif
 
 OBJS   = picontrol.o \
        #other objs here
@@ -21,7 +26,7 @@ test_server: $(SERVER).o
 	$(CC) -o $(SERVER) $(SERVER).o -l $(LIBS)
 
 %.o: %.c
-	$(CC) -c $<
+	$(CC) $(CFLAGS) -c $<
 
 .PHONY: clean
 clean:

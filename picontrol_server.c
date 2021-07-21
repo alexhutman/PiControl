@@ -137,6 +137,7 @@ int main(int argc, char **argv) {
 			// Set the next byte after to 0 in case the last received msg was longer than this one
 			*(&recvline[2] + n) = '\0';
 
+#ifdef PI_CTRL_DEBUG
 			printf("Command (1st byte): 0x%x\n", recvline[0]);
 
 			printf("Payload size (2nd byte): 0x%x\n", recvline[1]);
@@ -146,6 +147,7 @@ int main(int argc, char **argv) {
 				printf("%02x", recvline[2 + i]);
 			}
 			printf("\n");
+#endif
 
 			switch (cmd) {
 				case PI_CTRL_MOUSE_MV:
@@ -153,7 +155,9 @@ int main(int argc, char **argv) {
 					if (payload_size == 2) {
 						relX = (int_fast8_t)recvline[2];
 						relY = (int_fast8_t)recvline[3];
+#ifdef PI_CTRL_DEBUG
 						printf("Moving mouse (%d, %d) relative units.\n\n", relX, relY);
+#endif
 
 						if (xdo_move_mouse_relative(xdo, relX, relY) != 0) {
 							fprintf(stderr, "Mouse was unable to be moved (%d, %d) relative units.\n", relX, relY);
@@ -166,7 +170,9 @@ int main(int argc, char **argv) {
 					break;
 				case PI_CTRL_KEY_PRESS:
 					// Need to send the payload length since UTF-8 chars can be more than 1 byte long
+#ifdef PI_CTRL_DEBUG
 					printf("%.*s|<-\n\n", payload_size, &recvline[2]);
+#endif
 					xdo_enter_text_window(xdo, CURRENTWINDOW, &recvline[2], 40000);
 					break;
 				default:
