@@ -1,4 +1,12 @@
+#include <arpa/inet.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 // Adapted from https://stackoverflow.com/a/2283541/6708303
 char *iface_ip_address(const char *interface) {
