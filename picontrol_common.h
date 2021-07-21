@@ -1,28 +1,6 @@
 #ifndef _PICTRL_COMMON_H
 #define _PICTRL_COMMON_H
 
-// Includes
-#include <arpa/inet.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <inttypes.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <net/if.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#include "picontrol_iputils.h"
-
-
-
 // Constants
 #define SERVER_PORT      14741
 #define MAX_BUF          4096
