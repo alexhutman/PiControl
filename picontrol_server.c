@@ -20,14 +20,24 @@
 #include "picontrol_iputils.h"
 
 
+#ifndef PICONTROL_ERR_EXIT_RET
+#define PICONTROL_ERR_EXIT_RET(ret, msg...) \
+	fprintf(stderr, msg);    \
+	return ret
+#endif
+
+#ifndef PICONTROL_ERR_EXIT
+#define PICONTROL_ERR_EXIT(msg...) PICONTROL_ERR_EXIT_RET(1, msg)
+#endif
+
+
 int setup_server() {
 	int listenfd; 
 	struct sockaddr_in servaddr;
 
 	if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		// TODO: for all of the error messages, print the error message associated with errno
-		fprintf(stderr, "Error creating socket.\n");
-		return -1;
+		PICONTROL_ERR_EXIT_RET(-1, "Error creating socket.\n");
 	}
 
 	memset(&servaddr, 0, sizeof(servaddr));
@@ -36,16 +46,14 @@ int setup_server() {
 	servaddr.sin_port = htons(SERVER_PORT);
 
 	if ((bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) < 0) {
-		fprintf(stderr, "Couldn't bind socket to %" PRIu32 ":%d.\n", INADDR_ANY, SERVER_PORT);
-		close(listenfd);
 		// TODO: Convert the address to a string
-		return -1;
+		close(listenfd);
+		PICONTROL_ERR_EXIT_RET(-1, "Couldn't bind socket to %" PRIu32 ":%d.\n", INADDR_ANY, SERVER_PORT);
 	}
 
 	if ((listen(listenfd, MAX_CONNS)) < 0) {
-		fprintf(stderr, "Error listening to the socket.\n");
 		close(listenfd);
-		return -1;
+		PICONTROL_ERR_EXIT_RET(-1, "Error listening to the socket.\n");
 	}
 
 	return listenfd;
@@ -61,8 +69,7 @@ void print_err_hex(char *msg) {
 int main(int argc, char **argv) {
 	char *ip = get_ip_address();
 	if (ip == NULL) {
-		fprintf(stderr, "You are not connected to the internet.\n");
-		return -1;
+		PICONTROL_ERR_EXIT("You are not connected to the internet.\n");
 	}
 
 	printf("Connect at: %s\n", ip);
@@ -77,9 +84,8 @@ int main(int argc, char **argv) {
 	const char *display = getenv("DISPLAY");
 	xdo_t *xdo = xdo_new(display);
 	if (xdo == NULL) {
-		printf("Unable to create xdo_t instance\n");
 		xdo_free(xdo);
-		return 1;
+		PICONTROL_ERR_EXIT("Unable to create xdo_t instance\n");
 	}
 
 	int connfd, n, i;
@@ -154,20 +160,17 @@ int main(int argc, char **argv) {
 
 		// They disconnected?
 		if (n < 0) {
-			fprintf(stderr, "Error reading from socket into buffer.\n");
-			return 1;
+			PICONTROL_ERR_EXIT("Error reading from socket into buffer.\n");
 		}
 
 		/*
 		// Close listening socket
 		if ((close(listenfd)) < 0) {
-			fprintf(stderr, "Error closing the listening socket.\n");
-			return 1;
+			PICONTROL_ERR_EXIT("Error closing the listening socket.\n");
 		}
 		*/
 		if ((close(connfd)) < 0) {
-			fprintf(stderr, "Error closing the new socket.\n");
-			return 1;
+			PICONTROL_ERR_EXIT("Error closing the new socket.\n");
 		}
 
 	}
