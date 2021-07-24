@@ -5,6 +5,7 @@
  */
 
 // Includes
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <netinet/in.h>
@@ -89,12 +90,21 @@ int main(int argc, char **argv) {
 	}
 
 	int connfd, n, i;
+
+	struct sockaddr_in client;                                   // Client struct
+	socklen_t client_sz = (socklen_t)sizeof(struct sockaddr_in); // Client struct size
+	char *client_ip;                                             // Client IP string
+	int client_port;                                             // Client port number
+
 	uint_fast8_t cmd, payload_size;
 	int_fast8_t relX, relY;
 	uint8_t recvline[MAX_BUF+1]; // Receive buffer
 
 	while(1) {
-		connfd = accept(listenfd, (struct sockaddr *)NULL, NULL);
+		connfd = accept(listenfd, (struct sockaddr *)&client, &client_sz);
+		client_ip = inet_ntoa(client.sin_addr);
+		client_port = ntohs(client.sin_port);
+		printf("Client at %s:%d connected.\n", client_ip, client_port);
 		
 		// Zero out the receive and internal buffers to ensure that they are null-terminated
 		memset(recvline, 0, MAX_BUF);
@@ -158,7 +168,8 @@ int main(int argc, char **argv) {
 			// memset(recvline, 0, MAX_BUF);
 		}
 
-		// They disconnected?
+		printf("Client at %s:%d disconnected.\n", client_ip, client_port);
+
 		if (n < 0) {
 			PICONTROL_ERR_EXIT("Error reading from socket into buffer.\n");
 		}
