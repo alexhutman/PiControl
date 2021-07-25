@@ -156,6 +156,12 @@ int main(int argc, char **argv) {
 #endif
 					xdo_enter_text_window(xdo, CURRENTWINDOW, &recvline[2], 10000);
 					break;
+				case PI_CTRL_KEYSYM:
+#ifdef PI_CTRL_DEBUG
+					printf("%.*s|<-\n\n", payload_size, &recvline[2]);
+#endif
+					xdo_send_keysequence_window(xdo, CURRENTWINDOW, &recvline[2], 10000);
+					break;
 				default:
 					printf("Invalid test. Message is not formatted correctly.\n");
 			}

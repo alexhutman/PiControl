@@ -53,6 +53,7 @@ class PiControlCmd(IntEnum):
         PI_CTRL_MOUSE_UP   = auto() # Client: Say to press mouse up (no data required)
         PI_CTRL_MOUSE_CLK  = auto() # Client: Say to click (mouseup, then mousedown) mouse (no data required)
         PI_CTRL_KEY_PRESS  = auto() # Client: Send UTF-8 value of key to be pressed (details TBD)
+        PI_CTRL_KEYSYM     = auto() # Client: Send keysym (combination)
 
 PORT = 14741
 
@@ -122,6 +123,12 @@ def test_mouse_move(sock):
 
         time.sleep(0.1)
 
+def test_keysym(sock):
+    cmd = PiControlCmd.PI_CTRL_KEYSYM
+    msg = "Ctrl+A".encode("utf8")
+    print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(msg), msg))
+    sock.send(bytes([cmd, len(msg)]) + msg)
+
 if __name__ == "__main__":
     args = parse_args()
 
@@ -130,7 +137,8 @@ if __name__ == "__main__":
     try:
         #test_one_msg(sock)
         #test_multiple_msgs(sock)
-        test_continuous_msgs(sock)
+        #test_continuous_msgs(sock)
+        test_keysym(sock)
         #test_mouse_move(sock)
         #test_russian(sock)
     finally:
