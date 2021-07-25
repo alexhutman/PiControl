@@ -125,7 +125,7 @@ def test_mouse_move(sock):
 
 def test_keysym(sock):
     cmd = PiControlCmd.PI_CTRL_KEYSYM
-    msg = "Ctrl+A".encode("utf8")
+    msg = "Ctrl+a".encode("utf8")
     print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(msg), msg))
     sock.send(bytes([cmd, len(msg)]) + msg)
 
