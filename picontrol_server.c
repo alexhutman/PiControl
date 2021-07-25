@@ -152,13 +152,13 @@ int main(int argc, char **argv) {
 				case PI_CTRL_KEY_PRESS:
 					// Need to send the payload length since UTF-8 chars can be more than 1 byte long
 #ifdef PI_CTRL_DEBUG
-					printf("%.*s|<-\n\n", payload_size, &recvline[2]);
+					printf("KEYPRESS: %.*s|<-\n\n", payload_size, &recvline[2]);
 #endif
 					xdo_enter_text_window(xdo, CURRENTWINDOW, &recvline[2], 10000);
 					break;
 				case PI_CTRL_KEYSYM:
 #ifdef PI_CTRL_DEBUG
-					printf("%.*s|<-\n\n", payload_size, &recvline[2]);
+					printf("KEYSYM: %.*s|<-\n\n", payload_size, &recvline[2]);
 #endif
 					xdo_send_keysequence_window(xdo, CURRENTWINDOW, &recvline[2], 10000);
 					break;
