@@ -1,0 +1,27 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+.main {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+}
+
+.main .textbox {
+	flex: 0 1 auto;
+}
+
+.main canvas {
+	flex: 1 1 auto;
+	height: 100%;
+	width: 100%;
+}
+
+.textbox input {
+	height: 100%;
+	width: 100%;
+	font-size: 2em;
+}
