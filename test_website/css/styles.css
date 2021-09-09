@@ -10,18 +10,11 @@ body {
   height: 100%;
 }
 
-.main .textbox {
-	flex: 0 1 auto;
-}
-
 .main canvas {
-	flex: 1 1 auto;
-	height: 100%;
-	width: 100%;
+  flex-grow: 1;
 }
 
-.textbox input {
-	height: 100%;
+.textbox {
 	width: 100%;
 	font-size: 2em;
 }
