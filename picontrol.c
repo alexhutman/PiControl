@@ -106,7 +106,7 @@ int create_uinput_fd() {
 	// Enable device to pass key events
 	ioctl(fd, UI_SET_EVBIT, EV_KEY);
 	for (int i=0; i < (sizeof(valid_keys)/sizeof(int)); i++) {
-		ioctl(fd, UI_SET_EVBIT, valid_keys[i]);
+		ioctl(fd, UI_SET_KEYBIT, valid_keys[i]);
 	}
 
 	// Enable left, right mouse button clicks, touchpad taps
@@ -136,14 +136,14 @@ int destroy_uinput_fd(int fd) {
 	return (ioctl(fd, UI_DEV_DESTROY) >= 0 && close(fd) >= 0) ? 0 : -1;
 }
 
-inline ssize_t emit(int fd, int type, int code, int val) {
-	struct input_event ie;
-
-	ie.type = type;
-	ie.code = code;
-	ie.value = val;
-	ie.time.tv_sec = 0;
-	ie.time.tv_usec = 0;
+ssize_t emit(int fd, int type, int code, int val) {
+	struct input_event ie = {
+		.type = type,
+		.code = code,
+		.value = val,
+		.time.tv_sec = 0,
+		.time.tv_usec = 0
+	};
 
 	return write(fd, &ie, sizeof(ie));
 }
@@ -155,7 +155,6 @@ void test_mv_mouse(int fd) {
 		emit(fd, EV_REL, REL_X, 5);
 		emit(fd, EV_REL, REL_Y, 5);
 		emit(fd, EV_SYN, SYN_REPORT, 0);
-		usleep(15000);
 	}
 }
 
@@ -165,6 +164,16 @@ void test_type(int fd) {
 	//uint8_t test_char[3] = {0xD0, 0xB8, 0};
 	//char *test_char = "\xd0\xb8";
 	//char test_char[] = {"U0438"};
+
+	/*
+	// Ctrl+C
+	emit(fd, EV_KEY, KEY_LEFTCTRL, 1);
+	emit(fd, EV_KEY, KEY_C, 1);
+	emit(fd, EV_SYN, SYN_REPORT, 0);
+	emit(fd, EV_KEY, KEY_LEFTCTRL, 0);
+	emit(fd, EV_KEY, KEY_C, 0);
+	emit(fd, EV_SYN, SYN_REPORT, 0);
+	*/
 
 	const int test_str[] = {KEY_H, KEY_E, KEY_L, KEY_L, KEY_O, KEY_SPACE, KEY_W, KEY_O, KEY_R, KEY_L, KEY_D};
 	for (int i=0; i < (sizeof(test_str)/sizeof(int)); i++) {
@@ -182,10 +191,13 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 	sleep(1);
+	printf("Created virtual keyboard\n");
 
 	test_mv_mouse(uinput_fd);
+	printf("Typing...\n");
 	test_type(uinput_fd);
 
+	printf("Closing fd\n");
 	sleep(1);
 	if (destroy_uinput_fd(uinput_fd) < 0) {
 		fprintf(stderr, "Couldn't close PiControl virtual keyboard.\n");
