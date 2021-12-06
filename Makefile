@@ -1,6 +1,7 @@
-CC     = gcc
-CFLAGS = -O3
-LIBS   = xdo
+CC             = gcc
+CFLAGS         = -O3
+LIBS           =
+LIBS_FLAG_ARGS := $(if $(strip $(LIBS)),-l $(LIBS),)
 
 ifdef DEBUG
 	override CFLAGS += -DPI_CTRL_DEBUG
@@ -13,10 +14,10 @@ NAME   = picontrol
 SERVER = picontrol_server
 
 test_xdo: $(NAME).o
-	$(CC) -o $(NAME) $(NAME).o -l $(LIBS)
+	$(CC) -o $(NAME) $(NAME).o $(LIBS_FLAG_ARGS)
 
 test_server: $(NAME)_iputils.o $(SERVER).o
-	$(CC) -o $(SERVER) $^ -l $(LIBS)
+	$(CC) -o $(SERVER) $^ $(LIBS_FLAG_ARGS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $<
