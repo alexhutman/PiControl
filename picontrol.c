@@ -283,6 +283,24 @@ ssize_t emit(int fd, int type, int code, int val) {
 	return write(fd, &ie, sizeof(ie));
 }
 
+void type_char(int fd, char c) {
+	// Key down
+	printf("Trying to type %c  (0x%x)...\n", c, c);
+
+	int i = 0;
+	while (ascii_to_scancodes[c][i] != INT_MIN) {
+		emit(fd, EV_KEY, ascii_to_scancodes[c][i++], 1);
+	}
+	emit(fd, EV_SYN, SYN_REPORT, 0);
+
+	// Key up
+	i = 0;
+	while (ascii_to_scancodes[c][i] != INT_MIN) {
+		emit(fd, EV_KEY, ascii_to_scancodes[c][i++], 0);
+	}
+	emit(fd, EV_SYN, SYN_REPORT, 0);
+}
+
 void test_mv_mouse(int fd) {
 	int i = 50;
 	while (i--) {
@@ -327,24 +345,18 @@ void test_all_ascii_chars(int fd) {
 		}
 		printf("Trying to type %c  (0x%x)...\n", (char)i, i);
 
-		// Key down
-		j = 0;
-		while (ascii_to_scancodes[i][j] != INT_MIN) {
-			emit(fd, EV_KEY, ascii_to_scancodes[i][j], 1);
-			j++;
-		}
-		emit(fd, EV_SYN, SYN_REPORT, 0);
+		type_char(fd, (char)i);
 
-		// Key up
-		j = 0;
-		while (ascii_to_scancodes[i][j] != INT_MIN) {
-			emit(fd, EV_KEY, ascii_to_scancodes[i][j], 0);
-			j++;
-		}
-		emit(fd, EV_SYN, SYN_REPORT, 0);
+		sleep(1);
 	}
 }
 
+void test_print_str(int fd, char *str) {
+	char *p = str;
+	while (*p) {
+		type_char(fd, *p++);
+	}
+}
 
 int main(int argc, char **argv) {
 	int uinput_fd = create_uinput_fd();
@@ -359,6 +371,7 @@ int main(int argc, char **argv) {
 	printf("Typing...\n");
 	test_type(uinput_fd);
 	test_all_ascii_chars(uinput_fd);
+	test_print_str(uinput_fd, "Hello world!");
 
 	printf("Closing fd\n");
 	sleep(1);
