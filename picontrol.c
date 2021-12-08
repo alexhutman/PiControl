@@ -1,5 +1,6 @@
 #include <fcntl.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <linux/uinput.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,6 +91,140 @@ const int valid_keys[] = {
 	KEY_LEFTMETA
 };
 
+// Index = ascii char, entry = keyscan combination to produce the ascii
+// Ex. ascii_to_scancodes[(unsigned int)"H" = 0x48] = [KEY_LEFTSHIFT, KEY_H]
+// Each array is terminated by INT_MIN (stupid hack, probably a better way)
+const int ascii_to_scancodes[][3] = {
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{KEY_BACKSPACE, INT_MIN},
+	{KEY_TAB, INT_MIN},
+	{KEY_ENTER, INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{KEY_ESC, INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{INT_MIN},
+	{KEY_SPACE, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_1, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_APOSTROPHE, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_3, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_4, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_5, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_7, INT_MIN},
+	{KEY_APOSTROPHE, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_9, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_0, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_8, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_EQUAL, INT_MIN},
+	{KEY_COMMA, INT_MIN},
+	{KEY_MINUS, INT_MIN},
+	{KEY_DOT, INT_MIN},
+	{KEY_SLASH, INT_MIN},
+	{KEY_0, INT_MIN},
+	{KEY_1, INT_MIN},
+	{KEY_2, INT_MIN},
+	{KEY_3, INT_MIN},
+	{KEY_4, INT_MIN},
+	{KEY_5, INT_MIN},
+	{KEY_6, INT_MIN},
+	{KEY_7, INT_MIN},
+	{KEY_8, INT_MIN},
+	{KEY_9, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_SEMICOLON, INT_MIN},
+	{KEY_SEMICOLON, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_COMMA, INT_MIN},
+	{KEY_EQUAL, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_DOT, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_SLASH, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_2, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_A, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_B, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_C, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_D, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_E, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_F, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_G, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_H, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_I, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_J, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_K, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_L, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_M, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_N, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_O, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_P, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_Q, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_R, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_S, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_T, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_U, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_V, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_W, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_X, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_Y, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_Z, INT_MIN},
+	{KEY_LEFTBRACE, INT_MIN},
+	{KEY_BACKSLASH, INT_MIN},
+	{KEY_RIGHTBRACE, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_6, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_MINUS, INT_MIN},
+	{KEY_GRAVE, INT_MIN},
+	{KEY_A, INT_MIN},
+	{KEY_B, INT_MIN},
+	{KEY_C, INT_MIN},
+	{KEY_D, INT_MIN},
+	{KEY_E, INT_MIN},
+	{KEY_F, INT_MIN},
+	{KEY_G, INT_MIN},
+	{KEY_H, INT_MIN},
+	{KEY_I, INT_MIN},
+	{KEY_J, INT_MIN},
+	{KEY_K, INT_MIN},
+	{KEY_L, INT_MIN},
+	{KEY_M, INT_MIN},
+	{KEY_N, INT_MIN},
+	{KEY_O, INT_MIN},
+	{KEY_P, INT_MIN},
+	{KEY_Q, INT_MIN},
+	{KEY_R, INT_MIN},
+	{KEY_S, INT_MIN},
+	{KEY_T, INT_MIN},
+	{KEY_U, INT_MIN},
+	{KEY_V, INT_MIN},
+	{KEY_W, INT_MIN},
+	{KEY_X, INT_MIN},
+	{KEY_Y, INT_MIN},
+	{KEY_Z, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_LEFTBRACE, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_BACKSLASH, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_RIGHTBRACE, INT_MIN},
+	{KEY_LEFTSHIFT, KEY_GRAVE, INT_MIN},
+	{INT_MIN}
+};
+
 int create_uinput_fd() {
 	static struct uinput_setup usetup = {
 		.id.bustype = BUS_USB,
@@ -105,7 +240,7 @@ int create_uinput_fd() {
 
 	// Enable device to pass key events
 	ioctl(fd, UI_SET_EVBIT, EV_KEY);
-	for (int i=0; i < (sizeof(valid_keys)/sizeof(int)); i++) {
+	for (int i=0; i < (sizeof(valid_keys)/sizeof(valid_keys[0])); i++) {
 		ioctl(fd, UI_SET_KEYBIT, valid_keys[i]);
 	}
 
@@ -176,13 +311,40 @@ void test_type(int fd) {
 	*/
 
 	const int test_str[] = {KEY_H, KEY_E, KEY_L, KEY_L, KEY_O, KEY_SPACE, KEY_W, KEY_O, KEY_R, KEY_L, KEY_D};
-	for (int i=0; i < (sizeof(test_str)/sizeof(int)); i++) {
+	for (int i=0; i < (sizeof(test_str)/sizeof(test_str[0])); i++) {
 		emit(fd, EV_KEY, test_str[i], 1);
 		emit(fd, EV_SYN, SYN_REPORT, 0);
 		emit(fd, EV_KEY, test_str[i], 0);
 		emit(fd, EV_SYN, SYN_REPORT, 0);
 	}
 }
+
+void test_all_ascii_chars(int fd) {
+	int j = 0;
+	for (int i=0; i < sizeof(ascii_to_scancodes)/sizeof(ascii_to_scancodes[0]); i++) {
+		if (ascii_to_scancodes[i][0] == INT_MIN) {
+			continue;
+		}
+		printf("Trying to type %c  (0x%x)...\n", (char)i, i);
+
+		// Key down
+		j = 0;
+		while (ascii_to_scancodes[i][j] != INT_MIN) {
+			emit(fd, EV_KEY, ascii_to_scancodes[i][j], 1);
+			j++;
+		}
+		emit(fd, EV_SYN, SYN_REPORT, 0);
+
+		// Key up
+		j = 0;
+		while (ascii_to_scancodes[i][j] != INT_MIN) {
+			emit(fd, EV_KEY, ascii_to_scancodes[i][j], 0);
+			j++;
+		}
+		emit(fd, EV_SYN, SYN_REPORT, 0);
+	}
+}
+
 
 int main(int argc, char **argv) {
 	int uinput_fd = create_uinput_fd();
@@ -196,6 +358,7 @@ int main(int argc, char **argv) {
 	test_mv_mouse(uinput_fd);
 	printf("Typing...\n");
 	test_type(uinput_fd);
+	test_all_ascii_chars(uinput_fd);
 
 	printf("Closing fd\n");
 	sleep(1);
