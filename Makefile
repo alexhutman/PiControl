@@ -13,8 +13,8 @@ OBJS   = picontrol.o \
 NAME   = picontrol
 SERVER = picontrol_server
 
-test_xdo: $(NAME).o
-	$(CC) -o $(NAME) $(NAME).o $(LIBS_FLAG_ARGS)
+test_xdo: $(NAME)_uinput.o $(NAME).o
+	$(CC) -o $(NAME) $^ $(LIBS_FLAG_ARGS)
 
 test_server: $(NAME)_iputils.o $(SERVER).o
 	$(CC) -o $(SERVER) $^ $(LIBS_FLAG_ARGS)
