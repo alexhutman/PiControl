@@ -1,9 +1,6 @@
 #include <fcntl.h>
-#include <limits.h>
-#include <linux/uinput.h>
-#include <stdio.h>
-#include <unistd.h>
 
+#include "picontrol_uinput.h"
 
 const int valid_keyboard_keys[] = {
 	KEY_ESC,
@@ -268,36 +265,6 @@ int picontrol_create_uinput_fd() {
 int picontrol_destroy_uinput_fd(int fd) {
 	// TODO: Better error handling
 	return (ioctl(fd, UI_DEV_DESTROY) >= 0 && close(fd) >= 0) ? 0 : -1;
-}
-
-ssize_t picontrol_emit(int fd, int type, int code, int val) {
-	struct input_event ie = {
-		.type = type,
-		.code = code,
-		.value = val,
-		.time.tv_sec = 0,
-		.time.tv_usec = 0
-	};
-
-	return write(fd, &ie, sizeof(ie));
-}
-
-void picontrol_type_char(int fd, char c) {
-	// Key down
-	printf("Trying to type %c  (0x%x)...\n", c, c);
-
-	int i = 0;
-	while (ascii_to_scancodes[c][i] != INT_MIN) {
-		picontrol_emit(fd, EV_KEY, ascii_to_scancodes[c][i++], 1);
-	}
-	picontrol_emit(fd, EV_SYN, SYN_REPORT, 0);
-
-	// Key up
-	i = 0;
-	while (ascii_to_scancodes[c][i] != INT_MIN) {
-		picontrol_emit(fd, EV_KEY, ascii_to_scancodes[c][i++], 0);
-	}
-	picontrol_emit(fd, EV_SYN, SYN_REPORT, 0);
 }
 
 void picontrol_print_str(int fd, char *str) {
