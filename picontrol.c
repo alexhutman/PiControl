@@ -51,7 +51,9 @@ void test_all_ascii_chars(int fd) {
 		if (ascii_to_scancodes[i][0] == INT_MIN) {
 			continue;
 		}
+		#ifdef PI_CTRL_DEBUG
 		printf("Trying to type %c  (0x%x)...\n", (char)i, i);
+		#endif
 
 		picontrol_type_char(fd, (char)i);
 
@@ -66,15 +68,21 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 	sleep(1);
+	#ifdef PI_CTRL_DEBUG
 	printf("Created virtual keyboard\n");
+	#endif
 
 	test_mv_mouse(uinput_fd);
+	#ifdef PI_CTRL_DEBUG
 	printf("Typing...\n");
+	#endif
 	test_type(uinput_fd);
 	test_all_ascii_chars(uinput_fd);
 	picontrol_print_str(uinput_fd, "echo Hello World!\n");
 
+	#ifdef PI_CTRL_DEBUG
 	printf("Closing fd\n");
+	#endif
 	sleep(1);
 	if (picontrol_destroy_uinput_fd(uinput_fd) < 0) {
 		fprintf(stderr, "Couldn't close PiControl virtual keyboard.\n");
