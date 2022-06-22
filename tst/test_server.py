@@ -138,8 +138,8 @@ if __name__ == "__main__":
         #test_one_msg(sock)
         #test_multiple_msgs(sock)
         #test_continuous_msgs(sock)
-        test_keysym(sock)
-        #test_mouse_move(sock)
+        #test_keysym(sock)
+        test_mouse_move(sock)
         #test_russian(sock)
     finally:
         print("Closing socket...")
