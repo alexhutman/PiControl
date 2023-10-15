@@ -143,6 +143,8 @@ if __name__ == "__main__":
         #test_keysym(sock)
         test_mouse_move(sock)
         #test_russian(sock)
+    except BrokenPipeError:
+        print("Connection closed by server.")
     finally:
         print("Closing socket...")
         sock.close()
