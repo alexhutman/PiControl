@@ -14,6 +14,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <time.h>
 
 #include <xdo.h>
 
@@ -30,6 +31,9 @@
 #ifndef PICONTROL_ERR_EXIT
 #define PICONTROL_ERR_EXIT(msg...) PICONTROL_ERR_EXIT_RET(1, msg)
 #endif
+
+// Delay between xdo keystrokes in microseconds
+#define XDO_KEYSTROKE_DELAY (useconds_t)10000
 
 
 int setup_server() {
@@ -59,6 +63,11 @@ int setup_server() {
 	return listenfd;
 }
 
+xdo_t *create_xdo() {
+	const char *display = getenv("DISPLAY");
+	return xdo_new(display);
+}
+
 void print_err_hex(char *msg) {
 	while (*msg) {
 		fprintf(stderr, "%02x", (unsigned int) *msg++);
@@ -66,28 +75,29 @@ void print_err_hex(char *msg) {
 	fprintf(stderr, "\n");
 }
 
-int main(int argc, char **argv) {
-	char *ip = get_ip_address();
-	if (ip == NULL) {
-		PICONTROL_ERR_EXIT("You are not connected to the internet.\n");
+void handle_mouse_move(uint8_t *cmd_start, xdo_t *xdo) {
+	// If the payload size is 2 bytes long, we can extract the relative X and Y mouse locations to move by
+	uint8_t payload_size = cmd_start[1];
+	if (payload_size == 2) {
+		int relX = (int)cmd_start[2];
+		int relY = (int)cmd_start[3];
+#ifdef PI_CTRL_DEBUG
+		printf("Moving mouse (%d, %d) relative units.\n\n", relX, relY);
+#endif
+
+		if (xdo_move_mouse_relative(xdo, relX, relY) != 0) {
+			fprintf(stderr, "Mouse was unable to be moved (%d, %d) relative units.\n", relX, relY);
+		}
 	}
-
-	printf("Connect at: %s\n", ip);
-	free(ip);
-
-	int listenfd = setup_server();
-	if (listenfd < 0) {
-		// We already print the appropriate error message in setup_server()
-		return 1;
+	// TODO: include pointer to end of buffer
+	// if cmd_start + payload_size > buff_end, throw error
+	else {
+		fprintf(stderr, "A PI_CTRL_MOUSE_MV message was sent with a %u byte payload instead"
+				"of a 2 byte payload.\n", payload_size);
 	}
+}
 
-	const char *display = getenv("DISPLAY");
-	xdo_t *xdo = xdo_new(display);
-	if (xdo == NULL) {
-		xdo_free(xdo);
-		PICONTROL_ERR_EXIT("Unable to create xdo_t instance\n");
-	}
-
+int picontrol_listen(int listenfd, xdo_t *xdo) {
 	int connfd, n;
 
 	struct sockaddr_in client;                                   // Client struct
@@ -96,8 +106,7 @@ int main(int argc, char **argv) {
 	int client_port;                                             // Client port number
 
 	uint_fast8_t cmd, payload_size;
-	int_fast8_t relX, relY;
-	uint8_t recvline[MAX_BUF+1]; // Receive buffer
+	uint8_t recvline[MAX_BUF]; // Receive buffer
 
 	while(1) {
 		connfd = accept(listenfd, (struct sockaddr *)&client, &client_sz);
@@ -131,35 +140,20 @@ int main(int argc, char **argv) {
 
 			switch (cmd) {
 				case PI_CTRL_MOUSE_MV:
-					// If the payload size is 2 bytes long, we can extract the relative X and Y mouse locations to move by
-					if (payload_size == 2) {
-						relX = (int_fast8_t)recvline[2];
-						relY = (int_fast8_t)recvline[3];
-#ifdef PI_CTRL_DEBUG
-						printf("Moving mouse (%d, %d) relative units.\n\n", relX, relY);
-#endif
-
-						if (xdo_move_mouse_relative(xdo, relX, relY) != 0) {
-							fprintf(stderr, "Mouse was unable to be moved (%d, %d) relative units.\n", relX, relY);
-						}
-					}
-					else {
-						fprintf(stderr, "A PI_CTRL_MOUSE_MV message was sent with a %u byte payload instead"
-								"of a 2 byte payload.\n", payload_size);
-					}
+					handle_mouse_move(&recvline[0], xdo);
 					break;
 				case PI_CTRL_KEY_PRESS:
 					// Need to send the payload length since UTF-8 chars can be more than 1 byte long
 #ifdef PI_CTRL_DEBUG
 					printf("KEYPRESS: %.*s|<-\n\n", payload_size, &recvline[2]);
 #endif
-					xdo_enter_text_window(xdo, CURRENTWINDOW, &recvline[2], 10000);
+					xdo_enter_text_window(xdo, CURRENTWINDOW, &recvline[2], XDO_KEYSTROKE_DELAY);
 					break;
 				case PI_CTRL_KEYSYM:
 #ifdef PI_CTRL_DEBUG
 					printf("KEYSYM: %.*s|<-\n\n", payload_size, &recvline[2]);
 #endif
-					xdo_send_keysequence_window(xdo, CURRENTWINDOW, &recvline[2], 10000);
+					xdo_send_keysequence_window(xdo, CURRENTWINDOW, &recvline[2], XDO_KEYSTROKE_DELAY);
 					break;
 				default:
 					printf("Invalid test. Message is not formatted correctly.\n");
@@ -188,8 +182,29 @@ int main(int argc, char **argv) {
 		if ((close(connfd)) < 0) {
 			PICONTROL_ERR_EXIT("Error closing the new socket.\n");
 		}
+	}
+	return 0;
+}
 
+int main(int argc, char **argv) {
+	char *ip = get_ip_address();
+	if (ip == NULL) {
+		PICONTROL_ERR_EXIT("You are not connected to the internet.\n");
 	}
 
-	return 0;
+	printf("Connect at: %s\n", ip);
+	free(ip);
+
+	int listenfd = setup_server();
+	if (listenfd < 0) {
+		// We already print the appropriate error message in setup_server()
+		return 1;
+	}
+
+	xdo_t *xdo = create_xdo();
+	if (xdo == NULL) {
+		PICONTROL_ERR_EXIT("Unable to create xdo_t instance\n");
+	}
+
+	return picontrol_listen(listenfd, xdo);
 }
