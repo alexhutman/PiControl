@@ -33,14 +33,13 @@
 
 
 int setup_server() {
-	int listenfd; 
-	struct sockaddr_in servaddr;
-
-	if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	int listenfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (listenfd < 0) {
 		// TODO: for all of the error messages, print the error message associated with errno
 		PICONTROL_ERR_EXIT_RET(-1, "Error creating socket.\n");
 	}
 
+	struct sockaddr_in servaddr;
 	memset(&servaddr, 0, sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -89,7 +88,7 @@ int main(int argc, char **argv) {
 		PICONTROL_ERR_EXIT("Unable to create xdo_t instance\n");
 	}
 
-	int connfd, n, i;
+	int connfd, n;
 
 	struct sockaddr_in client;                                   // Client struct
 	socklen_t client_sz = (socklen_t)sizeof(struct sockaddr_in); // Client struct size
@@ -107,7 +106,7 @@ int main(int argc, char **argv) {
 		printf("Client at %s:%d connected.\n", client_ip, client_port);
 		
 		// Zero out the receive and internal buffers to ensure that they are null-terminated
-		memset(recvline, 0, MAX_BUF);
+		memset(recvline, 0, sizeof(recvline));
 
 		// Read the incoming message
 		while ((n = read(connfd, recvline, MAX_BUF-1)) > 0) {
@@ -124,7 +123,7 @@ int main(int argc, char **argv) {
 			printf("Payload size (2nd byte): 0x%x\n", recvline[1]);
 
 			printf("Payload (hex): 0x");
-			for (i = 0; i < payload_size; i++) {
+			for (int i = 0; i < payload_size; i++) {
 				printf("%02x", recvline[2 + i]);
 			}
 			printf("\n");
