@@ -139,12 +139,14 @@ if __name__ == "__main__":
     try:
         #test_one_msg(sock)
         #test_multiple_msgs(sock)
-        #test_continuous_msgs(sock)
+        test_continuous_msgs(sock)
         #test_keysym(sock)
-        test_mouse_move(sock)
+        #test_mouse_move(sock)
         #test_russian(sock)
     except BrokenPipeError:
         print("Connection closed by server.")
+    except KeyboardInterrupt:
+        print("Exiting...")
     finally:
         print("Closing socket...")
         sock.close()

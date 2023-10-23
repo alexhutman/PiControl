@@ -77,23 +77,23 @@ void print_err_hex(char *msg) {
 
 void handle_mouse_move(uint8_t *cmd_start, xdo_t *xdo) {
 	// If the payload size is 2 bytes long, we can extract the relative X and Y mouse locations to move by
+	// TODO: include pointer to end of buffer,
+	//       and if cmd_start + payload_size > buff_end, throw error
 	uint8_t payload_size = cmd_start[1];
-	if (payload_size == 2) {
-		int relX = (int)cmd_start[2];
-		int relY = (int)cmd_start[3];
-#ifdef PI_CTRL_DEBUG
-		printf("Moving mouse (%d, %d) relative units.\n\n", relX, relY);
-#endif
-
-		if (xdo_move_mouse_relative(xdo, relX, relY) != 0) {
-			fprintf(stderr, "Mouse was unable to be moved (%d, %d) relative units.\n", relX, relY);
-		}
-	}
-	// TODO: include pointer to end of buffer
-	// if cmd_start + payload_size > buff_end, throw error
-	else {
+	if (payload_size != 2) {
 		fprintf(stderr, "A PI_CTRL_MOUSE_MV message was sent with a %u byte payload instead"
 				"of a 2 byte payload.\n", payload_size);
+		return;
+	}
+
+	int relX = (int)cmd_start[2];
+	int relY = (int)cmd_start[3];
+#ifdef PI_CTRL_DEBUG
+	printf("Moving mouse (%d, %d) relative units.\n\n", relX, relY);
+#endif
+
+	if (xdo_move_mouse_relative(xdo, relX, relY) != 0) {
+		fprintf(stderr, "Mouse was unable to be moved (%d, %d) relative units.\n", relX, relY);
 	}
 }
 
@@ -110,6 +110,13 @@ int picontrol_listen(int listenfd, xdo_t *xdo) {
 
 	while(1) {
 		connfd = accept(listenfd, (struct sockaddr *)&client, &client_sz);
+		if (connfd < 0) {
+			PICONTROL_ERR_EXIT("Error accepting new connection.\n");
+		}
+#ifdef PI_CTRL_DEBUG
+		printf("Opened connection file descriptor %d\n", connfd);
+#endif
+
 		client_ip = inet_ntoa(client.sin_addr);
 		client_port = ntohs(client.sin_port);
 		printf("Client at %s:%d connected.\n", client_ip, client_port);
@@ -119,7 +126,7 @@ int picontrol_listen(int listenfd, xdo_t *xdo) {
 
 		// Read the incoming message
 		while ((n = read(connfd, recvline, MAX_BUF-1)) > 0) {
-			// TODO: maybe decide to make everything big endian for a standard
+			// TODO: make everything big endian to align with network byte order
 			cmd = (uint_fast8_t)recvline[0];
 			payload_size = (uint_fast8_t)recvline[1];
 
@@ -155,33 +162,27 @@ int picontrol_listen(int listenfd, xdo_t *xdo) {
 #endif
 					xdo_send_keysequence_window(xdo, CURRENTWINDOW, &recvline[2], XDO_KEYSTROKE_DELAY);
 					break;
+				// TODO: On disconnect command, break inner while loop to accept new connection
 				default:
 					printf("Invalid test. Message is not formatted correctly.\n");
 			}
-
-			// TODO: Find a way to break once we know the message is finished.
-			// For testing, we'll assume that strlen(recvline) < MAX_BUF
-			//break;
-
-			// When we do the above TODO, we need to clear the buffer on the next read
-			// memset(recvline, 0, MAX_BUF);
+			// For testing, we'll assume that a received message's length won't be longer than MAX_BUF
 		}
 
-		printf("Client at %s:%d disconnected.\n", client_ip, client_port);
-
-		if (n < 0) {
+		if (n == 0) {
+			printf("Client at %s:%d disconnected.\n", client_ip, client_port);
+		}
+		else if (n < 0) {
 			PICONTROL_ERR_EXIT("Error reading from socket into buffer.\n");
 		}
 
-		/*
-		// Close listening socket
-		if ((close(listenfd)) < 0) {
-			PICONTROL_ERR_EXIT("Error closing the listening socket.\n");
-		}
-		*/
+		// Close connection
 		if ((close(connfd)) < 0) {
 			PICONTROL_ERR_EXIT("Error closing the new socket.\n");
 		}
+#ifdef PI_CTRL_DEBUG
+		printf("Closed connection file descriptor %d\n", connfd);
+#endif
 	}
 	return 0;
 }
@@ -200,11 +201,34 @@ int main(int argc, char **argv) {
 		// We already print the appropriate error message in setup_server()
 		return 1;
 	}
+#ifdef PI_CTRL_DEBUG
+	printf("Acquired listen socket on file descriptor %d\n", listenfd);
+#endif
 
 	xdo_t *xdo = create_xdo();
 	if (xdo == NULL) {
 		PICONTROL_ERR_EXIT("Unable to create xdo_t instance\n");
 	}
+#ifdef PI_CTRL_DEBUG
+	printf("Acquired new xdo instance\n");
+#endif
 
-	return picontrol_listen(listenfd, xdo);
+	int listen_ret = picontrol_listen(listenfd, xdo);
+	if (listen_ret < 0) {
+		PICONTROL_ERR_EXIT_RET(listen_ret, "Error occurred while listening...\n");
+	}
+#ifdef PI_CTRL_DEBUG
+	printf("Finished listening on file descriptor %d\n", listenfd);
+#endif
+
+	// Close listening socket
+	if ((close(listenfd)) < 0) {
+		PICONTROL_ERR_EXIT("Error closing the listening socket.\n");
+	}
+#ifdef PI_CTRL_DEBUG
+	printf("Closed listen socket on file descriptor %d\n", listenfd);
+	printf("Exiting with code %d\n", listen_ret);
+#endif
+
+	return listen_ret;
 }
