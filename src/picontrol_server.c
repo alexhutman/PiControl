@@ -106,7 +106,7 @@ int picontrol_listen(int listenfd, xdo_t *xdo) {
 	int client_port;                                             // Client port number
 
 	uint_fast8_t cmd, payload_size;
-	uint8_t recvline[MAX_BUF]; // Receive buffer
+	uint8_t *recvline = malloc(sizeof(uint8_t) * MAX_BUF); // Receive buffer
 
 	while(1) {
 		connfd = accept(listenfd, (struct sockaddr *)&client, &client_sz);
