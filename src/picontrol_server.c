@@ -4,7 +4,6 @@
  * (i.e. move the mouse or press keys)
  */
 
-// Includes
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -145,6 +144,7 @@ int picontrol_listen(int listenfd, xdo_t *xdo) {
 			printf("\n");
 #endif
 
+			// Handle command
 			switch (cmd) {
 				case PI_CTRL_MOUSE_MV:
 					handle_mouse_move(&recvline[0], xdo);
