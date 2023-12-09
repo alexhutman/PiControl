@@ -1,4 +1,7 @@
+# Targets
 bin/
-obj/
+tst/test_ring_buffer
+
+# Artifacts
 *.o
 *.d

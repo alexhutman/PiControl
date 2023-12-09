@@ -1,5 +1,4 @@
 SRC_DIR  := src
-OBJ_DIR  := obj
 BIN_DIR  := bin
 TEST_DIR := tst
 
@@ -32,20 +31,21 @@ test: $(TEST)
 
 .PHONY: clean
 clean:
-	$(RM) -rv $(BIN_DIR) $(OBJ_DIR) $(SRC_DIR)/**/*.o $(SRC_DIR)/**/*.d $(TEST)
+	$(RM) -r $(BIN_DIR) $(TEST)
+	find $(SRC_DIR)/ -type f \( -name \*.o -o -name \*.d \) | xargs rm
 
-$(EXE): $(OBJ_DIR)/picontrol.o $(OBJ_DIR)/picontrol_uinput.o | $(BIN_DIR)
-	$(CC) $^ -o $@ $(LDFLAGS) -Isrc
+$(EXE): $(SRC_DIR)/picontrol.o $(SRC_DIR)/picontrol_uinput.o | $(BIN_DIR)
+	$(CC) $^ -o $@ $(LDFLAGS) -I$(SRC_DIR)
 
-$(SERVER): $(OBJ_DIR)/picontrol_server.o $(OBJ_DIR)/picontrol_iputils.o | $(BIN_DIR)
-	$(CC) $^ -o $@ -lxdo $(LDFLAGS) -Isrc
+$(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/picontrol_iputils.o | $(BIN_DIR)
+	$(CC) $^ -o $@ -lxdo $(LDFLAGS) -I$(SRC_DIR)
 
 $(TEST): $(SRC_DIR)/data_structures/ring_buffer.o $(SRC_DIR)/data_structures/test_ring_buffer.o | $(TEST_DIR)
-	$(CC) $^ -o $@ $(LDFLAGS) -Isrc/data_structures
+	$(CC) $^ -o $@ $(LDFLAGS) -I$(SRC_DIR)/data_structures
 
 %.o: %.c
-	mkdir -p "$(@D)"
+	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BIN_DIR) $(OBJ_DIR):
-	mkdir -p $@
+$(BIN_DIR):
+	mkdir -p "$@"
