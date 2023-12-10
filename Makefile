@@ -53,7 +53,7 @@ $(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/picontrol_iputils.o | $(BIN_
 
 # TODO: fix?
 .SECONDEXPANSION:
-$(TEST_TARGET_DESTS): $$(subst $$(TEST_DIR)/,$$(SRC_DIR)/,$$@)
+$(TEST_TARGET_DESTS): $$(subst $$(TEST_DIR)/,$$(SRC_DIR)/,$$@) | $$(dir $$@)
 	@echo "PiControl: Making test $@"
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
 	$(CC) $^ -o $@ $(LDFLAGS) -I$(@D)
