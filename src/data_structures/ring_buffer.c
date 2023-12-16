@@ -26,6 +26,16 @@ pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *rb, size_t num_bytes) {
 }
 
 
+void pictrl_rb_destroy(pictrl_rb_t *rb) {
+	free(rb->buffer_start);
+
+	rb->buffer_start = NULL;
+	rb->num_bytes = 0;
+	rb->data_start = NULL;
+	rb->data_length = 0;
+}
+
+
 // Insert `num` bytes from `src_start` into the ring buffer
 size_t pictrl_rb_insert(pictrl_rb_t *rb, void *src_start, size_t num) {
 	size_t available_bytes = rb->num_bytes - rb->data_length;

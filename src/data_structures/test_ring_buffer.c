@@ -20,11 +20,17 @@ int main(int argc, char *argv[]) {
 	printf("Inserting %zu bytes...\n", num_bytes_to_insert);
 	if (pictrl_rb_insert(&ring_buffer, data, num_bytes_to_insert) != num_bytes_to_insert) {
 		printf("Error inserting\n");
+		return -1;
 	}
 
 	print_ring_buffer(&ring_buffer);
 	print_ring_buffer_raw(&ring_buffer);
 
+	printf("\nDestroying ring buffer...\n\n");
+	pictrl_rb_destroy(&ring_buffer);
+
+	print_ring_buffer(&ring_buffer);
+	print_ring_buffer_raw(&ring_buffer);
 	return 0;
 }
 
