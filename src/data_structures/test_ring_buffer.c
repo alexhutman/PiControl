@@ -5,11 +5,22 @@
 #include "ring_buffer.h"
 
 int test_simple_insert();
+int test_simple_read_peek();
 void print_ring_buffer(pictrl_rb_t*);
 void print_ring_buffer_raw(pictrl_rb_t*);
 
 int main(int argc, char *argv[]) {
-	return test_simple_insert();
+	int ret = test_simple_insert();
+	if (ret != 0) {
+		return ret;
+	}
+
+	ret = test_simple_read_peek();
+	if (ret != 0) {
+		return ret;
+	}
+
+	return 0;
 }
 
 int test_simple_insert() {
@@ -17,16 +28,18 @@ int test_simple_insert() {
 	const size_t ring_buf_size = 8;
 	uint8_t data[] = { 4,9,5,6,1 };
 
+	printf("Creating ring buffer\n");
 	pictrl_rb_t ring_buffer;
 	if (pictrl_rb_init(&ring_buffer, ring_buf_size) == NULL) {
+		fprintf(stderr, "Could not create ring buffer\n");
 		return 1;
 	}
 
 	// Act
 	size_t num_bytes_to_insert = sizeof(data);
-	printf("Inserting %zu bytes...\n", num_bytes_to_insert);
+	printf("Inserting %zu bytes\n", num_bytes_to_insert);
 	if (pictrl_rb_insert(&ring_buffer, data, num_bytes_to_insert) != num_bytes_to_insert) {
-		printf("Error inserting\n");
+		fprintf(stderr, "Error inserting\n");
 		pictrl_rb_destroy(&ring_buffer);
 		return 2;
 	}
@@ -34,22 +47,63 @@ int test_simple_insert() {
 	// Assert
 	for (size_t cur_byte=0; cur_byte < num_bytes_to_insert; cur_byte++) {
 		if (data[cur_byte] != ring_buffer.buffer_start[cur_byte]) {
-			printf("Data mismatch at index %zu\n", cur_byte);
+			fprintf(stderr, "Data mismatch at index %zu\n", cur_byte);
+			print_ring_buffer(&ring_buffer);
+			print_ring_buffer_raw(&ring_buffer);
+
 			pictrl_rb_destroy(&ring_buffer);
 			return 3;
 		}
 	}
 	printf("Data matches!\n");
 
-	print_ring_buffer(&ring_buffer);
-	print_ring_buffer_raw(&ring_buffer);
-
 	// Teardown
-	printf("\nDestroying ring buffer...\n\n");
+	printf("Destroying ring buffer\n");
 	pictrl_rb_destroy(&ring_buffer);
 
-	print_ring_buffer(&ring_buffer);
-	print_ring_buffer_raw(&ring_buffer);
+	return 0;
+}
+
+int test_simple_read_peek() {
+	// Arrange
+	const size_t ring_buf_size = 8;
+	uint8_t orig_data[] = { 4,9,5,6,1 };
+
+	printf("Creating ring buffer\n");
+	pictrl_rb_t ring_buffer;
+	if (pictrl_rb_init(&ring_buffer, ring_buf_size) == NULL) {
+		fprintf(stderr, "Could not create ring buffer\n");
+		return 1;
+	}
+
+	const size_t num_bytes_to_insert = sizeof(orig_data);
+	printf("Inserting %zu bytes\n", num_bytes_to_insert);
+	if (pictrl_rb_insert(&ring_buffer, orig_data, num_bytes_to_insert) != num_bytes_to_insert) {
+		fprintf(stderr, "Error inserting\n");
+		pictrl_rb_destroy(&ring_buffer);
+		return 2;
+	}
+
+	// Act
+	uint8_t read_data[sizeof(orig_data)] = { 0 };
+	pictrl_rb_read(&ring_buffer, PICTRL_READ_PEEK, read_data, num_bytes_to_insert);
+
+	// Assert
+	for (size_t cur_byte=0; cur_byte < num_bytes_to_insert; cur_byte++) {
+		if (orig_data[cur_byte] != read_data[cur_byte]) {
+			fprintf(stderr, "Data mismatch at index %zu\n", cur_byte);
+			print_ring_buffer(&ring_buffer);
+			print_ring_buffer_raw(&ring_buffer);
+
+			pictrl_rb_destroy(&ring_buffer);
+			return 3;
+		}
+	}
+	printf("Data matches!\n");
+
+	// Teardown
+	printf("Destroying ring buffer\n");
+	pictrl_rb_destroy(&ring_buffer);
 
 	return 0;
 }
