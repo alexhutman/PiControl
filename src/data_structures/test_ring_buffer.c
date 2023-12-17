@@ -4,33 +4,53 @@
 
 #include "ring_buffer.h"
 
+int test_simple_insert();
 void print_ring_buffer(pictrl_rb_t*);
 void print_ring_buffer_raw(pictrl_rb_t*);
 
 int main(int argc, char *argv[]) {
+	return test_simple_insert();
+}
+
+int test_simple_insert() {
+	// Arrange
 	const size_t ring_buf_size = 8;
 	uint8_t data[] = { 4,9,5,6,1 };
 
 	pictrl_rb_t ring_buffer;
 	if (pictrl_rb_init(&ring_buffer, ring_buf_size) == NULL) {
-		return -1;
+		return 1;
 	}
 
+	// Act
 	size_t num_bytes_to_insert = sizeof(data);
 	printf("Inserting %zu bytes...\n", num_bytes_to_insert);
 	if (pictrl_rb_insert(&ring_buffer, data, num_bytes_to_insert) != num_bytes_to_insert) {
 		printf("Error inserting\n");
-		return -1;
+		pictrl_rb_destroy(&ring_buffer);
+		return 2;
 	}
+
+	// Assert
+	for (size_t cur_byte=0; cur_byte < num_bytes_to_insert; cur_byte++) {
+		if (data[cur_byte] != ring_buffer.buffer_start[cur_byte]) {
+			printf("Data mismatch at index %zu\n", cur_byte);
+			pictrl_rb_destroy(&ring_buffer);
+			return 3;
+		}
+	}
+	printf("Data matches!\n");
 
 	print_ring_buffer(&ring_buffer);
 	print_ring_buffer_raw(&ring_buffer);
 
+	// Teardown
 	printf("\nDestroying ring buffer...\n\n");
 	pictrl_rb_destroy(&ring_buffer);
 
 	print_ring_buffer(&ring_buffer);
 	print_ring_buffer_raw(&ring_buffer);
+
 	return 0;
 }
 
