@@ -15,6 +15,7 @@ int main(int argc, char *argv[]) {
 		return ret;
 	}
 
+	printf("\n");
 	ret = test_simple_read_peek();
 	if (ret != 0) {
 		return ret;
@@ -34,6 +35,8 @@ int test_simple_insert() {
 		fprintf(stderr, "Could not create ring buffer\n");
 		return 1;
 	}
+	print_ring_buffer(&ring_buffer);
+	print_ring_buffer_raw(&ring_buffer);
 
 	// Act
 	size_t num_bytes_to_insert = sizeof(data);
@@ -43,6 +46,8 @@ int test_simple_insert() {
 		pictrl_rb_destroy(&ring_buffer);
 		return 2;
 	}
+	print_ring_buffer(&ring_buffer);
+	print_ring_buffer_raw(&ring_buffer);
 
 	// Assert
 	for (size_t cur_byte=0; cur_byte < num_bytes_to_insert; cur_byte++) {
@@ -75,6 +80,8 @@ int test_simple_read_peek() {
 		fprintf(stderr, "Could not create ring buffer\n");
 		return 1;
 	}
+	print_ring_buffer(&ring_buffer);
+	print_ring_buffer_raw(&ring_buffer);
 
 	const size_t num_bytes_to_insert = sizeof(orig_data);
 	printf("Inserting %zu bytes\n", num_bytes_to_insert);
@@ -87,6 +94,8 @@ int test_simple_read_peek() {
 	// Act
 	uint8_t read_data[sizeof(orig_data)] = { 0 };
 	pictrl_rb_read(&ring_buffer, PICTRL_READ_PEEK, read_data, num_bytes_to_insert);
+	print_ring_buffer(&ring_buffer);
+	print_ring_buffer_raw(&ring_buffer);
 
 	// Assert
 	for (size_t cur_byte=0; cur_byte < num_bytes_to_insert; cur_byte++) {
@@ -110,15 +119,19 @@ int test_simple_read_peek() {
 
 // Using `pictrl_rb_read`
 void print_ring_buffer(pictrl_rb_t *rb) {
-	printf("------------------------------\n");
-	printf("Capacity:      %zu\n", rb->num_bytes);
-	printf("Buffer length: %p\n", rb->buffer_start);
-	printf("Data start:    %p\n", rb->data_start);
-	printf("Data length:   %zu\n", rb->data_length);
+	printf("------------------------------\n"
+		   "Capacity:      %zu\t"
+		   "Buffer length: %p\t"
+		   "Data start:    %p\t"
+		   "Data length:   %zu\n"
+		   "Buffer:        |",
+		   rb->num_bytes,
+		   rb->buffer_start,
+		   rb->data_start,
+		   rb->data_length);
 
-	printf("Buffer:        |");
 	if (rb->data_length == 0) {
-		printf("|\n");
+		printf("(empty)|\n");
 		return;
 	}
 
@@ -137,15 +150,19 @@ void print_ring_buffer(pictrl_rb_t *rb) {
 
 // Just print raw buffer
 void print_ring_buffer_raw(pictrl_rb_t *rb) {
-	printf("------------------------------\n");
-	printf("Capacity:      %zu\n", rb->num_bytes);
-	printf("Buffer length: %p\n", rb->buffer_start);
-	printf("Data start:    %p\n", rb->data_start);
-	printf("Data length:   %zu\n", rb->data_length);
+	printf("------------------------------\n"
+		   "Capacity:      %zu\t"
+		   "Buffer length: %p\t"
+		   "Data start:    %p\t"
+		   "Data length:   %zu\n"
+		   "RAW buffer:    |",
+		   rb->num_bytes,
+		   rb->buffer_start,
+		   rb->data_start,
+		   rb->data_length);
 
-	printf("RAW buffer:    |");
 	if (rb->data_length == 0) {
-		printf("|\n");
+		printf("(empty)|\n");
 		return;
 	}
 
