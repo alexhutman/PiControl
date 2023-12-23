@@ -79,7 +79,7 @@ int test_simple_read_peek() {
 	const size_t ring_buf_size = 8;
 	uint8_t orig_data[] = { 1,2,3,4,5,6,7 };
 
-	pictrl_log_debug("[DEBUG] Creating ring buffer\n");
+	pictrl_log_debug("Creating ring buffer\n");
 	pictrl_rb_t ring_buffer;
 	if (pictrl_rb_init(&ring_buffer, ring_buf_size) == NULL) {
 		pictrl_log_debug("Could not create ring buffer\n");

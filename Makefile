@@ -62,7 +62,7 @@ $(TEST_TARGET_DESTS): $$(subst $$(TEST_DIR)/,$$(SRC_DIR)/,$$@) | $$(dir $$@)
 $(TEST_TARGETS): $$(addsuffix .c,$$@ $$(@D)/$$(subst test_,,$$(notdir $$@)))
 	@echo "PiControl: Compiling test $@"
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
-	$(CC) $^ -o $@ $(LDFLAGS) -I$(@D)
+	$(CC) $^ -o $@ $(CFLAGS) -I$(@D)
 
 %.o: %.c
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
