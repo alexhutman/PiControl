@@ -1,7 +1,7 @@
 # Targets
-bin/
-tst/test_ring_buffer
+bin
+**/test_*
 
 # Artifacts
-*.o
-*.d
+**/*.o
+**/*.d
