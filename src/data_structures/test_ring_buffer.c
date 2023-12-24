@@ -13,6 +13,7 @@ int test_simple_read_peek();
 void print_ring_buffer(pictrl_rb_t*);
 void print_nice_buf(pictrl_rb_t*);
 void print_raw_buf(pictrl_rb_t*);
+void print_buf(uint8_t*, size_t);
 
 int main(int argc, char *argv[]) {
 	pictrl_log_test(TEST1 "\n");
@@ -58,7 +59,8 @@ int test_simple_insert() {
 	// Assert
 	for (size_t cur_byte=0; cur_byte < num_bytes_to_insert; cur_byte++) {
 		if (data[cur_byte] != ring_buffer.buffer_start[cur_byte]) {
-			pictrl_log_error("Data mismatch at index %zu\n", cur_byte);
+			pictrl_log_error("Data mismatch at index %zu\nExpected data: ", cur_byte);
+			print_buf(data, num_bytes_to_insert);
 			print_ring_buffer(&ring_buffer);
 
 			pictrl_rb_destroy(&ring_buffer);
@@ -101,7 +103,8 @@ int test_simple_read_peek() {
 	// Assert
 	for (size_t cur_byte=0; cur_byte < num_bytes_to_insert; cur_byte++) {
 		if (orig_data[cur_byte] != read_data[cur_byte]) {
-			pictrl_log_error("Data mismatch at index %zu\n", cur_byte);
+			pictrl_log_error("Data mismatch at index %zu\nExpected data: ", cur_byte);
+			print_buf(orig_data, num_bytes_to_insert);
 			print_ring_buffer(&ring_buffer);
 
 			pictrl_rb_destroy(&ring_buffer);
@@ -142,30 +145,27 @@ void print_nice_buf(pictrl_rb_t *rb) {
 		return;
 	}
 
-	pictrl_log("|");
-
 	uint8_t *data = malloc(sizeof(uint8_t) * rb->data_length);
 	pictrl_rb_read(rb, PICTRL_READ_PEEK, data, rb->data_length);
+	print_buf(data, rb->data_length);
 
-	size_t num_bytes_to_read = rb->data_length == 0 ? 0 : rb->data_length - 1;
+	free(data);
+}
+void print_raw_buf(pictrl_rb_t *rb) {
+	print_buf(rb->buffer_start, rb->data_length);
+}
+
+void print_buf(uint8_t *data, size_t n) {
+	if (n == 0) {
+		pictrl_log("(empty)\n");
+		return;
+	}
+
+	pictrl_log("|");
 	size_t cur = 0;
-	while (cur < num_bytes_to_read) {
+	while (cur < n - 1) {
 		pictrl_log("%u, ", data[cur]);
 		cur++;
 	}
 	pictrl_log("%u|\n", data[cur]);
-	free(data);
-}
-void print_raw_buf(pictrl_rb_t *rb) {
-	if (rb->data_length == 0) {
-		pictrl_log("(empty)\n");
-		return;
-	}
-	pictrl_log("|");
-	size_t cur = 0;
-	while (cur < rb->num_bytes - 1) {
-		pictrl_log("%u, ", rb->buffer_start[cur]);
-		cur++;
-	}
-	pictrl_log("%u|\n", rb->buffer_start[cur]);
 }
