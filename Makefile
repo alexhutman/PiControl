@@ -56,13 +56,13 @@ $(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/picontrol_iputils.o | $(BIN_
 $(TEST_TARGET_DESTS): $$(subst $$(TEST_DIR)/,$$(SRC_DIR)/,$$@) | $$(dir $$@)
 	@echo "PiControl: Making test $@"
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
-	$(CC) $^ -o $@ $(LDFLAGS) -I$(@D)
+	$(CC) $^ -o $@ $(LDFLAGS) -I$(SRC_DIR)
 
 .SECONDEXPANSION:
 $(TEST_TARGETS): $$(addsuffix .c,$$@ $$(@D)/$$(subst test_,,$$(notdir $$@)))
 	@echo "PiControl: Compiling test $@"
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
-	$(CC) $^ -o $@ $(CFLAGS) -I$(@D)
+	$(CC) $^ -o $@ $(CFLAGS) -I$(SRC_DIR)
 
 %.o: %.c
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"

@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ring_buffer.h"
-#include "../log_utils.h"
+#include "data_structures/ring_buffer.h"
+#include "log_utils.h"
 
 #define TEST1 "Simple insert"
 #define TEST2 "Simple read (peek)"
