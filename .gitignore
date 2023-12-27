@@ -6,4 +6,4 @@ bin/*
 **/*.o
 **/*.d
 
-!bin/run_tests.sh
+!bin/run_tests

@@ -6,7 +6,7 @@ BIN_TEST_DIR    := $(patsubst ./%,$(BIN_DIR)/%,$(TEST_DIR))
 
 EXE        := $(BIN_DIR)/picontrol
 SERVER     := $(BIN_DIR)/picontrol_server
-TEST_SCRIPT := $(BIN_DIR)/run_tests.sh
+TEST_SCRIPT := $(BIN_DIR)/run_tests
 
 TEST_UTILS_MIDDLE := utils/pictrl_test_utils.so
 TEST_UTILS_LIB := $(BIN_DIR)/$(TEST_UTILS_MIDDLE)
