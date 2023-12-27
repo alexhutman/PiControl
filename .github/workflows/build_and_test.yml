@@ -1,0 +1,19 @@
+name: PiControl CI
+
+on:
+  push:
+    branches: [ "uinput" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Make all targets
+      run: make all
+    - name: Run test
+      run: bin/run_test
