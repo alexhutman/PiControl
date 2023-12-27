@@ -1,7 +1,9 @@
 # Targets
-bin
+bin/*
 **/test_*
 
 # Artifacts
 **/*.o
 **/*.d
+
+!bin/run_tests.sh

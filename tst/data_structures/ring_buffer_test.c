@@ -2,9 +2,10 @@
 
 #include "data_structures/ring_buffer.h"
 #include "logging/log_utils.h"
+#include "utils/pictrl_test_utils.h"
 
-#define TEST1 "Simple insert"
-#define TEST2 "Simple read (peek)"
+#define TEST0 "Simple insert"
+#define TEST1 "Simple read (peek)"
 
 int test_simple_insert();
 int test_simple_read_peek();
@@ -13,24 +14,29 @@ void print_nice_buf(pictrl_rb_t*);
 void print_raw_buf(pictrl_rb_t*);
 void print_buf(uint8_t*, size_t);
 
+
+
 int main(int argc, char *argv[]) {
-	pictrl_log_test(TEST1 "\n");
-	int ret = test_simple_insert();
-	if (ret != 0) {
-		pictrl_log_error(TEST1 " test failed.\n");
-		return ret;
-	}
-	pictrl_log_info(TEST1 " test passed!\n\n");
+	const char *test_names[] = {
+		TEST0,
+		TEST1
+	};
+	int (*test_funcs[pictrl_size(test_names)])() = {
+		*test_simple_insert,
+		*test_simple_read_peek
+	};
+	int test_results[pictrl_size(test_names)] = { 0 };
 
-	pictrl_log_test(TEST2 "\n");
-	ret = test_simple_read_peek();
-	if (ret != 0) {
-		pictrl_log_error(TEST2 " test failed.\n");
-		return ret;
+	size_t failed_test_count = 0;
+	for (size_t test_id = 0; test_id < pictrl_size(test_names); test_id++) {
+	int (*cur_test_func)() = test_funcs[test_id];
+		test_results[test_id] = run_test(test_names[test_id], test_funcs[test_id]);
+		if (test_results[test_id] != 0) {
+			failed_test_count++;
+		}
 	}
-	pictrl_log_info(TEST2 " test passed!\n");
 
-	return 0;
+	return failed_test_count;
 }
 
 int test_simple_insert() {
