@@ -1,6 +1,8 @@
 #ifndef _PICTRL_LOGUTILS_H
 #define _PICTRL_LOGUTILS_H
 
+#include <stdio.h>
+
 #define pictrl_log(...)          printf (__VA_ARGS__)
 
 #ifdef PI_CTRL_DEBUG
