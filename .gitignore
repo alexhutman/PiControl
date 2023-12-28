@@ -1,3 +1,9 @@
-*.o
-picontrol
-picontrol_server
+# Targets
+bin/*
+**/test_*
+
+# Artifacts
+**/*.o
+**/*.d
+
+!bin/run_tests
