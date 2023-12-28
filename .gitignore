@@ -1,6 +1,5 @@
 # Targets
 bin/*
-**/test_*
 
 # Artifacts
 **/*.o
