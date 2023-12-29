@@ -16,10 +16,12 @@ TEST_FILES     := $(shell find $(TEST_DIR) -type f -name \*_test.c)
 TEST_TARGETS   := $(patsubst ./%,$(BIN_DIR)/%,$(TEST_FILES:.c=))
 
 CC             := gcc
-CFLAGS         := -O3 -MMD -MP
+CFLAGS         := -MMD -MP
 
 ifdef DEBUG
-	override CFLAGS += -DPI_CTRL_DEBUG
+	override CFLAGS += -DPI_CTRL_DEBUG -ggdb -Og
+else
+	override CFLAGS += -O3
 endif
 
 ################################ Phony Targets #################################
