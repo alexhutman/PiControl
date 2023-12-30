@@ -9,8 +9,8 @@
 typedef int (*TestFunction)();
 
 typedef struct TestCase {
-	const char *test_name;
-	const TestFunction test_function;
+    const char *test_name;
+    const TestFunction test_function;
 } TestCase;
 
 int run_test(const TestCase*);
