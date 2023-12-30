@@ -24,12 +24,11 @@ int main(int argc, char *argv[]) {
             .test_function = &test_simple_read_peek,
         }
     };
-    int test_results[pictrl_size(test_cases)] = { 0 };
 
     size_t failed_test_count = 0;
     for (size_t test_id = 0; test_id < pictrl_size(test_cases); test_id++) {
-        test_results[test_id] = run_test(&test_cases[test_id]);
-        if (test_results[test_id] != 0) {
+        int res = run_test(&test_cases[test_id]);
+        if (res != 0) {
             failed_test_count++;
         }
     }
