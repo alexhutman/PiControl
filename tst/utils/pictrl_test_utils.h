@@ -2,6 +2,7 @@
 #define _PICTRL_TEST_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #define pictrl_size(arr) sizeof(arr)/sizeof(arr[0])
 
@@ -14,4 +15,5 @@ typedef struct TestCase {
 } TestCase;
 
 int run_test(const TestCase*);
+int run_test_suite(const TestCase test_cases[], size_t num_tests);
 #endif

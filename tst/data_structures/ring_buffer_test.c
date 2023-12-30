@@ -25,15 +25,7 @@ int main(int argc, char *argv[]) {
         }
     };
 
-    size_t failed_test_count = 0;
-    for (size_t test_id = 0; test_id < pictrl_size(test_cases); test_id++) {
-        int res = run_test(&test_cases[test_id]);
-        if (res != 0) {
-            failed_test_count++;
-        }
-    }
-
-    return failed_test_count;
+    return run_test_suite(test_cases, pictrl_size(test_cases));
 }
 
 int test_simple_insert() {

@@ -12,3 +12,15 @@ int run_test(const TestCase *test_case) {
     pictrl_log_info("%s test passed!\n", test_case->test_name);
     return 0;
 }
+
+int run_test_suite(const TestCase test_cases[], size_t num_tests) {
+    size_t failed_test_count = 0;
+    for (size_t test_id = 0; test_id < num_tests; test_id++) {
+        int res = run_test(&test_cases[test_id]);
+        if (res != 0) {
+            failed_test_count++;
+        }
+    }
+
+    return failed_test_count;
+}
