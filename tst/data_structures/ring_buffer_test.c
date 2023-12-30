@@ -21,16 +21,15 @@ int main(int argc, char *argv[]) {
 		TEST0,
 		TEST1
 	};
-	int (*test_funcs[pictrl_size(test_names)])() = {
-		*test_simple_insert,
-		*test_simple_read_peek
+	const TestCase test_cases[pictrl_size(test_names)] = {
+		&test_simple_insert,
+		&test_simple_read_peek
 	};
 	int test_results[pictrl_size(test_names)] = { 0 };
 
 	size_t failed_test_count = 0;
 	for (size_t test_id = 0; test_id < pictrl_size(test_names); test_id++) {
-	int (*cur_test_func)() = test_funcs[test_id];
-		test_results[test_id] = run_test(test_names[test_id], test_funcs[test_id]);
+		test_results[test_id] = run_test(test_names[test_id], test_cases[test_id]);
 		if (test_results[test_id] != 0) {
 			failed_test_count++;
 		}
