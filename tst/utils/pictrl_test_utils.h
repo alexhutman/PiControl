@@ -15,5 +15,5 @@ typedef struct TestCase {
 } TestCase;
 
 int run_test(const TestCase*);
-int run_test_suite(const TestCase test_cases[], size_t num_tests);
+size_t run_test_suite(const TestCase test_cases[], size_t num_tests);
 #endif

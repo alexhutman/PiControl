@@ -13,7 +13,7 @@ int run_test(const TestCase *test_case) {
     return 0;
 }
 
-int run_test_suite(const TestCase test_cases[], size_t num_tests) {
+size_t run_test_suite(const TestCase test_cases[], size_t num_tests) {
     size_t failed_test_count = 0;
     for (size_t test_id = 0; test_id < num_tests; test_id++) {
         int res = run_test(&test_cases[test_id]);
