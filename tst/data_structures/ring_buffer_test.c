@@ -4,8 +4,6 @@
 #include "logging/log_utils.h"
 #include "utils/pictrl_test_utils.h"
 
-#define TEST0 "Simple insert"
-#define TEST1 "Simple read (peek)"
 
 int test_simple_insert();
 int test_simple_read_peek();
@@ -15,21 +13,22 @@ void print_raw_buf(pictrl_rb_t*);
 void print_buf(uint8_t*, size_t);
 
 
-
 int main(int argc, char *argv[]) {
-	const char *test_names[] = {
-		TEST0,
-		TEST1
+	const TestCase test_cases[] = {
+		{
+			.test_name = "Simple insert",
+			.test_function = &test_simple_insert,
+		},
+		{
+			.test_name = "Simple read (peek)",
+			.test_function = &test_simple_read_peek,
+		}
 	};
-	const TestCase test_cases[pictrl_size(test_names)] = {
-		&test_simple_insert,
-		&test_simple_read_peek
-	};
-	int test_results[pictrl_size(test_names)] = { 0 };
+	int test_results[pictrl_size(test_cases)] = { 0 };
 
 	size_t failed_test_count = 0;
-	for (size_t test_id = 0; test_id < pictrl_size(test_names); test_id++) {
-		test_results[test_id] = run_test(test_names[test_id], test_cases[test_id]);
+	for (size_t test_id = 0; test_id < pictrl_size(test_cases); test_id++) {
+		test_results[test_id] = run_test(&test_cases[test_id]);
 		if (test_results[test_id] != 0) {
 			failed_test_count++;
 		}
