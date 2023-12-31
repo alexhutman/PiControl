@@ -33,10 +33,10 @@ int test_simple_insert() {
     const size_t ring_buf_size = 8;
     uint8_t data[] = { 4,9,5,6,1 };
 
-    pictrl_log_debug("Creating ring buffer\n");
+    pictrl_log_debug("Creating ring buffer of size %zu bytes\n", ring_buf_size);
     pictrl_rb_t ring_buffer;
     if (pictrl_rb_init(&ring_buffer, ring_buf_size) == NULL) {
-        pictrl_log_debug("Could not create ring buffer\n");
+        pictrl_log_error("Could not create ring buffer\n");
         return 1;
     }
 
@@ -74,17 +74,17 @@ int test_simple_read_peek() {
     const size_t ring_buf_size = 8;
     uint8_t orig_data[] = { 1,2,3,4,5,6,7 };
 
-    pictrl_log_debug("Creating ring buffer\n");
+    pictrl_log_debug("Creating ring buffer of size %zu bytes\n", ring_buf_size);
     pictrl_rb_t ring_buffer;
     if (pictrl_rb_init(&ring_buffer, ring_buf_size) == NULL) {
-        pictrl_log_debug("Could not create ring buffer\n");
+        pictrl_log_error("Could not create ring buffer\n");
         return 1;
     }
 
     const size_t num_bytes_to_insert = sizeof(orig_data);
     pictrl_log_debug("Inserting %zu bytes\n", num_bytes_to_insert);
     if (pictrl_rb_insert(&ring_buffer, orig_data, num_bytes_to_insert) != num_bytes_to_insert) {
-        pictrl_log_debug("Error inserting\n");
+        pictrl_log_error("Error inserting\n");
         pictrl_rb_destroy(&ring_buffer);
         return 2;
     }
