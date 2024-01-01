@@ -5,12 +5,12 @@
 #include "utils/pictrl_test_utils.h"
 
 
-int test_simple_insert();
-int test_simple_read_peek();
-void print_ring_buffer(pictrl_rb_t*);
-void print_nice_buf(pictrl_rb_t*);
-void print_raw_buf(pictrl_rb_t*);
-void print_buf(uint8_t*, size_t);
+static int test_simple_insert();
+static int test_simple_read_peek();
+static void print_ring_buffer(pictrl_rb_t*);
+static void print_nice_buf(pictrl_rb_t*);
+static void print_raw_buf(pictrl_rb_t*);
+static void print_buf(uint8_t*, size_t);
 
 
 int main(int argc, char *argv[]) {
@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
     return run_test_suite(test_cases, pictrl_size(test_cases));
 }
 
-int test_simple_insert() {
+static int test_simple_insert() {
     // Arrange
     const size_t ring_buf_size = 8;
     uint8_t data[] = { 4,9,5,6,1 };
@@ -69,7 +69,7 @@ int test_simple_insert() {
     return 0;
 }
 
-int test_simple_read_peek() {
+static int test_simple_read_peek() {
     // Arrange
     const size_t ring_buf_size = 8;
     uint8_t orig_data[] = { 1,2,3,4,5,6,7 };
@@ -114,7 +114,7 @@ int test_simple_read_peek() {
 }
 
 // Using `pictrl_rb_read`
-void print_ring_buffer(pictrl_rb_t *rb) {
+static void print_ring_buffer(pictrl_rb_t *rb) {
     pictrl_log("\n------------------------------\n"
            "Capacity:     %zu\n"
            "Buffer start: %p\n"
@@ -132,7 +132,7 @@ void print_ring_buffer(pictrl_rb_t *rb) {
     pictrl_log("\n");
 }
 
-void print_nice_buf(pictrl_rb_t *rb) {
+static void print_nice_buf(pictrl_rb_t *rb) {
     if (rb->data_length == 0) {
         pictrl_log("(empty)\n");
         return;
@@ -144,11 +144,11 @@ void print_nice_buf(pictrl_rb_t *rb) {
 
     free(data);
 }
-void print_raw_buf(pictrl_rb_t *rb) {
+static void print_raw_buf(pictrl_rb_t *rb) {
     print_buf(rb->buffer_start, rb->data_length);
 }
 
-void print_buf(uint8_t *data, size_t n) {
+static void print_buf(uint8_t *data, size_t n) {
     if (n == 0) {
         pictrl_log("(empty)\n");
         return;
