@@ -1,5 +1,5 @@
-#ifndef _PICTRL_TEST_H
-#define _PICTRL_TEST_H
+#ifndef _PITEST_API_H
+#define _PITEST_API_H
 
 #include <stdbool.h>
 #include <stddef.h>

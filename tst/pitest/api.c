@@ -1,5 +1,5 @@
 #include "logging/log_utils.h"
-#include "utils/pictrl_test_utils.h"
+#include "pitest/api.h"
 
 int run_test(const TestCase *test_case) {
     pictrl_log_test_case("%s\n", test_case->test_name);

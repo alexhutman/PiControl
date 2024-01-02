@@ -1,19 +1,27 @@
 ################################## Variables ###################################
-SRC_DIR        := ./src
-BIN_DIR        := ./bin
-TEST_DIR       := ./tst
-BIN_TEST_DIR   := $(patsubst ./%,$(BIN_DIR)/%,$(TEST_DIR))
+BASE_DIR       := .
+
+#All relative
+SRC_DIR        := src
+BIN_DIR        := bin
+TEST_DIR       := tst
+BIN_TEST_DIR   := $(BIN_DIR)/$(TEST_DIR)
 
 EXE            := $(BIN_DIR)/picontrol
 SERVER         := $(BIN_DIR)/picontrol_server
 TEST_SCRIPT    := $(BIN_DIR)/run_tests
+PITEST_SO_PATH := $(BIN_DIR)/pitest/pitest.so
 
-TEST_UTILS_REL := utils/pictrl_test_utils.so
-TEST_UTILS_LIB := $(BIN_DIR)/$(TEST_UTILS_REL)
-TEST_UTILS_OBJ := $(TEST_DIR)/$(TEST_UTILS_REL:.so=.o)
-TEST_UTILS_C   := $(TEST_UTILS_OBJ:.o=.c)
+PITEST_SRC_DIR := $(TEST_DIR)/pitest
+PITEST_C_FILES := $(shell find $(PITEST_SRC_DIR) -type f -name \*.c)
+PITEST_OBJ     := $(PITEST_C_FILES:.c=.o)
+
 TEST_FILES     := $(shell find $(TEST_DIR) -type f -name \*_test.c)
-TEST_TARGETS   := $(patsubst ./%,$(BIN_DIR)/%,$(TEST_FILES:.c=))
+TEST_TARGETS   := $(addprefix $(BIN_DIR)/,$(TEST_FILES:.c=))
+
+# Full paths
+SRC_DIR_FULL   := $(BASE_DIR)/$(SRC_DIR)
+TEST_DIR_FULL  := $(BASE_DIR)/$(TEST_DIR)
 
 CC             := gcc
 CFLAGS         := -MMD -MP
@@ -25,14 +33,16 @@ else
 endif
 
 ################################ Phony Targets #################################
-.PHONY: all picontrol server test clean
-all: picontrol server test
+.PHONY: all picontrol server pitest test clean
+all: picontrol server pitest test
 
 picontrol: $(EXE)
 
 server: $(SERVER)
 
-test: $(TEST_TARGETS) | $(TEST_SCRIPT)
+pitest: $(PITEST_SO_PATH)
+
+test: pitest $(TEST_TARGETS) | $(TEST_SCRIPT)
 
 clean:
 	@echo "PiControl: Cleaning"
@@ -42,34 +52,35 @@ clean:
 ################################### Targets ####################################
 $(EXE): $(SRC_DIR)/picontrol.o $(SRC_DIR)/picontrol_uinput.o | $(BIN_DIR)
 	@echo "PiControl: Making $@"
-	$(CC) $^ -o $@ -I$(SRC_DIR)
+	$(CC) $^ -o $@ -I$(SRC_DIR_FULL)
 
 $(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/picontrol_iputils.o | $(BIN_DIR)
 	@echo "PiControl: Making $@"
-	$(CC) $^ -o $@ -lxdo -I$(SRC_DIR)
+	$(CC) $^ -o $@ -lxdo -I$(SRC_DIR_FULL)
 
-$(TEST_UTILS_LIB): $(TEST_UTILS_OBJ)
-	@echo "PiControl: Linking test utils lib $@ using $^"
+$(PITEST_SO_PATH): $(PITEST_OBJ) | $(BIN_DIR)
+	@echo "PiControl: Linking pitest library $@ using components: $^"
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
 	$(CC) -shared -o $@ $^
 
-$(TEST_UTILS_OBJ): $(TEST_UTILS_C) | $(BIN_DIR)
-	@echo "PiControl: Compiling test utils $@"
-	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
-	$(CC) $(CFLAGS) -I$(TEST_DIR) -I$(SRC_DIR) -c -fPIC $^ -o $@
-	
-$(BIN_TEST_DIR)/%_test: $(TEST_DIR)/%_test.o $(SRC_DIR)/%.o | $(TEST_UTILS_LIB)
-	@echo "PiControl: Compiling test $@"
-	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
-	$(CC) -L$(dir $|) -o $@ $^ -l:$(notdir $|)
+$(PITEST_SRC_DIR)/%.o: $(PITEST_SRC_DIR)/%.c
+	@echo "PiControl: Compiling pitest library component $@"
+	$(CC) $(CFLAGS) -I$(TEST_DIR_FULL) -I$(SRC_DIR_FULL) -c -fPIC $^ -o $@
 
-$(TEST_DIR)/%.o: $(TEST_DIR)/%.c
+################################################################################
+
+$(BIN_TEST_DIR)/%_test: $(TEST_DIR)/%_test.o | $(SRC_DIR)/%.o $(PITEST_SO_PATH)
+	@echo "PiControl: Linking test $@"
+	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
+	$(CC) $(SRC_DIR)/$*.o $^ -o $@ -L$(dir $(PITEST_SO_PATH)) -l:$(notdir $(PITEST_SO_PATH))
+
+$(TEST_DIR)/%_test.o: $(TEST_DIR)/%_test.c
 	@echo "PiControl: Compiling source object for test $@"
-	$(CC) $(CFLAGS) -I$(SRC_DIR) -I$(TEST_DIR) -c $< -o $@
+	$(CC) $(CFLAGS) -I$(SRC_DIR_FULL) -I$(TEST_DIR_FULL) -c $< -o $@
 
 $(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo "PiControl: Compiling source object $@"
-	$(CC) $(CFLAGS) -I$(SRC_DIR) -c $< -o $@
+	$(CC) $(CFLAGS) -I$(SRC_DIR_FULL) -c $< -o $@
 
 $(TEST_SCRIPT)::
 	@[ -f "$@" ] && [ ! -x "$@" ] && chmod +x "$@" || true

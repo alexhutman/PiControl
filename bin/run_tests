@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 BIN_DIR="$(dirname "$0")"
-BIN_TEST_DIR="$BIN_DIR/tst"
-TEST_UTILS_DIR="$BIN_DIR/utils/" #TODO: Inject these relative paths from Makefile?
+BIN_TEST_DIR="$BIN_DIR/tst" #TODO: Inject these relative paths from Makefile?
+PITEST_DIR="$BIN_DIR/pitest"
 
-for directory in "$BIN_TEST_DIR" "$TEST_UTILS_DIR" ; do
+for directory in "$BIN_TEST_DIR" "$PITEST_DIR" ; do
     [ ! -d "$directory" ] && { >&2 echo "$directory not found. Did you \`make test\`?"; exit 1; }
 done
 
@@ -13,7 +13,7 @@ PICTRL_EXIT_ON_FAIL="${PICTRL_EXIT_ON_FAIL:-false}"
 TOTAL_TESTS=0
 FAILED_TESTS=0
 
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$TEST_UTILS_DIR"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PITEST_DIR"
 while read -d $'\0' file
 do
     if ((TOTAL_TESTS > 0)) ; then

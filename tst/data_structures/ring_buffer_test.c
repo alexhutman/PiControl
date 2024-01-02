@@ -2,7 +2,8 @@
 
 #include "data_structures/ring_buffer.h"
 #include "logging/log_utils.h"
-#include "utils/pictrl_test_utils.h"
+#include "pitest/api.h"
+#include "pitest/api/assertions.h"
 
 
 static int test_simple_insert();
