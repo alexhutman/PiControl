@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ring_buffer.h"
+#include "data_structures/ring_buffer.h"
 
 
 pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *rb, size_t num_bytes) {

@@ -1,3 +1,6 @@
+#ifndef _PICTRL_RING_BUFFER_H
+#define _PICTRL_RING_BUFFER_H
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -18,3 +21,5 @@ pictrl_rb_t *pictrl_rb_init(pictrl_rb_t*, size_t);
 void pictrl_rb_destroy(pictrl_rb_t*);
 size_t pictrl_rb_insert(pictrl_rb_t*, void*, size_t);
 size_t pictrl_rb_read(pictrl_rb_t*, pictrl_read_flag, void*, size_t);
+
+#endif
