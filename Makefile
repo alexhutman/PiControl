@@ -45,41 +45,41 @@ pitest: $(PITEST_SO_PATH)
 test: pitest $(TEST_TARGETS) | $(TEST_SCRIPT)
 
 clean:
-	@echo "PiControl: Cleaning"
+	$(info PiControl: Cleaning)
 	find $(BIN_DIR)/ -mindepth 1 | grep -v "$(TEST_SCRIPT)" | xargs -r rm -rf
 	find $(SRC_DIR)/ $(TEST_DIR)/ -type f \( -name \*.o -o -name \*.d \) | xargs -r rm
 
 ################################### Targets ####################################
 $(EXE): $(SRC_DIR)/picontrol.o $(SRC_DIR)/picontrol_uinput.o | $(BIN_DIR)
-	@echo "PiControl: Making $@"
+	$(info PiControl: Making $@)
 	$(CC) $^ -o $@ -I$(SRC_DIR_FULL)
 
 $(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/picontrol_iputils.o | $(BIN_DIR)
-	@echo "PiControl: Making $@"
+	$(info PiControl: Making $@)
 	$(CC) $^ -o $@ -lxdo -I$(SRC_DIR_FULL)
 
 $(PITEST_SO_PATH): $(PITEST_OBJ) | $(BIN_DIR)
-	@echo "PiControl: Linking pitest library $@ using components: $^"
+	$(info PiControl: Linking pitest library $@ using components: $^)
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
 	$(CC) -shared -o $@ $^
 
 $(PITEST_SRC_DIR)/%.o: $(PITEST_SRC_DIR)/%.c
-	@echo "PiControl: Compiling pitest library component $@"
+	$(info PiControl: Compiling pitest library component $@)
 	$(CC) $(CFLAGS) -I$(TEST_DIR_FULL) -I$(SRC_DIR_FULL) -c -fPIC $^ -o $@
 
 ################################################################################
 
 $(BIN_TEST_DIR)/%_test: $(TEST_DIR)/%_test.o | $(SRC_DIR)/%.o $(PITEST_SO_PATH)
-	@echo "PiControl: Linking test $@"
+	$(info PiControl: Linking test $@)
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
 	$(CC) $(SRC_DIR)/$*.o $^ -o $@ -L$(dir $(PITEST_SO_PATH)) -l:$(notdir $(PITEST_SO_PATH))
 
 $(TEST_DIR)/%_test.o: $(TEST_DIR)/%_test.c
-	@echo "PiControl: Compiling source object for test $@"
+	$(info PiControl: Compiling test object $@)
 	$(CC) $(CFLAGS) -I$(SRC_DIR_FULL) -I$(TEST_DIR_FULL) -c $< -o $@
 
 $(SRC_DIR)/%.o: $(SRC_DIR)/%.c
-	@echo "PiControl: Compiling source object $@"
+	$(info PiControl: Compiling source object $@)
 	$(CC) $(CFLAGS) -I$(SRC_DIR_FULL) -c $< -o $@
 
 $(TEST_SCRIPT)::
