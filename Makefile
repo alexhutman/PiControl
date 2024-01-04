@@ -42,7 +42,7 @@ server: $(SERVER)
 
 pitest: $(PITEST_SO_PATH)
 
-test: pitest $(TEST_TARGETS) | $(TEST_SCRIPT)
+test: $(TEST_TARGETS) | $(TEST_SCRIPT)
 
 clean:
 	$(info PiControl: Cleaning)
@@ -69,10 +69,10 @@ $(PITEST_SRC_DIR)/%.o: $(PITEST_SRC_DIR)/%.c
 
 ################################################################################
 
-$(BIN_TEST_DIR)/%_test: $(TEST_DIR)/%_test.o | $(SRC_DIR)/%.o $(PITEST_SO_PATH)
-	$(info PiControl: Linking test $@)
+$(BIN_TEST_DIR)/%_test: $(TEST_DIR)/%_test.o $(SRC_DIR)/%.o | $(PITEST_SO_PATH)
+	$(info PiControl: Stitching source obj with test obj + pitest for $@)
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
-	$(CC) $(SRC_DIR)/$*.o $^ -o $@ -L$(dir $(PITEST_SO_PATH)) -l:$(notdir $(PITEST_SO_PATH))
+	$(CC) -o $@ $? -L$(dir $(PITEST_SO_PATH)) -l:$(notdir $(PITEST_SO_PATH))
 
 $(TEST_DIR)/%_test.o: $(TEST_DIR)/%_test.c
 	$(info PiControl: Compiling test object $@)
@@ -81,6 +81,12 @@ $(TEST_DIR)/%_test.o: $(TEST_DIR)/%_test.c
 $(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	$(info PiControl: Compiling source object $@)
 	$(CC) $(CFLAGS) -I$(SRC_DIR_FULL) -c $< -o $@
+
+$(SRC_DIR)/%.c::
+	[ ! -f "$@" ] && echo "$@ not found" && exit 1
+
+$(TEST_DIR)/%_test.c::
+	[ ! -f "$@" ] && echo "$@ not found" && exit 1
 
 $(TEST_SCRIPT)::
 	@[ -f "$@" ] && [ ! -x "$@" ] && chmod +x "$@" || true
