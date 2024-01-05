@@ -73,18 +73,22 @@ $(PITEST_SRC_DIR)/%.o: $(PITEST_SRC_DIR)/%.c
 
 ################################################################################
 
-$(BIN_TEST_DIR)/%_test: $(TEST_DIR)/%_test.o $(SRC_DIR)/%.o | $(PITEST_SO_PATH)
-	$(info PiControl: Stitching source obj with test obj + pitest for $@)
+$(BIN_TEST_DIR)/%_test: $(TEST_DIR)/%_test.a | $(PITEST_SO_PATH)
+	$(info PiControl: Creating test executable $@)
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
-	$(CC) -o $@ $? -L$(dir $(PITEST_SO_PATH)) -l:$(notdir $(PITEST_SO_PATH))
+	$(CC) $< -o $@ -L$(dir $|) -l:$(notdir $|)
+
+$(TEST_DIR)/%_test.a: $(SRC_DIR)/%.o $(TEST_DIR)/%_test.o
+	$(info PiControl: Stitching together test lib $@ [only $? changed])
+	ar -rcs $@ $?
 
 $(TEST_DIR)/%_test.o: $(TEST_DIR)/%_test.c
 	$(info PiControl: Compiling test object $@)
-	$(CC) $(CFLAGS) -I$(SRC_DIR_FULL) -I$(TEST_DIR_FULL) -c $< -o $@
+	$(CC) $(CFLAGS) -o $@ -c $< -I$(SRC_DIR_FULL) -I$(TEST_DIR_FULL)
 
 $(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	$(info PiControl: Compiling source object $@)
-	$(CC) $(CFLAGS) -I$(SRC_DIR_FULL) -c $< -o $@
+	[ -z "$?" ] || $(CC) $(CFLAGS) -o $@ -c $< -I$(SRC_DIR_FULL)
 
 $(SRC_DIR)/%.c::
 	[ ! -f "$@" ] && echo "$@ not found" && exit 1
