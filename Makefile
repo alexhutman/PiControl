@@ -82,19 +82,16 @@ $(TEST_DIR)/%_test.a: $(SRC_DIR)/%.o $(TEST_DIR)/%_test.o
 	$(info PiControl: Stitching together test lib $@ [only $? changed])
 	ar -rcs $@ $?
 
-$(TEST_DIR)/%_test.o: $(TEST_DIR)/%_test.c
+$(TEST_DIR)/%_test.o: $(TEST_DIR)/%_test.c | $(SRC_DIR)/%.o
 	$(info PiControl: Compiling test object $@)
 	$(CC) $(CFLAGS) -o $@ -c $< -I$(SRC_DIR_FULL) -I$(TEST_DIR_FULL)
+	touch $|
 
-$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
+$(SRC_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/%.h
 	$(info PiControl: Compiling source object $@)
-	[ -z "$?" ] || $(CC) $(CFLAGS) -o $@ -c $< -I$(SRC_DIR_FULL)
+	$(CC) $(CFLAGS) -o $@ -c $< -I$(SRC_DIR_FULL)
 
-$(SRC_DIR)/%.c::
-	[ ! -f "$@" ] && echo "$@ not found" && exit 1
-
-$(TEST_DIR)/%_test.c::
-	[ ! -f "$@" ] && echo "$@ not found" && exit 1
+$(TEST_DIR)/%_test.c:: $(SRC_DIR)/%.c
 
 $(TEST_SCRIPT)::
 	@[ -f "$@" ] && [ ! -x "$@" ] && chmod +x "$@" || true
