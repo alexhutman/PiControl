@@ -2,7 +2,8 @@
 bin/*
 
 # Artifacts
-**/*.o
+**/*.a
 **/*.d
+**/*.o
 
 !bin/run_tests
