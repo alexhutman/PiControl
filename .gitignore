@@ -2,7 +2,6 @@
 bin/*
 
 # Artifacts
-**/*.a
 **/*.d
 **/*.o
 
