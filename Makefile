@@ -65,7 +65,7 @@ $(PITEST_SO_PATH): $(PITEST_OBJ)
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
 	$(CC) -shared -o $@ $^
 
-$(PITEST_SRC_DIR)/%.o: $(PITEST_SRC_DIR)/%.c
+$(PITEST_SRC_DIR)/%.o: $(PITEST_SRC_DIR)/%.c $(PITEST_SRC_DIR)/%.h
 	$(info PiControl: Compiling pitest library component $@)
 	$(CC) $(CFLAGS) -fPIC -o $@ -c $< -I$(SRC_DIR_FULL) -I$(TEST_DIR_FULL)
 
@@ -80,7 +80,13 @@ $(TEST_DIR)/%_test.o: $(TEST_DIR)/%_test.c | $(SRC_DIR)/%.o
 	$(info PiControl: Compiling test object $@)
 	$(CC) $(CFLAGS) -o $@ -c $< -I$(SRC_DIR_FULL) -I$(TEST_DIR_FULL)
 
+# If the prereq has an associated header, recompile obj when header changes
 $(SRC_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/%.h
+	$(info PiControl: Compiling source object $@)
+	$(CC) $(CFLAGS) -o $@ -c $< -I$(SRC_DIR_FULL)
+
+# Otherwise, just compile C file when it changes
+$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	$(info PiControl: Compiling source object $@)
 	$(CC) $(CFLAGS) -o $@ -c $< -I$(SRC_DIR_FULL)
 
