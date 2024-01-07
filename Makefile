@@ -54,11 +54,11 @@ clean:
 ################################### Targets ####################################
 $(EXE): $(SRC_DIR)/picontrol.o $(SRC_DIR)/picontrol_uinput.o
 	$(info PiControl: Making $@)
-	$(CC) $^ -o $@ -I$(SRC_DIR_FULL)
+	$(CC) $^ -o $@
 
 $(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/picontrol_iputils.o
 	$(info PiControl: Making $@)
-	$(CC) $^ -o $@ -lxdo -I$(SRC_DIR_FULL)
+	$(CC) $^ -o $@ -lxdo
 
 $(PITEST_SO_PATH): $(PITEST_OBJ)
 	$(info PiControl: Linking pitest library $@ using components: $^)
@@ -67,7 +67,7 @@ $(PITEST_SO_PATH): $(PITEST_OBJ)
 
 $(PITEST_SRC_DIR)/%.o: $(PITEST_SRC_DIR)/%.c
 	$(info PiControl: Compiling pitest library component $@)
-	$(CC) $(CFLAGS) -I$(TEST_DIR_FULL) -I$(SRC_DIR_FULL) -c -fPIC $^ -o $@
+	$(CC) $(CFLAGS) -fPIC -o $@ -c $< -I$(SRC_DIR_FULL) -I$(TEST_DIR_FULL)
 
 ################################################################################
 
