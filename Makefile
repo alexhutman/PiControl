@@ -54,15 +54,15 @@ clean:
 	find $(SRC_DIR)/ $(TEST_DIR)/ -type f \( -name \*.o -o -name \*.d \) | xargs -r rm
 
 ################################### Targets ####################################
-$(EXE): $(SRC_DIR)/picontrol.o $(SRC_DIR)/picontrol_uinput.o | $(BIN_DIR)
+$(EXE): $(SRC_DIR)/picontrol.o $(SRC_DIR)/picontrol_uinput.o
 	$(info PiControl: Making $@)
 	$(CC) $^ -o $@ -I$(SRC_DIR_FULL)
 
-$(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/picontrol_iputils.o | $(BIN_DIR)
+$(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/picontrol_iputils.o
 	$(info PiControl: Making $@)
 	$(CC) $^ -o $@ -lxdo -I$(SRC_DIR_FULL)
 
-$(PITEST_SO_PATH): $(PITEST_OBJ) | $(BIN_DIR)
+$(PITEST_SO_PATH): $(PITEST_OBJ)
 	$(info PiControl: Linking pitest library $@ using components: $^)
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
 	$(CC) -shared -o $@ $^
@@ -95,6 +95,3 @@ $(TEST_DIR)/%_test.c:: $(SRC_DIR)/%.c
 
 $(TEST_SCRIPT)::
 	@[ -f "$@" ] && [ ! -x "$@" ] && chmod +x "$@" || true
-
-$(BIN_DIR)::
-	@[ -d "$@" ] || mkdir -p "$@"
