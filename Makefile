@@ -26,7 +26,7 @@ SRC_DIR_FULL   := $(BASE_DIR)/$(SRC_DIR)
 TEST_DIR_FULL  := $(BASE_DIR)/$(TEST_DIR)
 
 CC             := gcc
-CFLAGS         := -MMD -MP
+CFLAGS         := -MMD -MP -Wall -Wextra
 
 ifdef DEBUG
 	override CFLAGS += -DPI_CTRL_DEBUG -ggdb -Og
