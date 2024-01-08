@@ -15,7 +15,7 @@ static void print_raw_buf(pictrl_rb_t*);
 static void print_buf(uint8_t*, size_t);
 
 
-int main(int argc, char *argv[]) {
+int main() {
     const TestCase test_cases[] = {
         {
             .test_name = "Simple insert",
