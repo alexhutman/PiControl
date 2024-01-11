@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "data_structures/ring_buffer.h"
@@ -9,6 +10,7 @@
 static int test_simple_insert();
 static int test_simple_read_peek();
 static int test_insert_more_than_free();
+static int test_simple_wraparound();
 static void print_ring_buffer(pictrl_rb_t*);
 static void print_nice_buf(pictrl_rb_t*);
 static void print_raw_buf(pictrl_rb_t*);
@@ -28,6 +30,10 @@ int main() {
         {
             .test_name = "Insert more than free",
             .test_function = &test_insert_more_than_free,
+        },
+        {
+            .test_name = "Simple wraparound",
+            .test_function = &test_simple_wraparound,
         }
     };
 
@@ -147,6 +153,51 @@ int test_insert_more_than_free() {
         // TODO: Make these logs all go to stderr.. d'oh
         pictrl_log_error("Data mismatch. Expected data: ");
         print_buf(orig_data, ring_buf_size);
+        pictrl_log_error("Received: ");
+        print_buf(rb.buffer_start, ring_buf_size);
+
+        pictrl_rb_destroy(&rb);
+        return 3;
+    }
+    pictrl_log_debug("Data matches!\n");
+
+    // Teardown
+    pictrl_log_debug("Destroying ring buffer\n");
+    pictrl_rb_destroy(&rb);
+
+    return 0;
+}
+
+int test_simple_wraparound() {
+    // Arrange
+    uint8_t orig_data[] = { 1,2,3,4 };
+    const size_t ring_buf_size = sizeof(orig_data);
+
+    pictrl_log_debug("Creating ring buffer of size %zu bytes\n", ring_buf_size);
+    pictrl_rb_t rb;
+    if (pictrl_rb_init(&rb, ring_buf_size) == NULL) {
+        pictrl_log_error("Could not create ring buffer\n");
+        return 1;
+    }
+
+    rb.data_start += ring_buf_size - 1;
+    const size_t num_bytes_to_insert = ring_buf_size;
+    pictrl_log_debug("Attempting to insert %zu bytes starting at the last position in the internal buffer\n", num_bytes_to_insert);
+    size_t num_bytes_inserted = pictrl_rb_insert(&rb, orig_data, num_bytes_to_insert);
+    if (num_bytes_inserted != ring_buf_size) {
+        pictrl_log_error("Expected to insert %zu bytes, but %zu bytes were somehow inserted\n", ring_buf_size, num_bytes_inserted);
+        pictrl_rb_destroy(&rb);
+        return 2;
+    }
+    pictrl_log_debug("Inserted %zu bytes\n", num_bytes_inserted);
+
+    // Assert
+    uint8_t expected_data[] = { 2,3,4,1 };
+    if (!array_equals(rb.buffer_start, rb.num_bytes,
+                      expected_data, rb.num_bytes)) {
+        // TODO: Make these logs all go to stderr.. d'oh
+        pictrl_log_error("Data mismatch. Expected data: ");
+        print_buf(expected_data, ring_buf_size);
         pictrl_log_error("Received: ");
         print_buf(rb.buffer_start, ring_buf_size);
 
