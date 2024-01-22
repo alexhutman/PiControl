@@ -142,10 +142,11 @@ int test_insert_more_than_free() {
         return 1;
     }
 
+    // Act
     const size_t num_bytes_to_insert = sizeof(orig_data);
     pictrl_log_debug("Attempting to insert %zu bytes\n", num_bytes_to_insert);
     size_t num_bytes_inserted = pictrl_rb_insert(&rb, orig_data, num_bytes_to_insert);
-    if (num_bytes_inserted != ring_buf_size) {
+    if (num_bytes_inserted != ring_buf_size) { // We should've capped out at the rb's capacity
         pictrl_log_error("Expected to insert %zu bytes, but %zu bytes were somehow inserted\n", ring_buf_size, num_bytes_inserted);
         pictrl_rb_destroy(&rb);
         return 2;
@@ -185,6 +186,7 @@ int test_simple_wraparound() {
         return 1;
     }
 
+    // Act
     rb.data_start += ring_buf_size - 1;
     const size_t num_bytes_to_insert = ring_buf_size;
     pictrl_log_debug("Attempting to insert %zu bytes starting at the last position in the internal buffer\n", num_bytes_to_insert);
