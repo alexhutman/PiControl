@@ -11,6 +11,7 @@ static int test_simple_insert();
 static int test_simple_read_peek();
 static int test_insert_more_than_free();
 static int test_simple_wraparound();
+static int test_clear_full_buffer();
 static void print_ring_buffer(pictrl_rb_t*);
 static void print_nice_buf(pictrl_rb_t*);
 static void print_raw_buf(pictrl_rb_t*);
@@ -34,6 +35,10 @@ int main() {
         {
             .test_name = "Simple wraparound",
             .test_function = &test_simple_wraparound,
+        },
+        {
+            .test_name = "Clear full buffer",
+            .test_function = &test_clear_full_buffer,
         }
     };
 
@@ -211,6 +216,60 @@ int test_simple_wraparound() {
     pictrl_rb_destroy(&rb);
 
     return 0;
+}
+
+int test_clear_full_buffer() {
+    // Arrange
+    uint8_t orig_data[] = { 0,1,2,3,4,5,6,7,8,9 };
+    const size_t ring_buf_size = sizeof(orig_data);
+
+    pictrl_log_debug("Creating ring buffer of size %zu bytes\n", ring_buf_size);
+    pictrl_rb_t rb;
+    int ret = -1;
+    if (pictrl_rb_init(&rb, ring_buf_size) == NULL) {
+        pictrl_log_error("Could not create ring buffer\n");
+        ret = 1;
+    }
+
+    const size_t num_bytes_to_insert = ring_buf_size;
+    pictrl_log_debug("Inserting %zu bytes into the ring buffer\n", num_bytes_to_insert);
+    size_t num_bytes_inserted = pictrl_rb_insert(&rb, orig_data, num_bytes_to_insert);
+    if (num_bytes_inserted != ring_buf_size) {
+        pictrl_log_error("Expected to insert %zu bytes, but %zu bytes were somehow inserted\n", ring_buf_size, num_bytes_inserted);
+        ret = 2;
+    }
+    pictrl_log_debug("Inserted %zu bytes\n", num_bytes_inserted);
+
+    // Act
+    pictrl_rb_clear(&rb);
+    pictrl_log_debug("Cleared ring buffer\n");
+
+    // Assert
+    uint8_t expected_data[sizeof(orig_data)] = { 0 };
+    if (!array_equals(rb.buffer_start, rb.num_bytes,
+                      expected_data, rb.num_bytes)) {
+        // TODO: Make these logs all go to stderr.. d'oh
+        pictrl_log_error("Data mismatch. Expected data: ");
+        print_buf(expected_data, ring_buf_size);
+        pictrl_log_error("Received: ");
+        print_buf(rb.buffer_start, ring_buf_size);
+        ret = 3;
+    } else if (rb.data_length != 0) {
+        pictrl_log_error("Expected data_length to be 0. Received: %zu", rb.data_length);
+        ret = 4;
+    } else if (rb.data_start != rb.buffer_start) {
+        pictrl_log_error("Expected data_start to be the same as buffer_start. Received (data_start, buffer_start): (%p, %p)", rb.data_start, rb.buffer_start);
+        ret = 5;
+    } else {
+        pictrl_log_debug("Buffer is empty as expected\n");
+        ret = 0;
+    }
+
+    // Teardown
+    pictrl_log_debug("Destroying ring buffer\n");
+    pictrl_rb_destroy(&rb);
+
+    return ret;
 }
 
 // Using `pictrl_rb_read`

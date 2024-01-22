@@ -94,3 +94,9 @@ size_t pictrl_rb_read(pictrl_rb_t *rb, pictrl_read_flag flag, void *dest, size_t
 
     return num_bytes_to_read;
 }
+
+void pictrl_rb_clear(pictrl_rb_t *rb) {
+    memset(rb->buffer_start, 0, rb->num_bytes*sizeof(uint8_t));
+    rb->data_length = 0;
+    rb->data_start = rb->buffer_start;
+}
