@@ -19,8 +19,8 @@ typedef enum pictrl_read_flag {
 
 pictrl_rb_t *pictrl_rb_init(pictrl_rb_t*, size_t);
 void pictrl_rb_destroy(pictrl_rb_t*);
-size_t pictrl_rb_insert(pictrl_rb_t*, void*, size_t);
-size_t pictrl_rb_read(pictrl_rb_t*, pictrl_read_flag, void*, size_t);
+size_t pictrl_rb_insert(pictrl_rb_t*, int, size_t);
+size_t pictrl_rb_read(pictrl_rb_t*, pictrl_read_flag, int, size_t);
 void pictrl_rb_clear(pictrl_rb_t*);
 
 #endif

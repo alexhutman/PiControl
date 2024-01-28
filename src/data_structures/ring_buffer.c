@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "data_structures/ring_buffer.h"
 
@@ -37,7 +38,7 @@ void pictrl_rb_destroy(pictrl_rb_t *rb) {
 
 
 // Insert `num` bytes from `src_start` into the ring buffer
-size_t pictrl_rb_insert(pictrl_rb_t *rb, void *src_start, size_t num) {
+size_t pictrl_rb_insert(pictrl_rb_t *rb, int fd, size_t num) {
     size_t available_bytes = rb->num_bytes - rb->data_length;
     if (num == 0 || available_bytes == 0) {
         return 0;
@@ -53,12 +54,12 @@ size_t pictrl_rb_insert(pictrl_rb_t *rb, void *src_start, size_t num) {
     if (insertion_wrapped) {
         // insert from the insertion point to the end
         const size_t num_bytes_first_pass = rb->num_bytes - insertion_offset;
-        memcpy(rb->buffer_start + insertion_offset, src_start, num_bytes_first_pass);
+        read(fd, rb->buffer_start + insertion_offset, num_bytes_first_pass);
 
         // then from the beginning to insertion_end
-        memcpy(rb->buffer_start, src_start + num_bytes_first_pass, num_bytes_to_write - num_bytes_first_pass);
+        read(fd, rb->buffer_start, num_bytes_to_write - num_bytes_first_pass);
     } else {
-        memcpy(rb->buffer_start + insertion_offset, src_start, num_bytes_to_write);
+        read(fd, rb->buffer_start + insertion_offset, num_bytes_to_write);
     }
     rb->data_length += num_bytes_to_write;
 
@@ -66,7 +67,7 @@ size_t pictrl_rb_insert(pictrl_rb_t *rb, void *src_start, size_t num) {
 }
 
 
-size_t pictrl_rb_read(pictrl_rb_t *rb, pictrl_read_flag flag, void *dest, size_t num) {
+size_t pictrl_rb_read(pictrl_rb_t *rb, pictrl_read_flag flag, int fd, size_t num) {
     if (num == 0 || rb->data_length == 0) {
         return 0;
     }
@@ -80,11 +81,10 @@ size_t pictrl_rb_read(pictrl_rb_t *rb, pictrl_read_flag flag, void *dest, size_t
     const bool data_wrapped = cur_data_offset_end < cur_data_offset_start;
     if (data_wrapped) {
         const size_t num_edge_bytes = rb->num_bytes - cur_data_offset_start;
-        memcpy(dest, rb->data_start, num_edge_bytes);
-
-        memcpy(dest+num_edge_bytes, rb->buffer_start, num - num_edge_bytes);
+        write(fd, rb->data_start, num_edge_bytes);
+        write(fd, rb->buffer_start, num - num_edge_bytes);
     } else {
-        memcpy(dest, rb->data_start, num_bytes_to_read);
+        write(fd, rb->data_start, num_bytes_to_read);
     }
 
     if (flag == PICTRL_READ_CONSUME) {
