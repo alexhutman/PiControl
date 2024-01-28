@@ -1,5 +1,7 @@
-#include <stdint.h>
+#include <errno.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "data_structures/ring_buffer.h"
 #include "logging/log_utils.h"
@@ -17,6 +19,45 @@ static void print_nice_buf(pictrl_rb_t*);
 static void print_raw_buf(pictrl_rb_t*);
 static void print_buf(uint8_t*, size_t);
 
+
+#define TEST_FILE_TEMPLATE_PREFIX "./ring_buffer_testXXXXXX"
+#define TEST_FILE_TEMPLATE_SUFFIX ".tmp"
+#define TEST_FILE_TEMPLATE_SUFFIX_LEN (int) (sizeof(TEST_FILE_TEMPLATE_SUFFIX)/sizeof(char) - 1)
+
+static char test_file_name[] = TEST_FILE_TEMPLATE_PREFIX TEST_FILE_TEMPLATE_SUFFIX;
+static int test_fd = -1;
+
+int before_all() {
+    pictrl_log_debug("Inside before_all. Trying to create temp file %s\n", test_file_name);
+    test_fd = mkstemps(test_file_name, TEST_FILE_TEMPLATE_SUFFIX_LEN);
+    if (test_fd < 0) {
+        pictrl_log_error("Error creating temp file %s: %s\n", test_file_name, strerror(errno));
+        return -1;
+    }
+
+    pictrl_log_debug("Created temp file %s\n", test_file_name);
+    return 0;
+}
+
+int after_all() {
+    if (test_fd < 0) {
+        pictrl_log_debug("Temp file is not open. Not doing anything...");
+        return 0;
+    }
+
+    if (unlink(test_file_name) < 0) {
+        pictrl_log_warn("Could not remove temp file %s: %s\n", test_file_name, strerror(errno));
+    } else {
+        pictrl_log_debug("Removed temp file %s\n", test_file_name);
+    }
+
+    int ret = close(test_fd);
+    if (ret < 0) {
+        pictrl_log_warn("Was not able to close open file descriptor %d: %s\n", test_fd, strerror(errno));
+    }
+    test_fd = -1;
+    return ret;
+}
 
 int main() {
     const TestCase test_cases[] = {
@@ -42,7 +83,21 @@ int main() {
         }
     };
 
-    return run_test_suite(test_cases, pictrl_size(test_cases));
+    const TestSuite suite = {
+        .name = "Ring buffer tests",
+        .test_cases = test_cases,
+        .num_tests = pictrl_size(test_cases),
+        .before_after_all = {
+            .setup = &before_all,
+            .teardown = &after_all
+        },
+        .before_after_each = {
+            .setup = NULL,
+            .teardown = NULL
+        }
+    };
+
+    return run_test_suite(&suite);
 }
 
 static int test_simple_insert() {
