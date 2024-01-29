@@ -28,7 +28,6 @@ static char test_file_name[] = TEST_FILE_TEMPLATE_PREFIX TEST_FILE_TEMPLATE_SUFF
 static int test_fd = -1;
 
 int before_all() {
-    pictrl_log_debug("Inside before_all. Trying to create temp file %s\n", test_file_name);
     test_fd = mkstemps(test_file_name, TEST_FILE_TEMPLATE_SUFFIX_LEN);
     if (test_fd < 0) {
         pictrl_log_error("Error creating temp file %s: %s\n", test_file_name, strerror(errno));
@@ -40,22 +39,22 @@ int before_all() {
 }
 
 int after_all() {
-    if (test_fd < 0) {
-        pictrl_log_debug("Temp file is not open. Not doing anything...");
-        return 0;
-    }
-
-    if (unlink(test_file_name) < 0) {
-        pictrl_log_warn("Could not remove temp file %s: %s\n", test_file_name, strerror(errno));
-    } else {
-        pictrl_log_debug("Removed temp file %s\n", test_file_name);
-    }
-
+    // Close fd
     int ret = close(test_fd);
     if (ret < 0) {
         pictrl_log_warn("Was not able to close open file descriptor %d: %s\n", test_fd, strerror(errno));
+        return ret;
     }
+
+    // Remove file
+    ret = unlink(test_file_name);
+    if (ret < 0) {
+        pictrl_log_warn("Could not remove temp file %s: %s\n", test_file_name, strerror(errno));
+        return ret;
+    }
+
     test_fd = -1;
+    pictrl_log_debug("Removed temp file %s\n", test_file_name);
     return ret;
 }
 
