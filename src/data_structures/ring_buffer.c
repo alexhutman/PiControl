@@ -38,98 +38,105 @@ void pictrl_rb_destroy(pictrl_rb_t *rb) {
 }
 
 
-// Insert `num` bytes from `src_start` into the ring buffer
-ssize_t pictrl_rb_insert(pictrl_rb_t *rb, int fd, size_t num) {
+ssize_t pictrl_rb_write(int fd, size_t num, pictrl_rb_t *rb) {
     const size_t available_bytes = rb->num_bytes - rb->data_length;
     if (num == 0 || available_bytes == 0) {
         return 0;
     }
 
-    // if not enough space, write as much as we can
-    const size_t num_bytes_to_write = (num > available_bytes) ? available_bytes : num;
-    const size_t data_offset_from_buf_start = rb->data_start - rb->buffer_start; // TODO: ASSERT THIS IS ALWAYS POSITIVE (how to even detect negative with size_t?)
-    const size_t insertion_offset = (data_offset_from_buf_start + rb->data_length) % rb->num_bytes; // next slot after data_end. offset from buffer_start
-    const size_t insertion_end_offset = (insertion_offset + num_bytes_to_write - 1) % rb->num_bytes; // end of data that is to be inserted. offset from buffer_start
+    const size_t num_bytes_to_write = (num > available_bytes) ? available_bytes : num; // if not enough space, write as much as we can
+    const size_t data_offset = rb->data_start - rb->buffer_start; // offset of the start of the data section
+    const size_t write_offset_start = (data_offset + rb->data_length) % rb->num_bytes; // next slot after data_end. offset from buffer_start
+    const size_t write_offset_end = (write_offset_start + num_bytes_to_write - 1) % rb->num_bytes; // end of data that is to be written. offset from buffer_start
 
-    const bool insertion_wrapped = insertion_end_offset < insertion_offset;
-    ssize_t first_pass = 0, second_pass = 0;
-    if (insertion_wrapped) {
-        // insert from the insertion point to the end
-        const size_t num_bytes_first_pass = rb->num_bytes - insertion_offset;
-        first_pass = read(fd, rb->buffer_start + insertion_offset, num_bytes_first_pass);
-        if (first_pass < 0) {
-            // TODO: Log strerror
-            return first_pass;
+    const bool wrapped = write_offset_end < write_offset_start;
+    ssize_t bytes_read = 0;
+    if (wrapped) {
+        // write from the write offset to the end
+        const size_t num_bytes_first_pass = rb->num_bytes - write_offset_start;
+        const ssize_t first_pass = read(fd, rb->buffer_start + write_offset_start, num_bytes_first_pass);
+        if (first_pass == 0) {
+            return 0;
         }
+        if (first_pass == -1) {
+            // TODO: log strerror
+            return -1;
+        }
+        bytes_read += first_pass;
 
-        // then from the beginning to insertion_end
+        // then from the beginning to write_end
         if (first_pass == num_bytes_first_pass) {
-            second_pass = read(fd, rb->buffer_start, num_bytes_to_write - num_bytes_first_pass);
-            if (second_pass < 0) {
+            const ssize_t second_pass = read(fd, rb->buffer_start, num_bytes_to_write - num_bytes_first_pass);
+            if (second_pass == -1) {
                 // TODO: log strerror
-                return first_pass;
+            } else {
+                bytes_read += second_pass;
             }
         }
     } else {
-        first_pass = read(fd, rb->buffer_start + insertion_offset, num_bytes_to_write);
-        if (first_pass < 0) {
-            // TODO: log strerror
-            return first_pass;
+        const ssize_t only_pass = read(fd, rb->buffer_start + write_offset_start, num_bytes_to_write);
+        if (only_pass == 0) {
+            return 0;
         }
+        if (only_pass < 0) {
+            // TODO: log strerror
+            return -1;
+        }
+        bytes_read += only_pass;
     }
-    const ssize_t total_bytes_written = first_pass + second_pass;
 
-    rb->data_length += (size_t)total_bytes_written;
-    return total_bytes_written;
+    rb->data_length += (size_t)bytes_read;
+    return bytes_read;
 }
 
-
-ssize_t pictrl_rb_read(pictrl_rb_t *rb, pictrl_read_flag flag, int fd, size_t num) {
+// TODO: Create read/write_log_error
+ssize_t pictrl_rb_read(int fd, size_t num, pictrl_rb_t *rb, pictrl_read_flag flag) {
     if (num == 0 || rb->data_length == 0) {
         return 0;
     }
 
     // if not enough data, read as much as we can
     const size_t num_bytes_to_read = (num > rb->data_length) ? rb->data_length : num;
-    const size_t cur_data_offset_start = rb->data_start - rb->buffer_start; // TODO: ASSERT THIS IS ALWAYS POSITIVE (how to even detect negative with size_t?)
-    const size_t cur_data_offset_end = (cur_data_offset_start + rb->data_length - 1) % rb->num_bytes; // next slot after data_end. offset from buffer_start
-    const size_t new_data_offset_start = (cur_data_offset_start + num_bytes_to_read) % rb->num_bytes;
+    const size_t data_offset_start = rb->data_start - rb->buffer_start; // TODO: ASSERT THIS IS ALWAYS POSITIVE (how to even detect negative with size_t?)
+    const size_t data_offset_end = (data_offset_start + rb->data_length - 1) % rb->num_bytes; // next slot after data_end. offset from buffer_start
+    const size_t new_data_offset_start = (data_offset_start + num_bytes_to_read) % rb->num_bytes;
 
-    const bool data_wrapped = cur_data_offset_end < cur_data_offset_start;
-    ssize_t first_pass = 0, second_pass = 0;
-    if (data_wrapped) {
+    const bool wrapped = data_offset_end < data_offset_start;
+    ssize_t bytes_written = 0;
+    if (wrapped) {
         // Write 'til the end
-        const size_t num_edge_bytes = rb->num_bytes - cur_data_offset_start;
-        // TODO: Maybe have a flag for write til completion?
-        first_pass = write(fd, rb->data_start, num_edge_bytes);
-        if (first_pass < 0) {
+        const size_t num_edge_bytes = rb->num_bytes - data_offset_start;
+        const ssize_t first_pass = write(fd, rb->data_start, num_edge_bytes);
+        if (first_pass == -1) {
             // TODO: Log strerror
-            return first_pass;
+            return -1;
         }
+        bytes_written += first_pass;
 
-        // Then resume from the beginning to attempt to write the rest, if the whole previous write was complete
+        // Then resume from the beginning to attempt to write the rest, if first_pass' write finished fully
         if (first_pass == num_edge_bytes) {
-            second_pass = write(fd, rb->buffer_start, num - num_edge_bytes);
-            if (second_pass < 0) {
+            const ssize_t second_pass = write(fd, rb->buffer_start, num - num_edge_bytes);
+            if (second_pass == -1) {
                 // TODO: log strerror
-                return first_pass;
+            } else {
+                bytes_written += second_pass;
             }
         }
     } else {
-        first_pass = write(fd, rb->data_start, num_bytes_to_read);
-        if (first_pass < 0) {
+        const ssize_t only_pass = write(fd, rb->data_start, num_bytes_to_read);
+        if (only_pass == -1) {
             // TODO: log strerror
-            return first_pass;
+            return -1;
         }
+        bytes_written += only_pass;
     }
-    const ssize_t total_bytes_read = first_pass + second_pass;
 
     if (flag == PICTRL_READ_CONSUME) {
-        rb->data_length -= (size_t)total_bytes_read;
+        rb->data_length -= (size_t)bytes_written;
         rb->data_start = rb->buffer_start + new_data_offset_start;
     }
 
-    return total_bytes_read;
+    return bytes_written;
 }
 
 void pictrl_rb_clear(pictrl_rb_t *rb) {
