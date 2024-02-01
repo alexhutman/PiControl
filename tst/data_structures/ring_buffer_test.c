@@ -139,7 +139,7 @@ static int test_simple_write() {
 
     // Write data to file
     size_t num_bytes_to_write = sizeof(data);
-    if (write_to_file(test_fd, num_bytes_to_write, data) != num_bytes_to_write) {
+    if (write_to_file(test_fd, num_bytes_to_write, data) != (ssize_t)num_bytes_to_write) {
         pictrl_log_error("Could not write test data to temp file\n");
         return 1;
     }
@@ -150,7 +150,7 @@ static int test_simple_write() {
     pictrl_log_debug("Wrote test data to temp file\n");
 
     // Act
-    if (write_until_completion(test_fd, num_bytes_to_write, &rb) != num_bytes_to_write) {
+    if (write_until_completion(test_fd, num_bytes_to_write, &rb) != (ssize_t)num_bytes_to_write) {
         pictrl_log_error("Error writing to ring buffer\n");
         return 2;
     }
@@ -253,8 +253,12 @@ int test_write_more_than_free() {
 
     // Act
     size_t num_bytes_written = write_until_completion(test_fd, num_bytes_to_write, &rb);
+    if (errno != ENOBUFS) {
+        pictrl_log_error("Expected errno to be set to ENOBUFS (%d), but errno is %d.\n", ENOBUFS, errno);
+        return 1;
+    }
     if (num_bytes_written != ring_buf_size) { // We should've capped out at the rb's capacity
-        pictrl_log_error("Expected to write %zu bytes, but %zu bytes were somehow wrote\n", ring_buf_size, num_bytes_written);
+        pictrl_log_error("Expected to write %zu bytes, but %zu bytes were somehow written\n", ring_buf_size, num_bytes_written);
         return 2;
     }
     pictrl_log_debug("Wrote %zu bytes\n", num_bytes_written);
@@ -418,15 +422,21 @@ static void print_buf(uint8_t *data, size_t n) {
 
 // These are surely not thread-safe
 static ssize_t read_until_completion(int fd, size_t count, pictrl_rb_t *rb, pictrl_read_flag flag) {
+    const bool reading_more_than_avail = count > rb->data_length;
+
     size_t bytes_read = 0;
     while (bytes_read < count) {
-        ssize_t num_read = pictrl_rb_read(fd, count - bytes_read, rb, flag);
-        if (num_read == 0) { // Reached EOF
-            return bytes_read;
-        }
+        const size_t bytes_left = count - bytes_read;
+        const bool no_data_left = rb->data_length <= bytes_left;
+        const ssize_t num_read = pictrl_rb_read(fd, bytes_left, rb, flag);
         if (num_read < 0) {
-            // TODO: handle err
-            return bytes_read == 0 ? -1 : bytes_read;
+            int err = errno;
+            if (!reading_more_than_avail || !no_data_left) {
+                pictrl_log_error("Error reading from temp file: %s\n", strerror(err));
+                errno = err;
+                return -1;
+            }
+            return bytes_read;
         }
         bytes_read += (size_t)num_read;
     }
@@ -434,12 +444,22 @@ static ssize_t read_until_completion(int fd, size_t count, pictrl_rb_t *rb, pict
 }
 
 static ssize_t write_until_completion(int fd, size_t count, pictrl_rb_t *rb) {
+    const bool inserting_more_than_avail = count > (rb->num_bytes - rb->data_length);
+
     size_t bytes_written = 0;
     while (bytes_written < count) {
-        ssize_t written = pictrl_rb_write(fd, count - bytes_written, rb);
+        const size_t bytes_left = count - bytes_written;
+        const bool is_rb_full = (rb->num_bytes - rb->data_length) <= bytes_left ;
+
+        const ssize_t written = pictrl_rb_write(fd, bytes_left, rb);
         if (written < 0) {
-            pictrl_log_error("Error writing to temp file: %s\n", strerror(errno));
-            return bytes_written == 0 ? -1 : bytes_written;
+            int err = errno;
+            if (!inserting_more_than_avail || !is_rb_full) {
+                pictrl_log_error("Error writing to temp file: %s\n", strerror(err));
+                errno = err;
+                return -1;
+            }
+            return bytes_written;
         }
         if (written == 0) {
             return bytes_written;
@@ -473,7 +493,6 @@ static ssize_t write_to_file(int fd, size_t count, void *data) {
     while (remaining_bytes > 0) {
         ssize_t num_written = write(fd, cur, remaining_bytes);
         if (num_written < 0) {
-            // TODO: handle err
             return -1;
         }
         cur += (size_t)num_written;

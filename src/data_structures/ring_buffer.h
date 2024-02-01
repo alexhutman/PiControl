@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <sys/types.h>
 
 typedef struct pictrl_rb_t {
     uint8_t *buffer_start;
