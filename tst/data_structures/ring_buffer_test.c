@@ -24,10 +24,10 @@ static void print_ring_buffer(pictrl_rb_t*);
 static void print_rb_in_order(pictrl_rb_t*);
 static void print_raw_buf(pictrl_rb_t*);
 static void print_buf(uint8_t*, size_t);
-static ssize_t read_until_completion(int fd, size_t count, pictrl_rb_t *rb, pictrl_read_flag flag);
-static ssize_t write_until_completion(int fd, size_t count, pictrl_rb_t *rb);
-static ssize_t read_from_file(int fd, size_t count, void *data);
-static ssize_t write_to_file(int fd, size_t count, void *data);
+static ssize_t rb_read_until_completion(int fd, size_t count, pictrl_rb_t *rb, pictrl_read_flag flag);
+static ssize_t rb_write_until_completion(int fd, size_t count, pictrl_rb_t *rb);
+static size_t read_from_test_file(uint8_t *data, size_t count);
+static size_t write_to_test_file(uint8_t *data, size_t count);
 
 #define TEST_FILE_TEMPLATE_PREFIX "./ring_buffer_testXXXXXX"
 #define TEST_FILE_TEMPLATE_SUFFIX ".tmp"
@@ -35,27 +35,30 @@ static ssize_t write_to_file(int fd, size_t count, void *data);
 static char test_file_name[] = TEST_FILE_TEMPLATE_PREFIX TEST_FILE_TEMPLATE_SUFFIX;
 
 // Fixtures
-static int test_fd = -1;
+static FILE *test_file = NULL;
 
 int before_all() {
-    test_fd = mkstemps(test_file_name, TEST_FILE_TEMPLATE_SUFFIX_LEN);
+    const int test_fd = mkstemps(test_file_name, TEST_FILE_TEMPLATE_SUFFIX_LEN);
     if (test_fd < 0) {
         pictrl_log_error("Error creating temp file %s: %s\n", test_file_name, strerror(errno));
         return -1;
     }
 
+    FILE *test_fp = fdopen(test_fd, "w+");
+    if (test_fp == NULL) {
+        pictrl_log_error("Error getting FILE pointer for open file %s: %s\n", test_file_name, strerror(errno));
+        return -1;
+    }
+
+    test_file = test_fp;
     pictrl_log_debug("Created temp file %s\n", test_file_name);
     return 0;
 }
 
 int before_each() {
     // Clear out file
-    if (lseek(test_fd, 0, SEEK_SET) < 0) {
-        pictrl_log_error("Error seeking to beginning of temp file: %s\n", strerror(errno));
-        return -1;
-    }
-
-    if (ftruncate(test_fd, 0) < 0) {
+    rewind(test_file);
+    if (ftruncate(fileno(test_file), 0) < 0) {
         pictrl_log_error("Error truncating temp file: %s\n", strerror(errno));
         return -1;
     }
@@ -64,13 +67,13 @@ int before_each() {
 }
 
 int after_all() {
-    // Close fd
-    int ret = close(test_fd);
-    if (ret < 0) {
-        pictrl_log_error("Was not able to close open file descriptor %d: %s\n", test_fd, strerror(errno));
+    // Close test file
+    int ret = fclose(test_file);
+    if (ret != 0) {
+        pictrl_log_error("Was not able to close temp file %s: %s\n", test_file_name, strerror(errno));
         return ret;
     }
-    test_fd = -1;
+    test_file = NULL;
 
     // Remove file
     ret = unlink(test_file_name);
@@ -137,24 +140,20 @@ static int test_simple_write() {
     }
     pictrl_log_debug("Initialized ring buffer to %zu bytes\n", ring_buf_size);
 
-    // Write data to file
-    size_t num_bytes_to_write = sizeof(data);
-    if (write_to_file(test_fd, num_bytes_to_write, data) != (ssize_t)num_bytes_to_write) {
-        pictrl_log_error("Could not write test data to temp file\n");
+    const size_t num_bytes_to_write = sizeof(data);
+    if (write_to_test_file(data, num_bytes_to_write) < num_bytes_to_write) {
         return 1;
     }
-    if (lseek(test_fd, 0, SEEK_SET) < 0) {
-        pictrl_log_error("Error seeking to beginning of temp file: %s\n", strerror(errno));
-        return -1;
-    }
-    pictrl_log_debug("Wrote test data to temp file\n");
+    rewind(test_file);
+    pictrl_log_debug("Wrote all %zu bytes of test data to temp file\n", num_bytes_to_write);
 
     // Act
-    if (write_until_completion(test_fd, num_bytes_to_write, &rb) != (ssize_t)num_bytes_to_write) {
-        pictrl_log_error("Error writing to ring buffer\n");
+    const int test_fd = fileno(test_file);
+    if (rb_write_until_completion(test_fd, num_bytes_to_write, &rb) != (ssize_t)num_bytes_to_write) {
+        //pictrl_log_error("Error writing to ring buffer\n");
         return 2;
     }
-    pictrl_log_debug("Wrote %zu bytes\n", num_bytes_to_write);
+    pictrl_log_debug("Wrote %zu bytes to ring buffer\n", num_bytes_to_write);
 
     // Assert
     if (!array_equals(rb.buffer_start, rb.data_length,
@@ -186,24 +185,21 @@ static int test_simple_read_peek() {
     // Populate ring buffer
     memcpy(rb.buffer_start, orig_data, num_bytes_to_read);
     rb.data_length = num_bytes_to_read;
-    pictrl_log_debug("Populated ring buffer with original data\n");
+    pictrl_log_debug("Populated ring buffer with %zu bytes of original data\n", num_bytes_to_read);
 
     // Act
-    if (read_until_completion(test_fd, num_bytes_to_read, &rb, PICTRL_READ_PEEK) != num_bytes_to_read) {
+    const int test_fd = fileno(test_file);
+    if (rb_read_until_completion(test_fd, num_bytes_to_read, &rb, PICTRL_READ_PEEK) != num_bytes_to_read) {
         pictrl_log_error("Error reading from ring buffer\n");
         return 2;
     }
-    if (lseek(test_fd, 0, SEEK_SET) < 0) {
-        pictrl_log_error("Error seeking to beginning of temp file: %s\n", strerror(errno));
-        return -1;
-    }
-    pictrl_log_debug("Read %zu bytes\n", num_bytes_to_read);
+    rewind(test_file);
+    pictrl_log_debug("Read all %zu bytes from ring buffer\n", num_bytes_to_read);
 
 
     // Assert
     uint8_t read_data[sizeof(orig_data)] = { 0 };
-    if (read_from_file(test_fd, num_bytes_to_read, read_data) != num_bytes_to_read) {
-        pictrl_log_error("Error reading from file\n");
+    if (read_from_test_file(read_data, num_bytes_to_read) < num_bytes_to_read) {
         return 2;
     }
 
@@ -241,27 +237,24 @@ int test_write_more_than_free() {
     }
     pictrl_log_debug("Created ring buffer of size %zu bytes\n", ring_buf_size);
 
-    if (write_to_file(test_fd, num_bytes_to_write, orig_data) != num_bytes_to_write) {
-        pictrl_log_error("Could not write test data to temp file\n");
+    if (write_to_test_file(orig_data, num_bytes_to_write) < num_bytes_to_write) {
         return 1;
     }
-    if (lseek(test_fd, 0, SEEK_SET) < 0) {
-        pictrl_log_error("Error seeking to beginning of temp file: %s\n", strerror(errno));
-        return -1;
-    }
+    rewind(test_file);
     pictrl_log_debug("Wrote test data to temp file\n");
 
     // Act
-    size_t num_bytes_written = write_until_completion(test_fd, num_bytes_to_write, &rb);
+    const int test_fd = fileno(test_file);
+    size_t num_bytes_written = rb_write_until_completion(test_fd, num_bytes_to_write, &rb);
     if (errno != ENOBUFS) {
-        pictrl_log_error("Expected errno to be set to ENOBUFS (%d), but errno is %d.\n", ENOBUFS, errno);
+        pictrl_log_error("Expected errno to be set to ENOBUFS (%d), but errno is %d\n", ENOBUFS, errno);
         return 1;
     }
     if (num_bytes_written != ring_buf_size) { // We should've capped out at the rb's capacity
-        pictrl_log_error("Expected to write %zu bytes, but %zu bytes were somehow written\n", ring_buf_size, num_bytes_written);
+        pictrl_log_error("Expected to write %zu bytes to ring buffer, but %zu bytes were somehow written\n", ring_buf_size, num_bytes_written);
         return 2;
     }
-    pictrl_log_debug("Wrote %zu bytes\n", num_bytes_written);
+    pictrl_log_debug("Wrote all %zu bytes to ring buffer\n", num_bytes_written);
 
     // Assert
     if (!array_equals(rb.buffer_start, rb.num_bytes,
@@ -291,25 +284,21 @@ int test_simple_wraparound() {
     }
     pictrl_log_debug("Created ring buffer of size %zu bytes\n", ring_buf_size);
 
-    // Write data to file
-    if (write_to_file(test_fd, ring_buf_size, orig_data) != ring_buf_size) {
-        pictrl_log_error("Could not write test data to temp file\n");
+    if (write_to_test_file(orig_data, ring_buf_size) < ring_buf_size) {
         return 1;
     }
-    if (lseek(test_fd, 0, SEEK_SET) < 0) {
-        pictrl_log_error("Error seeking to beginning of temp file: %s\n", strerror(errno));
-        return -1;
-    }
+    rewind(test_file);
     pictrl_log_debug("Wrote test data to temp file\n");
 
     // Act
     rb.data_start += ring_buf_size - 1;
-    const ssize_t num_bytes_written = write_until_completion(test_fd, ring_buf_size, &rb);
+    const int test_fd = fileno(test_file);
+    const ssize_t num_bytes_written = rb_write_until_completion(test_fd, ring_buf_size, &rb);
     if (num_bytes_written != ring_buf_size) {
         pictrl_log_error("Expected to write %zu bytes, but %zd bytes were somehow written\n", ring_buf_size, num_bytes_written);
         return 2;
     }
-    pictrl_log_debug("Wrote %zd bytes starting at the last position in the internal buffer\n", num_bytes_written);
+    pictrl_log_debug("Wrote all %zd bytes to ring buffer, starting at the last position in the internal buffer\n", num_bytes_written);
 
     // Assert
     uint8_t expected_data[] = { 2,3,4,1 };
@@ -367,7 +356,7 @@ int test_clear_full_buffer() {
         return 5;
     }
 
-    pictrl_log_debug("Buffer is empty as expected\n");
+    pictrl_log_debug("Ring buffer is empty as expected\n");
     return 0;
 }
 
@@ -421,7 +410,7 @@ static void print_buf(uint8_t *data, size_t n) {
 }
 
 // These are surely not thread-safe
-static ssize_t read_until_completion(int fd, size_t count, pictrl_rb_t *rb, pictrl_read_flag flag) {
+static ssize_t rb_read_until_completion(int fd, size_t count, pictrl_rb_t *rb, pictrl_read_flag flag) {
     const bool reading_more_than_avail = count > rb->data_length;
 
     size_t bytes_read = 0;
@@ -443,7 +432,7 @@ static ssize_t read_until_completion(int fd, size_t count, pictrl_rb_t *rb, pict
     return (ssize_t)bytes_read;
 }
 
-static ssize_t write_until_completion(int fd, size_t count, pictrl_rb_t *rb) {
+static ssize_t rb_write_until_completion(int fd, size_t count, pictrl_rb_t *rb) {
     const bool inserting_more_than_avail = count > (rb->num_bytes - rb->data_length);
 
     size_t bytes_written = 0;
@@ -466,37 +455,25 @@ static ssize_t write_until_completion(int fd, size_t count, pictrl_rb_t *rb) {
         }
         bytes_written += (size_t)written;
     }
-    return (ssize_t)(bytes_written);
+    return (ssize_t)bytes_written;
 }
 
-static ssize_t read_from_file(int fd, size_t count, void *data) {
-    void *cur = data;
-    size_t remaining_bytes = count;
-    while (remaining_bytes > 0) {
-        ssize_t num_read = read(fd, cur, remaining_bytes);
-        if (num_read == -1) {
-            // TODO: handle err
-            return -1;
-        }
-        if (num_read == 0) {
-            break;
-        }
-        cur += (size_t)num_read;
-        remaining_bytes -= (size_t)num_read;
+static size_t read_from_test_file(uint8_t *data, size_t count) {
+    const size_t num_read = fread(data, sizeof(data[0]), count, test_file);
+    if (num_read < count) {
+        // Should prob log the exact error...
+        pictrl_log_error("Error reading %zu bytes from test file... read %zu bytes instead\n", count, num_read);
+        return 0;
     }
-    return (ssize_t)(count - remaining_bytes);
+    return num_read;
 }
 
-static ssize_t write_to_file(int fd, size_t count, void *data) {
-    void *cur = data;
-    size_t remaining_bytes = count;
-    while (remaining_bytes > 0) {
-        ssize_t num_written = write(fd, cur, remaining_bytes);
-        if (num_written < 0) {
-            return -1;
-        }
-        cur += (size_t)num_written;
-        remaining_bytes -= (size_t)num_written;
+static size_t write_to_test_file(uint8_t *data, size_t count) {
+    const size_t num_written = fwrite(data, sizeof(data[0]), count, test_file);
+    if (num_written < count) {
+        // Should prob log the exact error...
+        pictrl_log_error("Error writing %zu bytes to test file... wrote %zu bytes instead\n", count, num_written);
+        return 0;
     }
-    return (ssize_t)(count - remaining_bytes);
+    return num_written;
 }
