@@ -64,6 +64,9 @@ $(PITEST_SO_PATH): $(PITEST_OBJ)
 	$(info PiControl: Linking pitest library $@ using components: $^)
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
 	$(CC) -shared -o $@ $^
+ifndef DEBUG
+	strip "$@"
+endif
 
 $(PITEST_SRC_DIR)/%.o: $(PITEST_SRC_DIR)/%.c $(PITEST_SRC_DIR)/%.h
 	$(info PiControl: Compiling pitest library component $@)
@@ -75,6 +78,9 @@ $(BIN_TEST_DIR)/%_test: $(SRC_DIR)/%.o $(TEST_DIR)/%_test.o | $(PITEST_SO_PATH)
 	$(info PiControl: Creating test executable $@)
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
 	$(CC) $^ -o $@ -L$(dir $|) -l:$(notdir $|)
+ifndef DEBUG
+	strip "$@"
+endif
 
 $(TEST_DIR)/%_test.o: $(TEST_DIR)/%_test.c | $(SRC_DIR)/%.o
 	$(info PiControl: Compiling test object $@)
