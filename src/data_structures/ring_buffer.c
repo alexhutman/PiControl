@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -13,7 +14,7 @@ pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *rb, size_t num_bytes) {
     }
 
     uint8_t *buf = calloc(num_bytes, sizeof(uint8_t)); // TODO: change to malloc?
-    if (!buf) {
+    if (buf == NULL) {
         return NULL;
     }
     rb->buffer_start = buf;

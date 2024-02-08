@@ -56,9 +56,9 @@ $(EXE): $(SRC_DIR)/picontrol.o $(SRC_DIR)/picontrol_uinput.o
 	$(info PiControl: Making $@)
 	$(CC) $^ -o $@
 
-$(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/picontrol_iputils.o
+$(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/picontrol_iputils.o $(SRC_DIR)/data_structures/ring_buffer.o
 	$(info PiControl: Making $@)
-	$(CC) $^ -o $@ -lxdo
+	$(CC) $^ -o $@ -lxdo -I$(SRC_DIR_FULL)
 
 $(PITEST_SO_PATH): $(PITEST_OBJ)
 	$(info PiControl: Linking pitest library $@ using components: $^)

@@ -103,15 +103,14 @@ def test_continuous_msgs(sock):
     while True:
         char = getch()
         #print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char))
-        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char))
+        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.value, len(char), char))
         sock.send(bytes([cmd, len(char)]) + char)
 
 def test_russian(sock):
     cmd = PiControlCmd.PI_CTRL_KEY_PRESS
-    for char in "Здравствуйте":
-        #print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char))
-        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char))
-        sock.send(bytes([cmd, len(char)]) + char)
+    for encoded_char in map(lambda c: c.encode('utf-8'), "Здравствуйте"):
+        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(encoded_char), encoded_char))
+        sock.send(bytes([cmd, len(encoded_char)]) + encoded_char)
         time.sleep(0.5)
         
 def test_mouse_move(sock):
@@ -139,10 +138,10 @@ if __name__ == "__main__":
     try:
         #test_one_msg(sock)
         #test_multiple_msgs(sock)
-        test_continuous_msgs(sock)
+        #test_continuous_msgs(sock)
         #test_keysym(sock)
         #test_mouse_move(sock)
-        #test_russian(sock)
+        test_russian(sock)
     except BrokenPipeError:
         print("Connection closed by server.")
     except KeyboardInterrupt:
