@@ -22,5 +22,6 @@ void pictrl_rb_destroy(pictrl_rb_t*);
 ssize_t pictrl_rb_read(int, size_t, pictrl_rb_t*, pictrl_read_flag);
 ssize_t pictrl_rb_write(int, size_t, pictrl_rb_t*);
 void pictrl_rb_clear(pictrl_rb_t*);
+void pictrl_rb_copy(pictrl_rb_t *rb, void *dest);
 
 #endif

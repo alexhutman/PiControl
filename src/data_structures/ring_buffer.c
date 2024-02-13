@@ -154,3 +154,15 @@ void pictrl_rb_clear(pictrl_rb_t *rb) {
     rb->data_length = 0;
     rb->data_start = rb->buffer_start;
 }
+
+void pictrl_rb_copy(pictrl_rb_t *rb, void *dest) {
+    if (!pictrl_rb_data_wrapped(rb)) {
+        memcpy(dest, rb->data_start, rb->data_length*sizeof(uint8_t));
+        return;
+    }
+
+    const size_t data_start_idx = rb->data_start - rb->buffer_start;
+    const size_t num_bytes_first_pass = rb->num_bytes - data_start_idx;
+    memcpy(dest, rb->data_start, num_bytes_first_pass*sizeof(uint8_t));
+    memcpy(dest + num_bytes_first_pass, rb->buffer_start, (rb->data_length - num_bytes_first_pass)*sizeof(uint8_t));
+}
