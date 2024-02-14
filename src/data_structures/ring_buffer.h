@@ -2,6 +2,7 @@
 #define _PICTRL_RING_BUFFER_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <unistd.h>
 
@@ -10,7 +11,7 @@ typedef struct pictrl_rb_t {
     uint8_t *buffer;
     size_t capacity;
 
-    uint8_t *data_start; // TODO: just store the idx of it instead...
+    size_t data_start; // index of start of the data section
     size_t num_items; // TODO: make atomic?
 } pictrl_rb_t;
 
@@ -29,8 +30,7 @@ void pictrl_rb_copy(pictrl_rb_t *rb, void *dest);
 
 // Static "methods"
 static inline bool pictrl_rb_data_wrapped(pictrl_rb_t *rb) {
-    const size_t data_start_abs_idx = rb->data_start - rb->buffer;
-    const size_t data_end_idx = data_start_abs_idx + rb->num_items;
+    const size_t data_end_idx = rb->data_start + rb->num_items;
     return data_end_idx > rb->capacity;
 }
 
@@ -50,8 +50,11 @@ static inline bool pictrl_rb_data_wrapped(pictrl_rb_t *rb) {
  *      |_ data_start (val == idx)
 */
 static inline uint8_t pictrl_rb_get(pictrl_rb_t *rb, size_t idx) {
-    const size_t data_start_abs_idx = rb->data_start - rb->buffer;
-    const size_t target_abs_idx = (data_start_abs_idx + (idx % rb->num_items)) % rb->capacity;
+    const size_t target_abs_idx = (rb->data_start + (idx % rb->num_items)) % rb->capacity;
     return rb->buffer[target_abs_idx];
+}
+
+static inline uint8_t *pictrl_rb_data_start_address(pictrl_rb_t *rb) {
+    return &rb->buffer[rb->data_start];
 }
 #endif

@@ -19,7 +19,7 @@ pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *rb, size_t capacity) {
     }
     rb->buffer = buf;
     rb->capacity = capacity;
-    rb->data_start = buf;
+    rb->data_start = 0;
     rb->num_items = 0;
 
     return rb;
@@ -31,7 +31,7 @@ void pictrl_rb_destroy(pictrl_rb_t *rb) {
 
     rb->buffer = NULL;
     rb->capacity = 0;
-    rb->data_start = NULL;
+    rb->data_start = 0;
     rb->num_items = 0;
 }
 
@@ -56,8 +56,7 @@ ssize_t pictrl_rb_write(int fd, size_t num, pictrl_rb_t *rb) {
     }
 
     const size_t num_bytes_to_write = (num > available_bytes) ? available_bytes : num; // if not enough space, write as much as we can
-    const size_t data_offset = rb->data_start - rb->buffer; // offset of the start of the data section
-    const size_t write_offset_start = (data_offset + rb->num_items) % rb->capacity; // next slot after data_end. offset from buffer
+    const size_t write_offset_start = (rb->data_start + rb->num_items) % rb->capacity; // next slot after data_end. offset from buffer
     const size_t write_offset_end = (write_offset_start + num_bytes_to_write - 1) % rb->capacity; // end of data that is to be written. offset from buffer
 
     const bool wrapped = write_offset_end < write_offset_start;
@@ -112,15 +111,14 @@ ssize_t pictrl_rb_read(int fd, size_t num, pictrl_rb_t *rb, pictrl_read_flag fla
 
     // If not enough data, read as much as we can
     const size_t num_bytes_to_read = (num > rb->num_items) ? rb->num_items : num;
-    const size_t data_offset_start = rb->data_start - rb->buffer;
-    const size_t data_offset_end = (data_offset_start + rb->num_items - 1) % rb->capacity;
+    const size_t data_offset_end = (rb->data_start + rb->num_items - 1) % rb->capacity;
 
     ssize_t bytes_written = 0;
-    const bool wrapped = data_offset_end < data_offset_start;
+    const bool wrapped = data_offset_end < rb->data_start;
     if (wrapped) {
         // Write 'til the end
-        const size_t num_bytes_first_pass = rb->capacity - data_offset_start;
-        const ssize_t first_pass = write(fd, rb->data_start, num_bytes_first_pass);
+        const size_t num_bytes_first_pass = rb->capacity - rb->data_start;
+        const ssize_t first_pass = write(fd, pictrl_rb_data_start_address(rb), num_bytes_first_pass);
         if (first_pass == -1) {
             return -1;
         }
@@ -134,7 +132,7 @@ ssize_t pictrl_rb_read(int fd, size_t num, pictrl_rb_t *rb, pictrl_read_flag fla
             }
         }
     } else {
-        const ssize_t only_pass = write(fd, rb->data_start, num_bytes_to_read);
+        const ssize_t only_pass = write(fd, pictrl_rb_data_start_address(rb), num_bytes_to_read);
         if (only_pass == -1) {
             return -1;
         }
@@ -142,9 +140,9 @@ ssize_t pictrl_rb_read(int fd, size_t num, pictrl_rb_t *rb, pictrl_read_flag fla
     }
 
     if (flag == PICTRL_READ_CONSUME) {
-        const size_t new_data_offset_start = (data_offset_start + (size_t)bytes_written) % rb->capacity;
+        const size_t new_data_offset_start = (rb->data_start + (size_t)bytes_written) % rb->capacity;
         rb->num_items -= (size_t)bytes_written;
-        rb->data_start = rb->buffer + new_data_offset_start;
+        rb->data_start = new_data_offset_start;
     }
 
     return bytes_written;
@@ -153,17 +151,16 @@ ssize_t pictrl_rb_read(int fd, size_t num, pictrl_rb_t *rb, pictrl_read_flag fla
 void pictrl_rb_clear(pictrl_rb_t *rb) {
     memset(rb->buffer, 0, rb->capacity*sizeof(uint8_t));
     rb->num_items = 0;
-    rb->data_start = rb->buffer;
+    rb->data_start = 0;
 }
 
 void pictrl_rb_copy(pictrl_rb_t *rb, void *dest) {
     if (!pictrl_rb_data_wrapped(rb)) {
-        memcpy(dest, rb->data_start, rb->num_items*sizeof(uint8_t));
+        memcpy(dest, pictrl_rb_data_start_address(rb), rb->num_items*sizeof(uint8_t));
         return;
     }
 
-    const size_t data_start_idx = rb->data_start - rb->buffer;
-    const size_t num_bytes_first_pass = rb->capacity - data_start_idx;
-    memcpy(dest, rb->data_start, num_bytes_first_pass*sizeof(uint8_t));
+    const size_t num_bytes_first_pass = rb->capacity - rb->data_start;
+    memcpy(dest, pictrl_rb_data_start_address(rb), num_bytes_first_pass*sizeof(uint8_t));
     memcpy(dest + num_bytes_first_pass, rb->buffer, (rb->num_items - num_bytes_first_pass)*sizeof(uint8_t));
 }

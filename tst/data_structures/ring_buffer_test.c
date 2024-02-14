@@ -351,8 +351,8 @@ int test_clear_full_buffer() {
     } else if (rb.num_items != 0) {
         pictrl_log_error("Expected num_items to be 0. Received: %zu", rb.num_items);
         return 4;
-    } else if (rb.data_start != rb.buffer) {
-        pictrl_log_error("Expected data_start to be the same as buffer. Received (data_start, buffer): (%p, %p)", rb.data_start, rb.buffer);
+    } else if (rb.data_start != 0) {
+        pictrl_log_error("Expected data_start to be 0. Received: %zu", rb.data_start);
         return 5;
     }
 
@@ -365,7 +365,7 @@ static void print_ring_buffer(pictrl_rb_t *rb) {
     pictrl_log("\n------------------------------\n"
            "Capacity:     %zu\n"
            "Buffer start: %p\n"
-           "Data start:   %p\n"
+           "Data start:   %zu\n"
            "Data length:  %zu\n"
            "Buffer:       ",
            rb->capacity,
@@ -380,17 +380,16 @@ static void print_ring_buffer(pictrl_rb_t *rb) {
 }
 
 static void print_rb_in_order(pictrl_rb_t *rb) {
-    const size_t data_offset = rb->data_start - rb->buffer;
-    const size_t n_first_pass = rb->capacity - data_offset;
+    const size_t n_first_pass = rb->capacity - rb->data_start;
 
     pictrl_log("[");
     for (size_t cur = 0; cur < n_first_pass; cur++) {
-        pictrl_log("%u, ", rb->data_start[cur]);
+        pictrl_log("%u, ", rb->buffer[rb->data_start + cur]);
     }
-    for (size_t cur = 0; cur < data_offset - 1; cur++) {
+    for (size_t cur = 0; cur < rb->data_start - 1; cur++) {
         pictrl_log("%u, ", rb->buffer[cur]);
     }
-    pictrl_log("%u]\n", rb->buffer[data_offset - 1]);
+    pictrl_log("%u]\n", rb->buffer[rb->data_start - 1]);
 }
 static void print_raw_buf(pictrl_rb_t *rb) {
     print_buf(rb->buffer, rb->num_items);
