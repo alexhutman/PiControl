@@ -108,7 +108,7 @@ void handle_text(pictrl_rb_t *rb, xdo_t *xdo) {
 
     // TODO: Make this a method...
     const size_t data_start_abs_idx = rb->data_start - rb->buffer;
-    const size_t new_data_start_idx = (data_start_abs_idx + rb->data_length) % rb->num_bytes;
+    const size_t new_data_start_idx = (data_start_abs_idx + rb->data_length) % rb->capacity;
     rb->data_start = rb->buffer + new_data_start_idx;
     rb->data_length = 0;
 }
@@ -125,7 +125,7 @@ void handle_keysym(pictrl_rb_t *rb, xdo_t *xdo) {
 
     // TODO: Make this a method...
     const size_t data_start_abs_idx = rb->data_start - rb->buffer;
-    const size_t new_data_start_idx = (data_start_abs_idx + rb->data_length) % rb->num_bytes;
+    const size_t new_data_start_idx = (data_start_abs_idx + rb->data_length) % rb->capacity;
     rb->data_start = rb->buffer + new_data_start_idx;
     rb->data_length = 0;
 }
@@ -138,7 +138,7 @@ static inline PiCtrlHeader pictrl_rb_get_header(pictrl_rb_t *rb) {
     };
 
     const size_t data_start_abs_idx = rb->data_start - rb->buffer;
-    const size_t new_data_start_idx = (data_start_abs_idx + 2) % rb->num_bytes;
+    const size_t new_data_start_idx = (data_start_abs_idx + 2) % rb->capacity;
     rb->data_start = rb->buffer + new_data_start_idx;
 
     rb->data_length -= 2;
@@ -152,7 +152,7 @@ static inline PiCtrlMouseCoord pictrl_rb_get_mouse_coords(pictrl_rb_t *rb) {
     };
 
     const size_t data_start_abs_idx = rb->data_start - rb->buffer;
-    const size_t new_data_start_idx = (data_start_abs_idx + 2) % rb->num_bytes;
+    const size_t new_data_start_idx = (data_start_abs_idx + 2) % rb->capacity;
     rb->data_start = rb->buffer + new_data_start_idx;
 
     rb->data_length -= 2;

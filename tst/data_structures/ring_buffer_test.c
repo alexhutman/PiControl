@@ -257,7 +257,7 @@ int test_write_more_than_free() {
     pictrl_log_debug("Wrote all %zu bytes to ring buffer\n", num_bytes_written);
 
     // Assert
-    if (!array_equals(rb.buffer, rb.num_bytes,
+    if (!array_equals(rb.buffer, rb.capacity,
                       orig_data, ring_buf_size)) {
         // TODO: Make these logs all go to stderr.. d'oh
         pictrl_log_error("Data mismatch. Expected data: ");
@@ -302,8 +302,8 @@ int test_simple_wraparound() {
 
     // Assert
     uint8_t expected_data[] = { 2,3,4,1 };
-    if (!array_equals(rb.buffer, rb.num_bytes,
-                      expected_data, rb.num_bytes)) {
+    if (!array_equals(rb.buffer, rb.capacity,
+                      expected_data, rb.capacity)) {
         // TODO: Make these logs all go to stderr.. d'oh
         pictrl_log_error("Data mismatch. Expected data: ");
         print_buf(expected_data, ring_buf_size);
@@ -340,7 +340,7 @@ int test_clear_full_buffer() {
 
     // Assert
     uint8_t expected_data[sizeof(orig_data)] = { 0 };
-    if (!array_equals(rb.buffer, rb.num_bytes,
+    if (!array_equals(rb.buffer, rb.capacity,
                       expected_data, ring_buf_size)) {
         // TODO: Make these logs all go to stderr.. d'oh
         pictrl_log_error("Data mismatch. Expected data: ");
@@ -368,7 +368,7 @@ static void print_ring_buffer(pictrl_rb_t *rb) {
            "Data start:   %p\n"
            "Data length:  %zu\n"
            "Buffer:       ",
-           rb->num_bytes,
+           rb->capacity,
            rb->buffer,
            rb->data_start,
            rb->data_length);
@@ -381,7 +381,7 @@ static void print_ring_buffer(pictrl_rb_t *rb) {
 
 static void print_rb_in_order(pictrl_rb_t *rb) {
     const size_t data_offset = rb->data_start - rb->buffer;
-    const size_t n_first_pass = rb->num_bytes - data_offset;
+    const size_t n_first_pass = rb->capacity - data_offset;
 
     pictrl_log("[");
     for (size_t cur = 0; cur < n_first_pass; cur++) {
@@ -433,12 +433,12 @@ static ssize_t rb_read_until_completion(int fd, size_t count, pictrl_rb_t *rb, p
 }
 
 static ssize_t rb_write_until_completion(int fd, size_t count, pictrl_rb_t *rb) {
-    const bool inserting_more_than_avail = count > (rb->num_bytes - rb->data_length);
+    const bool inserting_more_than_avail = count > (rb->capacity - rb->data_length);
 
     size_t bytes_written = 0;
     while (bytes_written < count) {
         const size_t bytes_left = count - bytes_written;
-        const bool is_rb_full = (rb->num_bytes - rb->data_length) <= bytes_left ;
+        const bool is_rb_full = (rb->capacity - rb->data_length) <= bytes_left ;
 
         const ssize_t written = pictrl_rb_write(fd, bytes_left, rb);
         if (written < 0) {

@@ -8,17 +8,17 @@
 #include "data_structures/ring_buffer.h"
 
 
-pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *rb, size_t num_bytes) {
-    if (num_bytes == 0) {
+pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *rb, size_t capacity) {
+    if (capacity == 0) {
         return NULL;
     }
 
-    uint8_t *buf = calloc(num_bytes, sizeof(uint8_t)); // TODO: change to malloc?
+    uint8_t *buf = calloc(capacity, sizeof(uint8_t)); // TODO: change to malloc?
     if (buf == NULL) {
         return NULL;
     }
     rb->buffer = buf;
-    rb->num_bytes = num_bytes;
+    rb->capacity = capacity;
     rb->data_start = buf;
     rb->data_length = 0;
 
@@ -30,7 +30,7 @@ void pictrl_rb_destroy(pictrl_rb_t *rb) {
     free(rb->buffer);
 
     rb->buffer = NULL;
-    rb->num_bytes = 0;
+    rb->capacity = 0;
     rb->data_start = NULL;
     rb->data_length = 0;
 }
@@ -46,7 +46,7 @@ Since no data will have been written on the 2nd read(), if the error persists, y
 
 */
 ssize_t pictrl_rb_write(int fd, size_t num, pictrl_rb_t *rb) {
-    const size_t available_bytes = rb->num_bytes - rb->data_length;
+    const size_t available_bytes = rb->capacity - rb->data_length;
     if (num == 0) {
         return 0;
     }
@@ -57,14 +57,14 @@ ssize_t pictrl_rb_write(int fd, size_t num, pictrl_rb_t *rb) {
 
     const size_t num_bytes_to_write = (num > available_bytes) ? available_bytes : num; // if not enough space, write as much as we can
     const size_t data_offset = rb->data_start - rb->buffer; // offset of the start of the data section
-    const size_t write_offset_start = (data_offset + rb->data_length) % rb->num_bytes; // next slot after data_end. offset from buffer
-    const size_t write_offset_end = (write_offset_start + num_bytes_to_write - 1) % rb->num_bytes; // end of data that is to be written. offset from buffer
+    const size_t write_offset_start = (data_offset + rb->data_length) % rb->capacity; // next slot after data_end. offset from buffer
+    const size_t write_offset_end = (write_offset_start + num_bytes_to_write - 1) % rb->capacity; // end of data that is to be written. offset from buffer
 
     const bool wrapped = write_offset_end < write_offset_start;
     ssize_t bytes_read = 0;
     if (wrapped) {
         // Write from the write offset to the end
-        const size_t num_bytes_first_pass = rb->num_bytes - write_offset_start;
+        const size_t num_bytes_first_pass = rb->capacity - write_offset_start;
         const ssize_t first_pass = read(fd, rb->buffer + write_offset_start, num_bytes_first_pass);
         if (first_pass == -1) {
             return -1;
@@ -113,13 +113,13 @@ ssize_t pictrl_rb_read(int fd, size_t num, pictrl_rb_t *rb, pictrl_read_flag fla
     // If not enough data, read as much as we can
     const size_t num_bytes_to_read = (num > rb->data_length) ? rb->data_length : num;
     const size_t data_offset_start = rb->data_start - rb->buffer;
-    const size_t data_offset_end = (data_offset_start + rb->data_length - 1) % rb->num_bytes;
+    const size_t data_offset_end = (data_offset_start + rb->data_length - 1) % rb->capacity;
 
     ssize_t bytes_written = 0;
     const bool wrapped = data_offset_end < data_offset_start;
     if (wrapped) {
         // Write 'til the end
-        const size_t num_bytes_first_pass = rb->num_bytes - data_offset_start;
+        const size_t num_bytes_first_pass = rb->capacity - data_offset_start;
         const ssize_t first_pass = write(fd, rb->data_start, num_bytes_first_pass);
         if (first_pass == -1) {
             return -1;
@@ -142,7 +142,7 @@ ssize_t pictrl_rb_read(int fd, size_t num, pictrl_rb_t *rb, pictrl_read_flag fla
     }
 
     if (flag == PICTRL_READ_CONSUME) {
-        const size_t new_data_offset_start = (data_offset_start + (size_t)bytes_written) % rb->num_bytes;
+        const size_t new_data_offset_start = (data_offset_start + (size_t)bytes_written) % rb->capacity;
         rb->data_length -= (size_t)bytes_written;
         rb->data_start = rb->buffer + new_data_offset_start;
     }
@@ -151,7 +151,7 @@ ssize_t pictrl_rb_read(int fd, size_t num, pictrl_rb_t *rb, pictrl_read_flag fla
 }
 
 void pictrl_rb_clear(pictrl_rb_t *rb) {
-    memset(rb->buffer, 0, rb->num_bytes*sizeof(uint8_t));
+    memset(rb->buffer, 0, rb->capacity*sizeof(uint8_t));
     rb->data_length = 0;
     rb->data_start = rb->buffer;
 }
@@ -163,7 +163,7 @@ void pictrl_rb_copy(pictrl_rb_t *rb, void *dest) {
     }
 
     const size_t data_start_idx = rb->data_start - rb->buffer;
-    const size_t num_bytes_first_pass = rb->num_bytes - data_start_idx;
+    const size_t num_bytes_first_pass = rb->capacity - data_start_idx;
     memcpy(dest, rb->data_start, num_bytes_first_pass*sizeof(uint8_t));
     memcpy(dest + num_bytes_first_pass, rb->buffer, (rb->data_length - num_bytes_first_pass)*sizeof(uint8_t));
 }
