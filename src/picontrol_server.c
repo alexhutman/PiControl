@@ -102,15 +102,15 @@ void handle_text(pictrl_rb_t *rb, xdo_t *xdo) {
     pictrl_rb_copy(rb, text);
 
     // TODO: Make some rb method for this
-    text[rb->data_length + 1] = 0;
+    text[rb->num_items + 1] = 0;
 
     xdo_enter_text_window(xdo, CURRENTWINDOW, text, XDO_KEYSTROKE_DELAY); // TODO: what if sizeof(char) != sizeof(uint8_t)?
 
     // TODO: Make this a method...
     const size_t data_start_abs_idx = rb->data_start - rb->buffer;
-    const size_t new_data_start_idx = (data_start_abs_idx + rb->data_length) % rb->capacity;
+    const size_t new_data_start_idx = (data_start_abs_idx + rb->num_items) % rb->capacity;
     rb->data_start = rb->buffer + new_data_start_idx;
-    rb->data_length = 0;
+    rb->num_items = 0;
 }
 
 void handle_keysym(pictrl_rb_t *rb, xdo_t *xdo) {
@@ -119,15 +119,15 @@ void handle_keysym(pictrl_rb_t *rb, xdo_t *xdo) {
     pictrl_rb_copy(rb, keysym);
 
     // TODO: Make some rb method for this
-    keysym[rb->data_length + 1] = 0;
+    keysym[rb->num_items + 1] = 0;
 
     xdo_send_keysequence_window(xdo, CURRENTWINDOW, keysym, XDO_KEYSTROKE_DELAY);
 
     // TODO: Make this a method...
     const size_t data_start_abs_idx = rb->data_start - rb->buffer;
-    const size_t new_data_start_idx = (data_start_abs_idx + rb->data_length) % rb->capacity;
+    const size_t new_data_start_idx = (data_start_abs_idx + rb->num_items) % rb->capacity;
     rb->data_start = rb->buffer + new_data_start_idx;
-    rb->data_length = 0;
+    rb->num_items = 0;
 }
 
 // Assumes that rb->data_start is pointing at the beginning of the header in the ring buffer already
@@ -141,7 +141,7 @@ static inline PiCtrlHeader pictrl_rb_get_header(pictrl_rb_t *rb) {
     const size_t new_data_start_idx = (data_start_abs_idx + 2) % rb->capacity;
     rb->data_start = rb->buffer + new_data_start_idx;
 
-    rb->data_length -= 2;
+    rb->num_items -= 2;
     return ret;
 }
 
@@ -155,7 +155,7 @@ static inline PiCtrlMouseCoord pictrl_rb_get_mouse_coords(pictrl_rb_t *rb) {
     const size_t new_data_start_idx = (data_start_abs_idx + 2) % rb->capacity;
     rb->data_start = rb->buffer + new_data_start_idx;
 
-    rb->data_length -= 2;
+    rb->num_items -= 2;
     return ret;
 }
 

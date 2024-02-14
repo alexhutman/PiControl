@@ -11,7 +11,7 @@ typedef struct pictrl_rb_t {
     size_t capacity;
 
     uint8_t *data_start; // TODO: just store the idx of it instead...
-    size_t data_length; // TODO: rename to `num_items` or `length`, make atomic?
+    size_t num_items; // TODO: make atomic?
 } pictrl_rb_t;
 
 typedef enum pictrl_read_flag {
@@ -30,12 +30,12 @@ void pictrl_rb_copy(pictrl_rb_t *rb, void *dest);
 // Static "methods"
 static inline bool pictrl_rb_data_wrapped(pictrl_rb_t *rb) {
     const size_t data_start_abs_idx = rb->data_start - rb->buffer;
-    const size_t data_end_idx = data_start_abs_idx + rb->data_length;
+    const size_t data_end_idx = data_start_abs_idx + rb->num_items;
     return data_end_idx > rb->capacity;
 }
 
 /*
- * Indices wrap around modulo rb->data_length to make sure we only have access to what we're allowed
+ * Indices wrap around modulo rb->num_items to make sure we only have access to what we're allowed
  * Should probably call the read lock that isn't implemented yet before calling this,
    it's not done here because:
    A.) I haven't gotten around to the r/w locks
@@ -51,7 +51,7 @@ static inline bool pictrl_rb_data_wrapped(pictrl_rb_t *rb) {
 */
 static inline uint8_t pictrl_rb_get(pictrl_rb_t *rb, size_t idx) {
     const size_t data_start_abs_idx = rb->data_start - rb->buffer;
-    const size_t target_abs_idx = (data_start_abs_idx + (idx % rb->data_length)) % rb->capacity;
+    const size_t target_abs_idx = (data_start_abs_idx + (idx % rb->num_items)) % rb->capacity;
     return rb->buffer[target_abs_idx];
 }
 #endif
