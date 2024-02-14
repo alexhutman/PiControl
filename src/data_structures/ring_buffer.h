@@ -7,7 +7,7 @@
 
 // Types
 typedef struct pictrl_rb_t {
-    uint8_t *buffer_start; // TODO: rename to just `buffer`
+    uint8_t *buffer;
     size_t num_bytes; // TODO: rename to `capacity`
 
     uint8_t *data_start; // TODO: just store the idx of it instead...
@@ -29,7 +29,7 @@ void pictrl_rb_copy(pictrl_rb_t *rb, void *dest);
 
 // Static "methods"
 static inline bool pictrl_rb_data_wrapped(pictrl_rb_t *rb) {
-    const size_t data_start_abs_idx = rb->data_start - rb->buffer_start;
+    const size_t data_start_abs_idx = rb->data_start - rb->buffer;
     const size_t data_end_idx = data_start_abs_idx + rb->data_length;
     return data_end_idx > rb->num_bytes;
 }
@@ -50,8 +50,8 @@ static inline bool pictrl_rb_data_wrapped(pictrl_rb_t *rb) {
  *      |_ data_start (val == idx)
 */
 static inline uint8_t pictrl_rb_get(pictrl_rb_t *rb, size_t idx) {
-    const size_t data_start_abs_idx = rb->data_start - rb->buffer_start;
+    const size_t data_start_abs_idx = rb->data_start - rb->buffer;
     const size_t target_abs_idx = (data_start_abs_idx + (idx % rb->data_length)) % rb->num_bytes;
-    return rb->buffer_start[target_abs_idx];
+    return rb->buffer[target_abs_idx];
 }
 #endif
