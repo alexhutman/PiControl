@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import argparse
+import binascii
 import socket
 import sys
 import time
@@ -60,13 +62,38 @@ class PiControlCmd(IntEnum):
 PORT = 14741
 
 def parse_args():
-    #TODO: maybe use argparse module
-    num_args = 1
-    if len(sys.argv) != num_args + 1: # +1 since first arg is the filename
-        print("Usage: python3 test_server.py <ADDRESS>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+            description="Tests the PiControl server",
+            )
 
-    return sys.argv[1:]
+    parser.add_argument("address",
+                        type=str,
+                        help="IP address of the running PiControl server")
+
+    tests = {
+        "one":  test_one_msg,
+        "mul":  test_multiple_msgs,
+        "cont": test_continuous_msgs,
+        "ksym": test_keysym,
+        "maus": test_mouse_move,
+        "rus":  test_russian,
+    }
+    parser.add_argument("--tests",
+                        action="extend",
+                        choices=sorted(tests.keys()),
+                        type=str,
+                        nargs='*',
+                        help="Which tests to run. Duplicates are ignored. By default, all tests run.")
+
+    args = parser.parse_args()
+
+    if args.tests is None: # not specified, run all tests
+        args.tests = tests.values()
+    else:
+        args.tests = map(lambda tst: tests[tst], set(args.tests))
+    args.tests = list(args.tests)
+    print(args.tests)
+    return args
 
 def create_sock(addr):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -84,64 +111,66 @@ def receive_chunk(sock, size):
 
 def test_one_msg(sock):
     cmd = PiControlCmd.PI_CTRL_KEY_PRESS
-    test_msg = "и".encode("utf8")
+    test_msg = "и".encode("utf-8")
 
-    print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(test_msg), test_msg.hex()))
+    print_pimsg(cmd, test_msg)
     sock.send(bytes([cmd, len(test_msg)]) + test_msg)
-    #recv_cmd = PiControlCmd(int.from_bytes(msg[0], "big")).name
 
 def test_multiple_msgs(sock):
     cmd = PiControlCmd.PI_CTRL_KEY_PRESS
     msg = "Hello, world!"
-    for char in msg:
-        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char.hex()))
+    for char in map(lambda c: c.encode("utf-8"), msg):
+        print_pimsg(cmd, char)
         sock.send(bytes([cmd, len(char)]) + char)
         time.sleep(0.3)
         
 def test_continuous_msgs(sock):
     cmd = PiControlCmd.PI_CTRL_KEY_PRESS
     while True:
-        char = getch()
-        #print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(char), char))
-        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.value, len(char), char))
+        try:
+            char = getch()
+        except KeyboardInterrupt:
+            break
+
+        print_pimsg(cmd, char)
         sock.send(bytes([cmd, len(char)]) + char)
 
 def test_russian(sock):
     cmd = PiControlCmd.PI_CTRL_KEY_PRESS
     for encoded_char in map(lambda c: c.encode('utf-8'), "Здравствуйте"):
-        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(encoded_char), encoded_char))
+        print_pimsg(cmd, encoded_char)
         sock.send(bytes([cmd, len(encoded_char)]) + encoded_char)
         time.sleep(0.5)
         
 def test_mouse_move(sock):
     cmd = PiControlCmd.PI_CTRL_MOUSE_MV
     rel_x, rel_y = 1, 1
-
     rel_mv = rel_x.to_bytes(1, 'big') + rel_y.to_bytes(1, 'big')
-    while True:
-        print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(rel_mv), rel_mv.hex()))
+
+    # Just move 25 units (arbitrary number) up and to the right
+    for _ in range(25):
+        print_pimsg(cmd, rel_mv)
         sock.send(bytes([cmd, len(rel_mv)]) + rel_mv)
 
         time.sleep(0.1)
 
 def test_keysym(sock):
     cmd = PiControlCmd.PI_CTRL_KEYSYM
-    msg = "Ctrl+a".encode("utf8")
-    print("SENDING [CMD, PAYLOAD_LEN, PAYLOAD] = {}, {}, |{}|".format(cmd.name, len(msg), msg))
+    msg = "Ctrl+a".encode("utf-8")
+    print_pimsg(cmd, msg)
     sock.send(bytes([cmd, len(msg)]) + msg)
 
-if __name__ == "__main__":
+def print_pimsg(cmd, payload):
+    print(f"Sending {cmd.name}, |{payload}| ({binascii.hexlify(payload)}) [payload len: {len(payload)}]")
+
+def main():
     args = parse_args()
 
-    addr = args[0]
-    sock = create_sock(addr)
+    sock = create_sock(args.address)
     try:
-        #test_one_msg(sock)
-        #test_multiple_msgs(sock)
-        #test_continuous_msgs(sock)
-        #test_keysym(sock)
-        #test_mouse_move(sock)
-        test_russian(sock)
+        for test in args.tests:
+            print(f"Running {test.__name__}...")
+            test(sock)
     except BrokenPipeError:
         print("Connection closed by server.")
     except KeyboardInterrupt:
@@ -149,3 +178,6 @@ if __name__ == "__main__":
     finally:
         print("Closing socket...")
         sock.close()
+
+if __name__ == "__main__":
+    main()
