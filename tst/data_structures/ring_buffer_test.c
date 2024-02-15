@@ -23,7 +23,7 @@ static int test_clear_full_buffer();
 static void print_ring_buffer(pictrl_rb_t*);
 static void print_rb_in_order(pictrl_rb_t*);
 static void print_raw_buf(pictrl_rb_t*);
-static void print_buf(uint8_t*, size_t);
+static void print_buf(void*, size_t);
 static ssize_t rb_read_until_completion(int fd, size_t count, pictrl_rb_t *rb, pictrl_read_flag flag);
 static ssize_t rb_write_until_completion(int fd, size_t count, pictrl_rb_t *rb);
 static size_t read_from_test_file(uint8_t *data, size_t count);
@@ -366,7 +366,7 @@ static void print_ring_buffer(pictrl_rb_t *rb) {
            "Capacity:     %zu\n"
            "Buffer start: %p\n"
            "Data start:   %zu\n"
-           "Data length:  %zu\n"
+           "Num items:    %zu\n"
            "Buffer:       ",
            rb->capacity,
            rb->buffer,
@@ -395,17 +395,16 @@ static void print_raw_buf(pictrl_rb_t *rb) {
     print_buf(rb->buffer, rb->num_items);
 }
 
-static void print_buf(uint8_t *data, size_t n) {
+static void print_buf(void *data, size_t n) {
     if (n == 0) {
         pictrl_log("(empty)\n");
         return;
     }
-
     pictrl_log("|");
     for (size_t cur = 0; cur < n - 1; cur++) {
-        pictrl_log("%u, ", data[cur]);
+        pictrl_log("%02x, ", ((uint8_t *) data)[cur]);
     }
-    pictrl_log("%u|\n", data[n - 1]);
+    pictrl_log("%02x|\n", ((uint8_t *) data)[n - 1]);
 }
 
 // These are surely not thread-safe
