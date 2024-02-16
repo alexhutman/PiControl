@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <inttypes.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -23,7 +24,9 @@ void handle_keysym(pictrl_rb_t *rb, xdo_t *xdo);
 xdo_t *create_xdo();
 static inline PiCtrlHeader pictrl_rb_get_header(pictrl_rb_t *rb);
 static inline PiCtrlMouseCoord pictrl_rb_get_mouse_coords(pictrl_rb_t *rb);
+void interrupt_handler(int signum);
 
+volatile sig_atomic_t should_exit = false;
 
 int main() {
     char *ip = get_ip_address();
@@ -108,8 +111,19 @@ int picontrol_listen(int listenfd) {
     pictrl_rb_t recv_buf; // Receive ring buffer
     pictrl_rb_init(&recv_buf, MAX_BUF);
 
+
+    struct sigaction old_sigint_handler;
+    sigaction(SIGINT, NULL, &old_sigint_handler);
+
+    struct sigaction new_sigint_handler = {
+        .sa_handler = &interrupt_handler,
+        .sa_flags = 0
+    };
+    sigemptyset(&new_sigint_handler.sa_mask);
+
     int ret = -1;
-    while(1) {
+    sigaction(SIGINT, &new_sigint_handler, NULL);
+    while(!should_exit) {
         pi_client.connfd = accept(listenfd, (sockaddr *)&pi_client.client, &pi_client.client_sz);
         if (pi_client.connfd < 0) {
             pictrl_log_error("Error accepting new connection.\n");
@@ -140,7 +154,9 @@ int picontrol_listen(int listenfd) {
         pictrl_rb_clear(&recv_buf);
         pictrl_log_debug("Cleared ring buffer\n");
     }
+    sigaction(SIGINT, &old_sigint_handler, NULL);
 
+    pictrl_log_debug("Destroying ring buffer\n");
     pictrl_rb_destroy(&recv_buf);
     return ret;
 }
@@ -270,4 +286,9 @@ static inline PiCtrlMouseCoord pictrl_rb_get_mouse_coords(pictrl_rb_t *rb) {
 
     rb->num_items -= 2;
     return ret;
+}
+
+void interrupt_handler(int signum) {
+    (void)signum; // To shut compiler up about unused var
+    should_exit = true;
 }
