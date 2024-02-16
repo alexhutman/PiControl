@@ -92,7 +92,6 @@ def parse_args():
     else:
         args.tests = map(lambda tst: tests[tst], set(args.tests))
     args.tests = list(args.tests)
-    print(args.tests)
     return args
 
 def create_sock(addr):
