@@ -27,6 +27,9 @@ pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *rb, size_t capacity) {
 
 
 void pictrl_rb_destroy(pictrl_rb_t *rb) {
+    if (rb == NULL) {
+        return;
+    }
     free(rb->buffer);
 
     rb->buffer = NULL;
