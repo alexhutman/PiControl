@@ -186,13 +186,18 @@ static int handle_connection(pictrl_client_t *pi_client, pictrl_rb_t *rb, xdo_t 
 #ifdef PI_CTRL_DEBUG
         pictrl_log_debug("Command (1st byte): %x\n"
                          "Payload size (2nd byte): %zu\n"
-                         "Payload (hex): 0x",
+                         "Payload: ",
                          header.command,
                          header.payload_size);
+
         for (size_t i = 0; i < header.payload_size; i++) {
-            pictrl_log("%02x", pictrl_rb_get(rb, i+2));
+            pictrl_log("%c", pictrl_rb_get(rb, i));
         }
-        pictrl_log("\n");
+        pictrl_log(" (0x");
+        for (size_t i = 0; i < header.payload_size; i++) {
+            pictrl_log("%02x", pictrl_rb_get(rb, i));
+        }
+        pictrl_log(")\n");
 #endif
 
         // Handle command
