@@ -68,28 +68,23 @@ ssize_t pictrl_rb_write(int fd, size_t num, pictrl_rb_t *rb) {
         // Write from the write offset to the end
         const size_t num_bytes_first_pass = rb->capacity - write_offset_start;
         const ssize_t first_pass = read(fd, rb->buffer + write_offset_start, num_bytes_first_pass);
-        if (first_pass == -1) {
-            return -1;
-        }
-        if (first_pass == 0) {
-            return 0;
+        if (first_pass <= 0) {
+            return first_pass;
         }
         bytes_read += first_pass;
 
         // Then from the beginning to write_end
         if ((size_t)first_pass == num_bytes_first_pass) {
             const ssize_t second_pass = read(fd, rb->buffer, num_bytes_to_write - num_bytes_first_pass);
-            if (second_pass != -1) { // If it is, what should we do? We already wrote some bytes...
-                bytes_read += second_pass;
+            if (second_pass == -1) { // If it is, what should we do? We already wrote some bytes...
+                return -1;
             }
+            bytes_read += second_pass;
         }
     } else {
         const ssize_t only_pass = read(fd, rb->buffer + write_offset_start, num_bytes_to_write);
-        if (only_pass < 0) {
-            return -1;
-        }
-        if (only_pass == 0) {
-            return 0;
+        if (only_pass <= 0) {
+            return only_pass;
         }
         bytes_read += only_pass;
     }
