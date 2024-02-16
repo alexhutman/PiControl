@@ -109,7 +109,6 @@ static int picontrol_listen(int listenfd) {
     pictrl_rb_t recv_buf; // Receive ring buffer
     pictrl_rb_init(&recv_buf, MAX_BUF);
 
-
     struct sigaction old_sigint_handler;
     struct sigaction new_sigint_handler = {
         .sa_handler = &interrupt_handler,
@@ -163,20 +162,12 @@ static int picontrol_listen(int listenfd) {
 }
 
 static int handle_connection(pictrl_client_t *pi_client, pictrl_rb_t *rb, xdo_t *xdo) {
-    // TODO:
-    // 1. Read (blocking) header (currently only `payload_size` + `cmd`) from ring buffer
-    //   a. Serialize to a struct?
-    // 2. Convert `payload_size` to size_t
-    // 3. Read `payload_size` bytes to a local buffer
-    // 4. Handle `cmd` as we currently do, just use the local buffer from previous step
-    
     ssize_t n;
     // TODO: Block on this write, since we can't do anything unless we have the command and payload_size
     while ((n = pictrl_rb_write(pi_client->connfd, 2, rb)) > 0) { // 2 for the `cmd` and `payload_size`
         // TODO: make everything big endian to align with network byte order
         const PiCtrlHeader header = pictrl_rb_get_header(rb);
         // TODO: validate header (i.e. payload size is expected, given command)
-
         // TODO: block until this write finishes
         n = pictrl_rb_write(pi_client->connfd, header.payload_size, rb);
         if (n <= 0) {
@@ -189,7 +180,6 @@ static int handle_connection(pictrl_client_t *pi_client, pictrl_rb_t *rb, xdo_t 
                          "Payload: ",
                          header.command,
                          header.payload_size);
-
         for (size_t i = 0; i < header.payload_size; i++) {
             pictrl_log("%c", pictrl_rb_get(rb, i));
         }
