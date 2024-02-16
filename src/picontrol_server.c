@@ -160,6 +160,9 @@ int picontrol_listen(int listenfd) {
 
     pictrl_log_debug("Destroying ring buffer\n");
     pictrl_rb_destroy(&recv_buf);
+
+    pictrl_log_debug("Freeing xdo\n");
+    xdo_free(xdo);
     return ret;
 }
 
