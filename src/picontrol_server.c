@@ -124,6 +124,7 @@ int picontrol_listen(int listenfd) {
     int ret = -1;
     sigaction(SIGINT, &new_sigint_handler, NULL);
     while(!should_exit) {
+        // Accept connection
         pi_client.connfd = accept(listenfd, (sockaddr *)&pi_client.client, &pi_client.client_sz);
         if (pi_client.connfd < 0) {
             pictrl_log_error("Error accepting new connection.\n");
@@ -133,6 +134,7 @@ int picontrol_listen(int listenfd) {
         pi_client.client_port = ntohs(pi_client.client.sin_port);
         pictrl_log_info("Client at %s:%d connected.\n", pi_client.client_ip, pi_client.client_port);
 
+        // Handle connection
         ret = handle_connection(&pi_client, &recv_buf, xdo);
 
         // Close connection
