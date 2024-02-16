@@ -48,7 +48,6 @@ int main() {
     int listen_ret = picontrol_listen(listenfd);
     if (listen_ret < 0) {
         pictrl_log_critical("Error occurred while listening...\n");
-        return listen_ret;
     }
     pictrl_log_debug("Finished listening on file descriptor %d\n", listenfd);
 
