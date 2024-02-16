@@ -15,15 +15,16 @@
 // Delay between xdo keystrokes in microseconds
 #define XDO_KEYSTROKE_DELAY (useconds_t)10000
 
-int setup_server();
-int picontrol_listen(int fd);
-int handle_connection(pictrl_client_t *client, pictrl_rb_t *rb, xdo_t *xdo);
-void handle_mouse_move(pictrl_rb_t *rb, xdo_t *xdo);
-void handle_text(pictrl_rb_t *rb, xdo_t *xdo);
-void handle_keysym(pictrl_rb_t *rb, xdo_t *xdo);
-xdo_t *create_xdo();
+static int setup_server();
+static int picontrol_listen(int fd);
+static int handle_connection(pictrl_client_t *client, pictrl_rb_t *rb, xdo_t *xdo);
+static void handle_mouse_move(pictrl_rb_t *rb, xdo_t *xdo);
+static void handle_text(pictrl_rb_t *rb, xdo_t *xdo);
+static void handle_keysym(pictrl_rb_t *rb, xdo_t *xdo);
+static xdo_t *create_xdo();
 static inline PiCtrlHeader pictrl_rb_get_header(pictrl_rb_t *rb);
 static inline PiCtrlMouseCoord pictrl_rb_get_mouse_coords(pictrl_rb_t *rb);
+
 void interrupt_handler(int signum);
 
 volatile sig_atomic_t should_exit = false;
@@ -55,14 +56,12 @@ int main() {
     if ((close(listenfd)) < 0) {
         pictrl_log_error("Error closing the listening socket.\n");
     }
-    pictrl_log_debug("Closed listen socket on file descriptor %d\n"
-                     "Exiting with code %d\n",
-                     listenfd,
-                     listen_ret);
+    pictrl_log_debug("Closed listen socket on file descriptor %d\n", listenfd);
+    pictrl_log_debug("Exiting with code %d\n", listen_ret);
     return listen_ret;
 }
 
-int setup_server() {
+static int setup_server() {
     int listenfd = socket(AF_INET, SOCK_STREAM, 0);
     if (listenfd < 0) {
         // TODO: for all of the error messages, print the error message associated with errno
@@ -92,7 +91,7 @@ int setup_server() {
     return listenfd;
 }
 
-int picontrol_listen(int listenfd) {
+static int picontrol_listen(int listenfd) {
     xdo_t *xdo = create_xdo();
     if (xdo == NULL) {
         pictrl_log_error("Unable to create xdo_t instance\n");
@@ -113,8 +112,6 @@ int picontrol_listen(int listenfd) {
 
 
     struct sigaction old_sigint_handler;
-    sigaction(SIGINT, NULL, &old_sigint_handler);
-
     struct sigaction new_sigint_handler = {
         .sa_handler = &interrupt_handler,
         .sa_flags = 0
@@ -122,7 +119,7 @@ int picontrol_listen(int listenfd) {
     sigemptyset(&new_sigint_handler.sa_mask);
 
     int ret = -1;
-    sigaction(SIGINT, &new_sigint_handler, NULL);
+    sigaction(SIGINT, &new_sigint_handler, &old_sigint_handler);
     while(!should_exit) {
         // Accept connection
         pi_client.connfd = accept(listenfd, (sockaddr *)&pi_client.client, &pi_client.client_sz);
@@ -166,7 +163,7 @@ int picontrol_listen(int listenfd) {
     return ret;
 }
 
-int handle_connection(pictrl_client_t *pi_client, pictrl_rb_t *rb, xdo_t *xdo) {
+static int handle_connection(pictrl_client_t *pi_client, pictrl_rb_t *rb, xdo_t *xdo) {
     // TODO:
     // 1. Read (blocking) header (currently only `payload_size` + `cmd`) from ring buffer
     //   a. Serialize to a struct?
@@ -223,7 +220,7 @@ int handle_connection(pictrl_client_t *pi_client, pictrl_rb_t *rb, xdo_t *xdo) {
     return 0;
 }
 
-void handle_mouse_move(pictrl_rb_t *rb, xdo_t *xdo) {
+static void handle_mouse_move(pictrl_rb_t *rb, xdo_t *xdo) {
     // extract the relative X and Y mouse locations to move by
     const PiCtrlMouseCoord coords = pictrl_rb_get_mouse_coords(rb);
 
@@ -233,7 +230,7 @@ void handle_mouse_move(pictrl_rb_t *rb, xdo_t *xdo) {
     }
 }
 
-void handle_text(pictrl_rb_t *rb, xdo_t *xdo) {
+static void handle_text(pictrl_rb_t *rb, xdo_t *xdo) {
     // `xdo_enter_text_window` expects a null-terminated string, there are more efficient approaches but this works
     static char text[MAX_BUF];
     pictrl_rb_copy(rb, text);
@@ -247,7 +244,7 @@ void handle_text(pictrl_rb_t *rb, xdo_t *xdo) {
     rb->num_items = 0;
 }
 
-void handle_keysym(pictrl_rb_t *rb, xdo_t *xdo) {
+static void handle_keysym(pictrl_rb_t *rb, xdo_t *xdo) {
     // `xdo_send_keysequence_window` expects a null-terminated string, there are more efficient approaches but this works
     static char keysym[MAX_BUF];
     pictrl_rb_copy(rb, keysym);
@@ -261,7 +258,7 @@ void handle_keysym(pictrl_rb_t *rb, xdo_t *xdo) {
     rb->num_items = 0;
 }
 
-xdo_t *create_xdo() {
+static xdo_t *create_xdo() {
     const char *display = getenv("DISPLAY");
     return xdo_new(display);
 }
