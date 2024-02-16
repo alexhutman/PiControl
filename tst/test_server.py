@@ -82,7 +82,7 @@ def parse_args():
                         action="extend",
                         choices=sorted(tests.keys()),
                         type=str,
-                        nargs='*',
+                        nargs='+',
                         help="Which tests to run. Duplicates are ignored. By default, all tests run.")
 
     args = parser.parse_args()
