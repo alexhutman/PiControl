@@ -35,7 +35,7 @@ int main() {
         pictrl_log_critical("You are not connected to the internet.\n");
         return 1;
     }
-    pictrl_log("Connect at: %s\n", ip);
+    pictrl_log("Connect at: %s:%d\n", ip, SERVER_PORT);
     free(ip);
 
     int listenfd = setup_server();
