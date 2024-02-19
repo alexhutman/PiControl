@@ -49,7 +49,7 @@ clean:
 	find $(SRC_DIR)/ $(TEST_DIR)/ -type f \( -name \*.o -o -name \*.d \) | xargs -r rm
 
 ################################### Targets ####################################
-$(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/picontrol_iputils.o $(SRC_DIR)/data_structures/ring_buffer.o
+$(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/networking/iputils.o $(SRC_DIR)/data_structures/ring_buffer.o
 	$(info PiControl: Making $@)
 	$(CC) $^ -o $@ -lxdo -I$(SRC_DIR_FULL)
 

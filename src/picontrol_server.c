@@ -6,10 +6,10 @@
 
 #include <xdo.h>
 
-#include "picontrol_common.h"
-#include "picontrol_iputils.h"
 #include "data_structures/ring_buffer.h"
 #include "logging/log_utils.h"
+#include "picontrol_common.h"
+#include "networking/iputils.h"
 
 
 // Delay between xdo keystrokes in microseconds
