@@ -8,8 +8,8 @@
 
 #include "data_structures/ring_buffer.h"
 #include "logging/log_utils.h"
-#include "picontrol_common.h"
 #include "networking/iputils.h"
+#include "picontrol_common.h"
 
 
 // Delay between xdo keystrokes in microseconds
