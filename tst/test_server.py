@@ -8,6 +8,8 @@ import time
 
 from enum import IntEnum, auto
 
+DEFAULT_PORT = 14741
+
 #######################################
 # Single character input - from https://stackoverflow.com/a/20865751
 try:
@@ -59,16 +61,20 @@ class PiControlCmd(IntEnum):
         PI_CTRL_KEY_PRESS  = auto() # Client: Send UTF-8 value of key to be pressed (details TBD)
         PI_CTRL_KEYSYM     = auto() # Client: Send keysym (combination)
 
-PORT = 14741
-
 def parse_args():
     parser = argparse.ArgumentParser(
             description="Tests the PiControl server",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter
             )
 
     parser.add_argument("address",
                         type=str,
                         help="IP address of the running PiControl server")
+
+    parser.add_argument("--port",
+                        type=int,
+                        default=DEFAULT_PORT,
+                        help="Port that the running PiControl server is listening on")
 
     tests = {
         "one":  test_one_msg,
@@ -94,11 +100,10 @@ def parse_args():
     args.tests = list(args.tests)
     return args
 
-def create_sock(addr):
+def create_sock(addr, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serv_addr = (addr, PORT)
+    serv_addr = (addr, port)
     sock.connect(serv_addr)
-
     return sock
 
 """
@@ -165,7 +170,7 @@ def print_pimsg(cmd, payload):
 def main():
     args = parse_args()
 
-    sock = create_sock(args.address)
+    sock = create_sock(args.address, args.port)
     try:
         for test in args.tests:
             print(f"Running {test.__name__}...")
