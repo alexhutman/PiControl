@@ -1,199 +1,41 @@
-/*
- * This code uses Jacob Sorber's example at https://www.youtube.com/watch?v=esXw4bdaZkc
- * The plan is to modify it more to obviously perform the requested action of the client
- * (i.e. move the mouse or press keys)
- */
-
 #include <arpa/inet.h>
-#include <fcntl.h>
 #include <inttypes.h>
-#include <netinet/in.h>
-#include <stdio.h>
+#include <signal.h>
+#include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <time.h>
 
 #include <xdo.h>
 
+#include "data_structures/ring_buffer.h"
+#include "logging/log_utils.h"
 #include "picontrol_common.h"
-#include "picontrol_iputils.h"
+#include "networking/iputils.h"
 
-
-#ifndef PICONTROL_ERR_EXIT_RET
-#define PICONTROL_ERR_EXIT_RET(ret, msg...) \
-    fprintf(stderr, msg);    \
-    return ret
-#endif
-
-#ifndef PICONTROL_ERR_EXIT
-#define PICONTROL_ERR_EXIT(msg...) PICONTROL_ERR_EXIT_RET(1, msg)
-#endif
 
 // Delay between xdo keystrokes in microseconds
 #define XDO_KEYSTROKE_DELAY (useconds_t)10000
 
+static int setup_server();
+static int picontrol_listen(int fd);
+static int handle_connection(pictrl_client_t *client, pictrl_rb_t *rb, xdo_t *xdo);
+static void handle_mouse_move(pictrl_rb_t *rb, xdo_t *xdo);
+static void handle_text(pictrl_rb_t *rb, xdo_t *xdo);
+static void handle_keysym(pictrl_rb_t *rb, xdo_t *xdo);
+static xdo_t *create_xdo();
+static inline PiCtrlHeader pictrl_rb_get_header(pictrl_rb_t *rb);
+static inline PiCtrlMouseCoord pictrl_rb_get_mouse_coords(pictrl_rb_t *rb);
 
-int setup_server() {
-    int listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (listenfd < 0) {
-        // TODO: for all of the error messages, print the error message associated with errno
-        PICONTROL_ERR_EXIT_RET(-1, "Error creating socket.\n");
-    }
+void interrupt_handler(int signum);
 
-    struct sockaddr_in servaddr;
-    memset(&servaddr, 0, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(SERVER_PORT);
+volatile sig_atomic_t should_exit = false;
 
-    if ((bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) < 0) {
-        // TODO: Convert the address to a string
-        close(listenfd);
-        PICONTROL_ERR_EXIT_RET(-1, "Couldn't bind socket to %" PRIu32 ":%d.\n", INADDR_ANY, SERVER_PORT);
-    }
-
-    if ((listen(listenfd, MAX_CONNS)) < 0) {
-        close(listenfd);
-        PICONTROL_ERR_EXIT_RET(-1, "Error listening to the socket.\n");
-    }
-
-    return listenfd;
-}
-
-xdo_t *create_xdo() {
-    const char *display = getenv("DISPLAY");
-    return xdo_new(display);
-}
-
-void print_err_hex(char *msg) {
-    while (*msg) {
-        fprintf(stderr, "%02x", (unsigned int) *msg++);
-    }
-    fprintf(stderr, "\n");
-}
-
-void handle_mouse_move(uint8_t *cmd_start, xdo_t *xdo) {
-    // If the payload size is 2 bytes long, we can extract the relative X and Y mouse locations to move by
-    // TODO: include pointer to end of buffer,
-    //       and if cmd_start + payload_size > buff_end, throw error
-    uint8_t payload_size = cmd_start[1];
-    if (payload_size != 2) {
-        fprintf(stderr, "A PI_CTRL_MOUSE_MV message was sent with a %u byte payload instead"
-                "of a 2 byte payload.\n", payload_size);
-        return;
-    }
-
-    int relX = (int)cmd_start[2];
-    int relY = (int)cmd_start[3];
-#ifdef PI_CTRL_DEBUG
-    printf("Moving mouse (%d, %d) relative units.\n\n", relX, relY);
-#endif
-
-    if (xdo_move_mouse_relative(xdo, relX, relY) != 0) {
-        fprintf(stderr, "Mouse was unable to be moved (%d, %d) relative units.\n", relX, relY);
-    }
-}
-
-int picontrol_listen(int listenfd, xdo_t *xdo) {
-    int connfd, n;
-
-    struct sockaddr_in client;                                   // Client struct
-    socklen_t client_sz = (socklen_t)sizeof(struct sockaddr_in); // Client struct size
-    char *client_ip;                                             // Client IP string
-    int client_port;                                             // Client port number
-
-    uint_fast8_t cmd, payload_size;
-    uint8_t *recvline = malloc(sizeof(uint8_t) * MAX_BUF); // Receive buffer
-
-    while(1) {
-        connfd = accept(listenfd, (struct sockaddr *)&client, &client_sz);
-        if (connfd < 0) {
-            PICONTROL_ERR_EXIT("Error accepting new connection.\n");
-        }
-#ifdef PI_CTRL_DEBUG
-        printf("Opened connection file descriptor %d\n", connfd);
-#endif
-
-        client_ip = inet_ntoa(client.sin_addr);
-        client_port = ntohs(client.sin_port);
-        printf("Client at %s:%d connected.\n", client_ip, client_port);
-        
-        // Zero out the receive and internal buffers to ensure that they are null-terminated
-        memset(recvline, 0, sizeof(recvline));
-
-        // Read the incoming message
-        while ((n = read(connfd, recvline, MAX_BUF-1)) > 0) {
-            // TODO: make everything big endian to align with network byte order
-            cmd = (uint_fast8_t)recvline[0];
-            payload_size = (uint_fast8_t)recvline[1];
-
-            // Set the next byte after to 0 in case the last received msg was longer than this one
-            *(&recvline[2] + n) = '\0';
-
-#ifdef PI_CTRL_DEBUG
-            printf("Command (1st byte): 0x%x\n", recvline[0]);
-
-            printf("Payload size (2nd byte): 0x%x\n", recvline[1]);
-
-            printf("Payload (hex): 0x");
-            for (int i = 0; i < payload_size; i++) {
-                printf("%02x", recvline[2 + i]);
-            }
-            printf("\n");
-#endif
-
-            // Handle command
-            switch (cmd) {
-                case PI_CTRL_MOUSE_MV:
-                    handle_mouse_move(&recvline[0], xdo);
-                    break;
-                case PI_CTRL_KEY_PRESS:
-                    // Need to send the payload length since UTF-8 chars can be more than 1 byte long
-#ifdef PI_CTRL_DEBUG
-                    printf("KEYPRESS: %.*s|<-\n\n", payload_size, &recvline[2]);
-#endif
-                    xdo_enter_text_window(xdo, CURRENTWINDOW, &recvline[2], XDO_KEYSTROKE_DELAY);
-                    break;
-                case PI_CTRL_KEYSYM:
-#ifdef PI_CTRL_DEBUG
-                    printf("KEYSYM: %.*s|<-\n\n", payload_size, &recvline[2]);
-#endif
-                    xdo_send_keysequence_window(xdo, CURRENTWINDOW, &recvline[2], XDO_KEYSTROKE_DELAY);
-                    break;
-                // TODO: On disconnect command, break inner while loop to accept new connection
-                default:
-                    printf("Invalid test. Message is not formatted correctly.\n");
-            }
-            // For testing, we'll assume that a received message's length won't be longer than MAX_BUF
-        }
-
-        if (n == 0) {
-            printf("Client at %s:%d disconnected.\n", client_ip, client_port);
-        }
-        else if (n < 0) {
-            PICONTROL_ERR_EXIT("Error reading from socket into buffer.\n");
-        }
-
-        // Close connection
-        if ((close(connfd)) < 0) {
-            PICONTROL_ERR_EXIT("Error closing the new socket.\n");
-        }
-#ifdef PI_CTRL_DEBUG
-        printf("Closed connection file descriptor %d\n", connfd);
-#endif
-    }
-    return 0;
-}
-
-int main(int argc, char **argv) {
+int main() {
     char *ip = get_ip_address();
     if (ip == NULL) {
-        PICONTROL_ERR_EXIT("You are not connected to the internet.\n");
+        pictrl_log_critical("You are not connected to the internet.\n");
+        return 1;
     }
-
-    printf("Connect at: %s\n", ip);
+    pictrl_log("Connect at: %s\n", ip);
     free(ip);
 
     int listenfd = setup_server();
@@ -201,34 +43,248 @@ int main(int argc, char **argv) {
         // We already print the appropriate error message in setup_server()
         return 1;
     }
-#ifdef PI_CTRL_DEBUG
-    printf("Acquired listen socket on file descriptor %d\n", listenfd);
-#endif
+    pictrl_log_debug("Acquired listen socket on file descriptor %d\n", listenfd);
 
-    xdo_t *xdo = create_xdo();
-    if (xdo == NULL) {
-        PICONTROL_ERR_EXIT("Unable to create xdo_t instance\n");
-    }
-#ifdef PI_CTRL_DEBUG
-    printf("Acquired new xdo instance\n");
-#endif
-
-    int listen_ret = picontrol_listen(listenfd, xdo);
+    int listen_ret = picontrol_listen(listenfd);
     if (listen_ret < 0) {
-        PICONTROL_ERR_EXIT_RET(listen_ret, "Error occurred while listening...\n");
+        pictrl_log_critical("Error occurred while listening...\n");
     }
-#ifdef PI_CTRL_DEBUG
-    printf("Finished listening on file descriptor %d\n", listenfd);
-#endif
+    pictrl_log_debug("Finished listening on file descriptor %d\n", listenfd);
 
     // Close listening socket
     if ((close(listenfd)) < 0) {
-        PICONTROL_ERR_EXIT("Error closing the listening socket.\n");
+        pictrl_log_error("Error closing the listening socket.\n");
     }
+    pictrl_log_debug("Closed listen socket on file descriptor %d\n", listenfd);
+    pictrl_log_debug("Exiting with code %d\n", listen_ret);
+    return listen_ret;
+}
+
+static int setup_server() {
+    int listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (listenfd < 0) {
+        // TODO: for all of the error messages, print the error message associated with errno
+        pictrl_log_error("Error creating socket.\n");
+        return -1;
+    }
+
+    sockaddr_in servaddr = {
+        .sin_family = AF_INET,
+        .sin_addr.s_addr = htonl(INADDR_ANY),
+        .sin_port = htons(SERVER_PORT),
+    };
+
+    if ((bind(listenfd, (sockaddr *)&servaddr, sizeof(servaddr))) < 0) {
+        // TODO: Convert the address to a string
+        close(listenfd);
+        pictrl_log_error("Couldn't bind socket to %" PRIu32 ":%d.\n", INADDR_ANY, SERVER_PORT);
+        return -1;
+    }
+
+    if ((listen(listenfd, MAX_CONNS)) < 0) {
+        close(listenfd);
+        pictrl_log_error("Error listening to the socket.\n");
+        return -1;
+    }
+
+    return listenfd;
+}
+
+static int picontrol_listen(int listenfd) {
+    xdo_t *xdo = create_xdo();
+    if (xdo == NULL) {
+        pictrl_log_error("Unable to create xdo_t instance\n");
+        return -1;
+    }
+    pictrl_log_debug("Acquired new xdo instance\n");
+
+    pictrl_client_t pi_client = {
+        .client = {},
+        .client_sz = PICTRL_CLIENT_SZ,
+        .client_ip = NULL,
+        .client_port = -1,
+        .connfd = -1
+    };
+
+    pictrl_rb_t recv_buf; // Receive ring buffer
+    pictrl_rb_init(&recv_buf, MAX_BUF);
+
+    struct sigaction old_sigint_handler;
+    struct sigaction new_sigint_handler = {
+        .sa_handler = &interrupt_handler,
+        .sa_flags = 0
+    };
+    sigemptyset(&new_sigint_handler.sa_mask);
+
+    int ret = -1;
+    sigaction(SIGINT, &new_sigint_handler, &old_sigint_handler);
+    while(!should_exit) {
+        // Accept connection
+        pi_client.connfd = accept(listenfd, (sockaddr *)&pi_client.client, &pi_client.client_sz);
+        if (pi_client.connfd < 0) {
+            pictrl_log_error("Error accepting new connection.\n");
+            break;
+        }
+        pi_client.client_ip = inet_ntoa(pi_client.client.sin_addr);
+        pi_client.client_port = ntohs(pi_client.client.sin_port);
+        pictrl_log_info("Client at %s:%d connected.\n", pi_client.client_ip, pi_client.client_port);
+
+        // Handle connection
+        ret = handle_connection(&pi_client, &recv_buf, xdo);
+
+        // Close connection
+        if ((close(pi_client.connfd)) < 0) {
+            pictrl_log_error("Error closing the new socket.\n");
+            break;
+        }
+
+        pictrl_log_debug("Closed connection file descriptor %d\n", pi_client.connfd);
+        pictrl_log_info("Client at %s:%d disconnected.\n", pi_client.client_ip, pi_client.client_port);
+        pi_client.connfd = -1;
+
+        if (ret != 0) {
+            pictrl_log_error("Error handling the connection.\n");
+            break;
+        }
+
+        // Clear out the buffer on each new connection
+        pictrl_rb_clear(&recv_buf);
+        pictrl_log_debug("Cleared ring buffer\n");
+    }
+    sigaction(SIGINT, &old_sigint_handler, NULL);
+
+    pictrl_log_debug("Destroying ring buffer\n");
+    pictrl_rb_destroy(&recv_buf);
+
+    pictrl_log_debug("Freeing xdo\n");
+    xdo_free(xdo);
+    return ret;
+}
+
+static int handle_connection(pictrl_client_t *pi_client, pictrl_rb_t *rb, xdo_t *xdo) {
+    ssize_t n;
+    // TODO: Block on this write, since we can't do anything unless we have the command and payload_size
+    while ((n = pictrl_rb_write(pi_client->connfd, 2, rb)) > 0) { // 2 for the `cmd` and `payload_size`
+        // TODO: make everything big endian to align with network byte order
+        const PiCtrlHeader header = pictrl_rb_get_header(rb);
+        // TODO: validate header (i.e. payload size is expected, given command)
+        // TODO: block until this write finishes
+        n = pictrl_rb_write(pi_client->connfd, header.payload_size, rb);
+        if (n <= 0) {
+            break;
+        }
+
 #ifdef PI_CTRL_DEBUG
-    printf("Closed listen socket on file descriptor %d\n", listenfd);
-    printf("Exiting with code %d\n", listen_ret);
+        pictrl_log_debug("Command (1st byte): %x\n"
+                         "Payload size (2nd byte): %zu\n"
+                         "Payload: ",
+                         header.command,
+                         header.payload_size);
+        for (size_t i = 0; i < header.payload_size; i++) {
+            pictrl_log("%c", pictrl_rb_get(rb, i));
+        }
+        pictrl_log(" (0x");
+        for (size_t i = 0; i < header.payload_size; i++) {
+            pictrl_log("%02x", pictrl_rb_get(rb, i));
+        }
+        pictrl_log(")\n");
 #endif
 
-    return listen_ret;
+        // Handle command
+        switch (header.command) {
+            case PI_CTRL_MOUSE_MV:
+                handle_mouse_move(rb, xdo);
+                break;
+            case PI_CTRL_TEXT:
+                handle_text(rb, xdo);
+                break;
+            case PI_CTRL_KEYSYM:
+                handle_keysym(rb, xdo);
+                break;
+            // TODO: On disconnect command, return 0?
+            default:
+                pictrl_log_error("Invalid test. Message is not formatted correctly.\n");
+        }
+    }
+
+    if (n < 0) {
+        pictrl_log_error("Error reading from socket into buffer.\n");
+        return -1;
+    }
+    return 0;
+}
+
+static void handle_mouse_move(pictrl_rb_t *rb, xdo_t *xdo) {
+    // extract the relative X and Y mouse locations to move by
+    const PiCtrlMouseCoord coords = pictrl_rb_get_mouse_coords(rb);
+
+    pictrl_log_debug("Moving mouse (%d, %d) relative units.\n\n", coords.x, coords.y);
+    if (xdo_move_mouse_relative(xdo, coords.x, coords.y) != 0) {
+        pictrl_log_warn("Mouse was unable to be moved (%d, %d) relative units.\n", coords.x, coords.y);
+    }
+}
+
+static void handle_text(pictrl_rb_t *rb, xdo_t *xdo) {
+    // `xdo_enter_text_window` expects a null-terminated string, there are more efficient approaches but this works
+    static char text[MAX_BUF];
+    pictrl_rb_copy(rb, text);
+
+    text[rb->num_items] = 0;
+
+    xdo_enter_text_window(xdo, CURRENTWINDOW, text, XDO_KEYSTROKE_DELAY); // TODO: what if sizeof(char) != sizeof(uint8_t)?
+
+    const size_t new_data_start_idx = (rb->data_start + rb->num_items) % rb->capacity;
+    rb->data_start = new_data_start_idx;
+    rb->num_items = 0;
+}
+
+static void handle_keysym(pictrl_rb_t *rb, xdo_t *xdo) {
+    // `xdo_send_keysequence_window` expects a null-terminated string, there are more efficient approaches but this works
+    static char keysym[MAX_BUF];
+    pictrl_rb_copy(rb, keysym);
+
+    keysym[rb->num_items] = 0;
+
+    xdo_send_keysequence_window(xdo, CURRENTWINDOW, keysym, XDO_KEYSTROKE_DELAY);
+
+    const size_t new_data_start_idx = (rb->data_start + rb->num_items) % rb->capacity;
+    rb->data_start = new_data_start_idx;
+    rb->num_items = 0;
+}
+
+static xdo_t *create_xdo() {
+    const char *display = getenv("DISPLAY");
+    return xdo_new(display);
+}
+
+// Assumes that rb->data_start is pointing at the beginning of the header in the ring buffer already
+static inline PiCtrlHeader pictrl_rb_get_header(pictrl_rb_t *rb) {
+    const PiCtrlHeader ret = {
+        .command = (PiCtrlCmd)pictrl_rb_get(rb, 0),
+        .payload_size = (size_t)pictrl_rb_get(rb, 1)
+    };
+
+    const size_t new_data_start_idx = (rb->data_start + 2) % rb->capacity;
+    rb->data_start = new_data_start_idx;
+
+    rb->num_items -= 2;
+    return ret;
+}
+
+static inline PiCtrlMouseCoord pictrl_rb_get_mouse_coords(pictrl_rb_t *rb) {
+    const PiCtrlMouseCoord ret = {
+        .x = (int)pictrl_rb_get(rb, 0),
+        .y = (int)pictrl_rb_get(rb, 1)
+    };
+
+    const size_t new_data_start_idx = (rb->data_start + 2) % rb->capacity;
+    rb->data_start = new_data_start_idx;
+
+    rb->num_items -= 2;
+    return ret;
+}
+
+void interrupt_handler(int signum) {
+    (void)signum; // To shut compiler up about unused var
+    should_exit = true;
 }

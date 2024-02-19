@@ -1,6 +1,8 @@
 #ifndef _PICTRL_COMMON_H
 #define _PICTRL_COMMON_H
 
+#include <unistd.h>
+
 // Constants
 #define SERVER_PORT      14741
 #define MAX_BUF          4096
@@ -21,10 +23,17 @@ typedef enum {
     PI_CTRL_MOUSE_DOWN, // Client: Say to press mouse down (no data required)
     PI_CTRL_MOUSE_UP,   // Client: Say to press mouse up (no data required)
     PI_CTRL_MOUSE_CLK,  // Client: Say to click (mouseup, then mousedown) mouse (no data required)
-    PI_CTRL_KEY_PRESS,  // Client: Send UTF-8 value of key to be pressed (details TBD)
+    PI_CTRL_TEXT,       // Client: Send UTF-8 bytes to be typed
     PI_CTRL_KEYSYM,     // Client: Send keysym (combination)
 } PiCtrlCmd;
 
+typedef struct {
+    PiCtrlCmd command;
+    size_t payload_size;
+} PiCtrlHeader;
 
+typedef struct {
+    int x,y;
+} PiCtrlMouseCoord;
 
 #endif

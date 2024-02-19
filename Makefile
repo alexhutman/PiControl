@@ -9,7 +9,6 @@ BIN_DIR        := bin
 TEST_DIR       := tst
 BIN_TEST_DIR   := $(BIN_DIR)/$(TEST_DIR)
 
-EXE            := $(BIN_DIR)/picontrol
 SERVER         := $(BIN_DIR)/picontrol_server
 TEST_SCRIPT    := $(BIN_DIR)/run_tests
 PITEST_SO_PATH := $(BIN_DIR)/pitest/pitest.so
@@ -38,8 +37,6 @@ endif
 .PHONY: all picontrol server pitest test clean
 all: picontrol server pitest test
 
-picontrol: $(EXE)
-
 server: $(SERVER)
 
 pitest: $(PITEST_SO_PATH)
@@ -52,13 +49,9 @@ clean:
 	find $(SRC_DIR)/ $(TEST_DIR)/ -type f \( -name \*.o -o -name \*.d \) | xargs -r rm
 
 ################################### Targets ####################################
-$(EXE): $(SRC_DIR)/picontrol.o $(SRC_DIR)/picontrol_uinput.o
+$(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/networking/iputils.o $(SRC_DIR)/data_structures/ring_buffer.o
 	$(info PiControl: Making $@)
-	$(CC) $^ -o $@
-
-$(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/picontrol_iputils.o
-	$(info PiControl: Making $@)
-	$(CC) $^ -o $@ -lxdo
+	$(CC) $^ -o $@ -lxdo -I$(SRC_DIR_FULL)
 
 $(PITEST_SO_PATH): $(PITEST_OBJ)
 	$(info PiControl: Linking pitest library $@ using components: $^)
