@@ -4,8 +4,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define PICTRL_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
-
 // Function pointer: () -> int (they're all currently the same but don't have to be)
 typedef int (*TestFunction)();
 typedef int (*SetupFunction)();

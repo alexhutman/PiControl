@@ -9,6 +9,8 @@
 
 #include "data_structures/ring_buffer.h"
 #include "logging/log_utils.h"
+#include "util.h"
+
 #include "pitest/api.h"
 #include "pitest/api/assertions.h"
 #include "pitest/util/dummy.h"
