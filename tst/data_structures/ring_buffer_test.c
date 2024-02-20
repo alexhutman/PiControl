@@ -113,7 +113,7 @@ int main() {
     const TestSuite suite = {
         .name = "Ring buffer tests",
         .test_cases = test_cases,
-        .num_tests = pictrl_size(test_cases),
+        .num_tests = PICTRL_SIZE(test_cases),
         .before_after_all = {
             .setup = &before_all,
             .teardown = &after_all
