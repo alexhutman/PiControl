@@ -3,6 +3,7 @@
 #include "backend/pictrl_xdo.h"
 #include "logging/log_utils.h"
 #include "picontrol_common.h"
+#include "serialize.h"
 
 
 xdo_t *create_xdo() {

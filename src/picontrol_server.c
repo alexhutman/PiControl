@@ -11,6 +11,7 @@
 #include "logging/log_utils.h"
 #include "networking/iputils.h"
 #include "picontrol_common.h"
+#include "serialize.h"
 
 
 static int setup_server();
