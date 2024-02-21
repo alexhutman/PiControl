@@ -6,24 +6,16 @@
 
 #include <xdo.h>
 
+#include "backend/pictrl_xdo.h"
 #include "data_structures/ring_buffer.h"
 #include "logging/log_utils.h"
 #include "networking/iputils.h"
 #include "picontrol_common.h"
 
 
-// Delay between xdo keystrokes in microseconds
-#define XDO_KEYSTROKE_DELAY (useconds_t)10000
-
 static int setup_server();
 static int picontrol_listen(int fd);
 static int handle_connection(pictrl_client_t *client, pictrl_rb_t *rb, xdo_t *xdo);
-static void handle_mouse_move(pictrl_rb_t *rb, xdo_t *xdo);
-static void handle_text(pictrl_rb_t *rb, xdo_t *xdo);
-static void handle_keysym(pictrl_rb_t *rb, xdo_t *xdo);
-static xdo_t *create_xdo();
-static inline PiCtrlHeader pictrl_rb_get_header(pictrl_rb_t *rb);
-static inline PiCtrlMouseCoord pictrl_rb_get_mouse_coords(pictrl_rb_t *rb);
 
 void interrupt_handler(int signum);
 
@@ -212,76 +204,6 @@ static int handle_connection(pictrl_client_t *pi_client, pictrl_rb_t *rb, xdo_t 
         return -1;
     }
     return 0;
-}
-
-static void handle_mouse_move(pictrl_rb_t *rb, xdo_t *xdo) {
-    // extract the relative X and Y mouse locations to move by
-    const PiCtrlMouseCoord coords = pictrl_rb_get_mouse_coords(rb);
-
-    pictrl_log_debug("Moving mouse (%d, %d) relative units.\n\n", coords.x, coords.y);
-    if (xdo_move_mouse_relative(xdo, coords.x, coords.y) != 0) {
-        pictrl_log_warn("Mouse was unable to be moved (%d, %d) relative units.\n", coords.x, coords.y);
-    }
-}
-
-static void handle_text(pictrl_rb_t *rb, xdo_t *xdo) {
-    // `xdo_enter_text_window` expects a null-terminated string, there are more efficient approaches but this works
-    static char text[MAX_BUF];
-    pictrl_rb_copy(rb, text);
-
-    text[rb->num_items] = 0;
-
-    xdo_enter_text_window(xdo, CURRENTWINDOW, text, XDO_KEYSTROKE_DELAY); // TODO: what if sizeof(char) != sizeof(uint8_t)?
-
-    const size_t new_data_start_idx = (rb->data_start + rb->num_items) % rb->capacity;
-    rb->data_start = new_data_start_idx;
-    rb->num_items = 0;
-}
-
-static void handle_keysym(pictrl_rb_t *rb, xdo_t *xdo) {
-    // `xdo_send_keysequence_window` expects a null-terminated string, there are more efficient approaches but this works
-    static char keysym[MAX_BUF];
-    pictrl_rb_copy(rb, keysym);
-
-    keysym[rb->num_items] = 0;
-
-    xdo_send_keysequence_window(xdo, CURRENTWINDOW, keysym, XDO_KEYSTROKE_DELAY);
-
-    const size_t new_data_start_idx = (rb->data_start + rb->num_items) % rb->capacity;
-    rb->data_start = new_data_start_idx;
-    rb->num_items = 0;
-}
-
-static xdo_t *create_xdo() {
-    const char *display = getenv("DISPLAY");
-    return xdo_new(display);
-}
-
-// Assumes that rb->data_start is pointing at the beginning of the header in the ring buffer already
-static inline PiCtrlHeader pictrl_rb_get_header(pictrl_rb_t *rb) {
-    const PiCtrlHeader ret = {
-        .command = (PiCtrlCmd)pictrl_rb_get(rb, 0),
-        .payload_size = (size_t)pictrl_rb_get(rb, 1)
-    };
-
-    const size_t new_data_start_idx = (rb->data_start + 2) % rb->capacity;
-    rb->data_start = new_data_start_idx;
-
-    rb->num_items -= 2;
-    return ret;
-}
-
-static inline PiCtrlMouseCoord pictrl_rb_get_mouse_coords(pictrl_rb_t *rb) {
-    const PiCtrlMouseCoord ret = {
-        .x = (int)pictrl_rb_get(rb, 0),
-        .y = (int)pictrl_rb_get(rb, 1)
-    };
-
-    const size_t new_data_start_idx = (rb->data_start + 2) % rb->capacity;
-    rb->data_start = new_data_start_idx;
-
-    rb->num_items -= 2;
-    return ret;
 }
 
 void interrupt_handler(int signum) {
