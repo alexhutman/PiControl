@@ -13,7 +13,6 @@
 
 #include "pitest/api.h"
 #include "pitest/api/assertions.h"
-#include "pitest/util/dummy.h"
 
 
 static int test_simple_write();
