@@ -16,7 +16,7 @@ Entry ("value") = keyscan combination to produce the ascii
 
 Ex. pictrl_ascii_to_event_codes[(unsigned int)"H" = 0x48] = [KEY_LEFTSHIFT, KEY_H]
 */
-const pictrl_key_combo pictrl_ascii_to_event_codes[] = {
+static const pictrl_key_combo pictrl_ascii_to_event_codes[] = {
     // TODO: Make these repetitive ones a macro or something?
     PICTRL_EMPTY_KEY_COMB(),
     PICTRL_EMPTY_KEY_COMB(),
