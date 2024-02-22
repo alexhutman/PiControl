@@ -6,8 +6,8 @@
 
 static const pictrl_key_range valid_key_ranges[] = {
     // https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/input-event-codes.h
-    {.lower_bound = KEY_ESC, .upper_bound = KEY_0},
-    {.lower_bound = KEY_Q,   .upper_bound = KEY_P}
+    {.lower_bound = KEY_ESC, .upper_bound = KEY_KPDOT},
+    {.lower_bound = KEY_F11, .upper_bound = KEY_F12}
 };
 
 /*
