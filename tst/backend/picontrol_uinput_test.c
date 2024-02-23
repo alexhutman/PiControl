@@ -66,7 +66,7 @@ int main() {
     };
 
     const TestSuite suite = {
-        .name = "Uinput Test Suite",
+        .name = "Uinput tests (manual)",
         .test_cases = test_cases,
         .num_tests = PICTRL_SIZE(test_cases),
         .before_after_all = {
