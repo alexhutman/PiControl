@@ -11,7 +11,7 @@
 #define PICTRL_MAX_SIMUL_KEYS 10
 
 
-#define PICTRL_EMPTY_KEY_COMB() {\
+#define PICTRL_NOOP_KEY_COMB() {\
     .num_keys = 0, \
     .keys = {} \
 }
