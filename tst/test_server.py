@@ -118,14 +118,14 @@ def test_one_msg(sock):
     test_msg = "и".encode("utf-8")
 
     print_pimsg(cmd, test_msg)
-    sock.send(bytes([cmd, len(test_msg)]) + test_msg)
+    sock.send(serialize_cmd(cmd, test_msg))
 
 def test_multiple_msgs(sock):
     cmd = PiControlCmd.PI_CTRL_KEY_PRESS
     msg = "Hello, world!"
     for char in map(lambda c: c.encode("utf-8"), msg):
         print_pimsg(cmd, char)
-        sock.send(bytes([cmd, len(char)]) + char)
+        sock.send(serialize_cmd(cmd, char))
         time.sleep(0.3)
         
 def test_continuous_msgs(sock):
@@ -137,13 +137,13 @@ def test_continuous_msgs(sock):
             break
 
         print_pimsg(cmd, char)
-        sock.send(bytes([cmd, len(char)]) + char)
+        sock.send(serialize_cmd(cmd, char))
 
 def test_russian(sock):
     cmd = PiControlCmd.PI_CTRL_KEY_PRESS
     for encoded_char in map(lambda c: c.encode('utf-8'), "Здравствуйте"):
         print_pimsg(cmd, encoded_char)
-        sock.send(bytes([cmd, len(encoded_char)]) + encoded_char)
+        sock.send(serialize_cmd(cmd, encoded_char))
         time.sleep(0.5)
         
 def test_mouse_move(sock):
@@ -154,7 +154,7 @@ def test_mouse_move(sock):
     # Just move 25 units (arbitrary number) up and to the right
     for _ in range(25):
         print_pimsg(cmd, rel_mv)
-        sock.send(bytes([cmd, len(rel_mv)]) + rel_mv)
+        sock.send(serialize_cmd(cmd, rel_mv))
 
         time.sleep(0.1)
 
@@ -162,10 +162,13 @@ def test_keysym(sock):
     cmd = PiControlCmd.PI_CTRL_KEYSYM
     msg = "Ctrl+a".encode("utf-8")
     print_pimsg(cmd, msg)
-    sock.send(bytes([cmd, len(msg)]) + msg)
+    sock.send(serialize_cmd(cmd, msg))
 
 def print_pimsg(cmd, payload):
     print(f"Sending {cmd.name}, |{payload}| ({binascii.hexlify(payload)}) [payload len: {len(payload)}]")
+
+def serialize_cmd(cmd, msg):
+    return bytes([cmd, len(msg)]) + msg
 
 def main():
     args = parse_args()
