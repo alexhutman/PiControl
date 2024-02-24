@@ -44,6 +44,7 @@ char *get_ip_address() {
         if (strncmp(intf->if_name, "lo", 3)) {
             pictrl_log_debug("Interface: %s\n", intf->if_name);
             ip = iface_ip_address(intf->if_name);
+            break;
         }
     }
     if_freenameindex(if_nidxs);
