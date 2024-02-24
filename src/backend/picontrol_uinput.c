@@ -172,13 +172,6 @@ void picontrol_type_char(int fd, char c) {
 }
 
 int picontrol_create_virtual_keyboard() {
-    static const struct uinput_setup usetup = {
-        .id.bustype = BUS_USB,
-        .id.vendor = 0x1337,
-        .id.product = 0x0420,
-        .name = "PiControl Virtual Keyboard"
-    };
-
     int fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
     if (fd < 0) {
         return fd;
@@ -208,6 +201,14 @@ int picontrol_create_virtual_keyboard() {
     ioctl(fd, UI_SET_RELBIT, REL_X);
     ioctl(fd, UI_SET_RELBIT, REL_Y);
 
+    static const struct uinput_setup usetup = {
+        .id = {
+            .bustype = BUS_USB,
+            .vendor = 0x1337,
+            .product = 0x0420,
+        },
+        .name = "PiControl Virtual Keyboard"
+    };
     // Set up and create device
     ioctl(fd, UI_DEV_SETUP, &usetup);
     ioctl(fd, UI_DEV_CREATE);
