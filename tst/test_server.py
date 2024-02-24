@@ -181,6 +181,7 @@ def main():
         print("Exiting...")
     finally:
         print("Closing socket...")
+        sock.shutdown(socket.SHUT_RDWR)
         sock.close()
 
 if __name__ == "__main__":
