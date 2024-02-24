@@ -2,7 +2,7 @@
 
 #include "backend/pictrl_xdo.h"
 #include "logging/log_utils.h"
-#include "picontrol_common.h"
+#include "picontrol_config.h"
 #include "serialize.h"
 
 

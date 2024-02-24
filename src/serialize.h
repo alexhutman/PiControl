@@ -1,5 +1,5 @@
 #include "data_structures/ring_buffer.h"
-#include "picontrol_common.h"
+#include "model/picontrol.h"
 
 // Assumes that rb->data_start is pointing at the beginning of the header in the ring buffer already
 static inline PiCtrlHeader pictrl_rb_get_header(pictrl_rb_t *rb) {

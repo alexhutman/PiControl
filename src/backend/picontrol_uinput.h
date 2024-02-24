@@ -6,9 +6,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-
-// Maximum simultaneous keys pressed during a combo. Surely we wouldn't need more than this... right?
-#define PICTRL_MAX_SIMUL_KEYS 10
+#include "picontrol_config.h"
 
 
 #define PICTRL_NOOP_KEY_COMB() {\

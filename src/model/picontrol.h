@@ -1,18 +1,7 @@
-#ifndef _PICTRL_COMMON_H
-#define _PICTRL_COMMON_H
+#ifndef _PICTRL_MODEL_H
+#define _PICTRL_MODEL_H
 
 #include <unistd.h>
-
-// Constants
-#define SERVER_PORT      14741
-#define MAX_BUF          4096
-
-// Only 1 client will be connected (i.e. sending commands) to the server at once, but we can tell
-// the others to get lost if there is an existing open connection.
-#define MAX_CONNS        1 
-
-// Timeout in seconds - if we haven't received a heartbeat or command in this amount of time, disconnect
-#define TIMEOUT_SECS     5
 
 
 // Types
