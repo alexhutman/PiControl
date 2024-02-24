@@ -10,7 +10,7 @@
 #include "data_structures/ring_buffer.h"
 #include "logging/log_utils.h"
 #include "networking/iputils.h"
-#include "picontrol_common.h"
+#include "picontrol_config.h"
 #include "serialize.h"
 
 
