@@ -6,6 +6,10 @@
 #include <unistd.h>
 
 #include "logging/log_utils.h"
+#include "util.h"
+
+#define LOOPBACK_DEVICE_NAME "lo"
+#define LOOPBACK_DEVICE_NAME_SZ PICTRL_SIZE(LOOPBACK_DEVICE_NAME)
 
 // Adapted from https://stackoverflow.com/a/2283541/6708303
 char *iface_ip_address(const char *interface) {
@@ -41,7 +45,7 @@ char *get_ip_address() {
 
     char *ip = NULL;
     for (struct if_nameindex *intf = if_nidxs; !(intf->if_index == 0 && intf->if_name == NULL); intf++) {
-        if (strncmp(intf->if_name, "lo", 3)) {
+        if (strncmp(intf->if_name, LOOPBACK_DEVICE_NAME, LOOPBACK_DEVICE_NAME_SZ) != 0) {
             pictrl_log_debug("Interface: %s\n", intf->if_name);
             ip = iface_ip_address(intf->if_name);
             break;
