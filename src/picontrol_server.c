@@ -1,7 +1,5 @@
-#include <arpa/inet.h>
 #include <inttypes.h>
 #include <signal.h>
-#include <stdint.h>
 #include <stdlib.h>
 
 #include <xdo.h>
@@ -91,13 +89,7 @@ static int picontrol_listen(int listenfd) {
     }
     pictrl_log_debug("Acquired new xdo instance\n");
 
-    pictrl_client_t pi_client = {
-        .client = {},
-        .client_sz = PICTRL_CLIENT_SZ,
-        .client_ip = NULL,
-        .client_port = -1,
-        .connfd = -1
-    };
+    pictrl_client_t pi_client = pictrl_client_new();
 
     pictrl_rb_t recv_buf; // Receive ring buffer
     pictrl_rb_init(&recv_buf, MAX_BUF);
@@ -118,8 +110,7 @@ static int picontrol_listen(int listenfd) {
             pictrl_log_error("Error accepting new connection.\n");
             break;
         }
-        pi_client.client_ip = inet_ntoa(pi_client.client.sin_addr);
-        pi_client.client_port = ntohs(pi_client.client.sin_port);
+        pictrl_client_get_ip_and_port(&pi_client);
         pictrl_log_info("Client at %s:%d connected.\n", pi_client.client_ip, pi_client.client_port);
 
         // Handle connection
@@ -133,7 +124,7 @@ static int picontrol_listen(int listenfd) {
 
         pictrl_log_debug("Closed connection file descriptor %d\n", pi_client.connfd);
         pictrl_log_info("Client at %s:%d disconnected.\n", pi_client.client_ip, pi_client.client_port);
-        pi_client.connfd = -1;
+        pictrl_client_clear(&pi_client);
 
         if (ret != 0) {
             pictrl_log_error("Error handling the connection.\n");
