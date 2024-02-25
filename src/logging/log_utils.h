@@ -4,6 +4,13 @@
 #include <stdio.h>
 
 
+/*
+IMPORTANT: *don't* insert anything before those `[f]printf`s --
+Sometimes we print `errno` after an error occurred. Anything before this could change its value before we print it.
+See the "NOTES" section of `man errno` for more info.
+
+NOTE: be careful with strerr() as well: https://stackoverflow.com/q/73167084
+*/
 #ifdef PI_CTRL_DEBUG
 #define pictrl_log_debug(...)     printf ("[DEBUG] " __VA_ARGS__)
 #else
