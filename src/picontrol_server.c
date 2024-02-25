@@ -59,13 +59,13 @@ static int setup_server() {
         return -1;
     }
 
-    sockaddr_in servaddr = {
+    struct sockaddr_in servaddr = {
         .sin_family = AF_INET,
         .sin_addr.s_addr = htonl(INADDR_ANY),
         .sin_port = htons(SERVER_PORT),
     };
 
-    if ((bind(listenfd, (sockaddr *)&servaddr, sizeof(servaddr))) < 0) {
+    if ((bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) < 0) {
         // TODO: Convert the address to a string
         close(listenfd);
         pictrl_log_error("Couldn't bind socket to %" PRIu32 ":%d.\n", INADDR_ANY, SERVER_PORT);
@@ -105,7 +105,7 @@ static int picontrol_listen(int listenfd) {
     sigaction(SIGINT, &new_sigint_handler, &old_sigint_handler);
     while(!should_exit) {
         // Accept connection
-        pi_client.connfd = accept(listenfd, (sockaddr *)&pi_client.client, &pi_client.client_sz);
+        pi_client.connfd = accept(listenfd, (struct sockaddr *)&pi_client.client, &pi_client.client_sz);
         if (pi_client.connfd < 0) {
             pictrl_log_error("Error accepting new connection.\n");
             break;

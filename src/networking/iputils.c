@@ -1,56 +1,69 @@
 #include <arpa/inet.h>
+#include <errno.h>
+#include <ifaddrs.h>
 #include <net/if.h>
+#include <netdb.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
 
 #include "logging/log_utils.h"
-#include "util.h"
 
-#define LOOPBACK_DEVICE_NAME "lo"
-#define LOOPBACK_DEVICE_NAME_SZ PICTRL_SIZE(LOOPBACK_DEVICE_NAME)
+#define LOOPBACK_UP_RUNNING (IFF_UP|IFF_RUNNING|IFF_LOOPBACK)
+#define UP_RUNNING          (IFF_UP|IFF_RUNNING)
 
-// Adapted from https://stackoverflow.com/a/2283541/6708303
-char *iface_ip_address(const char *interface) {
-    const int fd = socket(AF_INET, SOCK_DGRAM, 0);
-    struct ifreq ifr = {
-        .ifr_addr = {
-            .sa_family = AF_INET // IPv4
-        }
-    };
-    strncpy(ifr.ifr_name, interface, IFNAMSIZ-1); // IP address attached to <interface>
-
-    if (ioctl(fd, SIOCGIFADDR, &ifr) < 0) {
-        // Interface doesn't exist
-        return NULL;
-    }
-    if (close(fd) < 0) {
-        return NULL;
-    }
-
-    char *ip = (char *) malloc(IFNAMSIZ);
-    strncpy(ip, inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr), IFNAMSIZ-1);
-    return ip;
+static inline bool non_loopback_up_and_running(struct ifaddrs *interface) {
+    return (interface->ifa_flags & LOOPBACK_UP_RUNNING) == UP_RUNNING;
 }
 
+static inline bool is_addr_valid(struct sockaddr *addr) {
+    return (addr != NULL)
+        && (addr->sa_family == AF_INET || addr->sa_family == AF_INET6);
+}
 
-// Return first existent (non-loopback) interface's IP
-// Adapted from https://stackoverflow.com/a/45796495/6708303
+// Return first existent, non-loopback, data-receiving interface's IP
+// Adapted from https://stackoverflow.com/a/12883978
 char *get_ip_address() {
-    struct if_nameindex *if_nidxs = if_nameindex();
-    if (if_nidxs == NULL) {
+    struct ifaddrs *interfaces;
+    if (getifaddrs(&interfaces) != 0) {
+        pictrl_log_error("Error retrieving network interfaces: %s\n", strerror(errno));
         return NULL;
     }
 
-    char *ip = NULL;
-    for (struct if_nameindex *intf = if_nidxs; !(intf->if_index == 0 && intf->if_name == NULL); intf++) {
-        if (strncmp(intf->if_name, LOOPBACK_DEVICE_NAME, LOOPBACK_DEVICE_NAME_SZ) != 0) {
-            pictrl_log_debug("Interface: %s\n", intf->if_name);
-            ip = iface_ip_address(intf->if_name);
-            break;
+    struct ifaddrs *iface = NULL;
+    for (struct ifaddrs *interface = interfaces; interface != NULL; interface = interface->ifa_next) {
+        if (non_loopback_up_and_running(interface)) {
+            if (!is_addr_valid(interface->ifa_addr)) {
+                continue;
+            }
+
+            iface = interface;
+            if (iface->ifa_addr->sa_family == AF_INET) {
+                // We prefer IPv4 interfaces
+                break;
+            }
         }
     }
-    if_freenameindex(if_nidxs);
+    if (iface == NULL) {
+        pictrl_log_critical("You seem to not be connected to the internet!\n");
+        return NULL;
+    }
+    pictrl_log_debug("Interface: %s\n", iface->ifa_name);
+
+    char *ip = NULL;
+    const socklen_t len = sizeof(struct sockaddr);
+    switch (iface->ifa_addr->sa_family) {
+        case AF_INET:
+            ip = malloc(INET_ADDRSTRLEN);  // TODO: err handling
+            getnameinfo(iface->ifa_addr, len, ip, INET_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
+            break;
+        case AF_INET6:
+            ip = malloc(INET6_ADDRSTRLEN); // TODO: err handling
+            getnameinfo(iface->ifa_addr, len, ip, INET6_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
+            break;
+        default:
+            pictrl_log_critical("Unknown interface type.\n");
+    }
+    freeifaddrs(interfaces);
     return ip;
 }
