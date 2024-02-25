@@ -7,6 +7,7 @@ import sys
 import time
 
 from enum import IntEnum, auto
+from functools import cached_property
 
 DEFAULT_PORT = 14741
 
@@ -61,6 +62,49 @@ class PiControlCmd(IntEnum):
         PI_CTRL_KEY_PRESS  = auto() # Client: Send UTF-8 value of key to be pressed (details TBD)
         PI_CTRL_KEYSYM     = auto() # Client: Send keysym (combination)
 
+class PiControlMessage:
+    __slots__ = '__dict__', '_cmd', '_payload', 'payload_len', '_serialized'
+
+    def __init__(self, cmd, payload):
+        self.cmd = cmd
+        self.payload = payload # should be a bytes list
+
+    def reset_serialization(self):
+        self.__dict__.pop("serialized", None)
+
+    @property
+    def cmd(self):
+        return self._cmd
+
+    @cmd.setter
+    def cmd(self, new_cmd):
+        self._cmd = new_cmd
+
+        # TODO: Make cleaner? The idea is that reserializing the whole obj is very inefficient if we're only changing the cmd
+        if "serialized" in self.__dict__:
+            self.serialized[0] = new_cmd
+
+    @property
+    def payload(self):
+        return self._payload
+
+    @payload.setter
+    def payload(self, new_payload):
+        self._payload = new_payload
+        self.payload_len = len(new_payload)
+        self.reset_serialization()
+
+    @cached_property
+    def serialized(self):
+        self._serialized = bytearray([self.cmd, self.payload_len])
+        self._serialized.extend(self.payload)
+        return self._serialized
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(cmd={self.cmd.name}, payload_len={self.payload_len}, payload={self.payload}, raw_payload={binascii.hexlify(self.payload)})"
+
+    __str__ = __repr__
+
 def parse_args():
     parser = argparse.ArgumentParser(
             description="Tests the PiControl server",
@@ -114,61 +158,52 @@ def receive_chunk(sock, size):
 """
 
 def test_one_msg(sock):
-    cmd = PiControlCmd.PI_CTRL_KEY_PRESS
-    test_msg = "и".encode("utf-8")
-
-    print_pimsg(cmd, test_msg)
-    sock.send(serialize_cmd(cmd, test_msg))
+    msg = PiControlMessage(PiControlCmd.PI_CTRL_KEY_PRESS, "и".encode("utf-8"))
+    print(msg)
+    sock.send(msg.serialized)
 
 def test_multiple_msgs(sock):
-    cmd = PiControlCmd.PI_CTRL_KEY_PRESS
-    msg = "Hello, world!"
-    for char in map(lambda c: c.encode("utf-8"), msg):
-        print_pimsg(cmd, char)
-        sock.send(serialize_cmd(cmd, char))
+    text = "Hello, world!"
+    for char in map(lambda c: c.encode("utf-8"), text):
+        msg = PiControlMessage(PiControlCmd.PI_CTRL_KEY_PRESS, char)
+        print(msg)
+        sock.send(msg.serialized)
         time.sleep(0.3)
         
 def test_continuous_msgs(sock):
-    cmd = PiControlCmd.PI_CTRL_KEY_PRESS
     while True:
         try:
             char = getch()
         except KeyboardInterrupt:
             break
 
-        print_pimsg(cmd, char)
-        sock.send(serialize_cmd(cmd, char))
+        msg = PiControlMessage(PiControlCmd.PI_CTRL_KEY_PRESS, char)
+        print(msg) # TODO: make normal function (not method) that prints "Sending {msg}"
+        sock.send(msg.serialized)
 
 def test_russian(sock):
-    cmd = PiControlCmd.PI_CTRL_KEY_PRESS
     for encoded_char in map(lambda c: c.encode('utf-8'), "Здравствуйте"):
-        print_pimsg(cmd, encoded_char)
-        sock.send(serialize_cmd(cmd, encoded_char))
+        msg = PiControlMessage(PiControlCmd.PI_CTRL_KEY_PRESS, encoded_char)
+        print(msg)
+        sock.send(msg.serialized)
         time.sleep(0.5)
         
 def test_mouse_move(sock):
-    cmd = PiControlCmd.PI_CTRL_MOUSE_MV
     rel_x, rel_y = 1, 1
     rel_mv = rel_x.to_bytes(1, 'big') + rel_y.to_bytes(1, 'big')
 
     # Just move 25 units (arbitrary number) up and to the right
     for _ in range(25):
-        print_pimsg(cmd, rel_mv)
-        sock.send(serialize_cmd(cmd, rel_mv))
+        msg = PiControlMessage(PiControlCmd.PI_CTRL_MOUSE_MV, rel_mv)
+        print(msg)
+        sock.send(msg.serialized)
 
         time.sleep(0.1)
 
 def test_keysym(sock):
-    cmd = PiControlCmd.PI_CTRL_KEYSYM
-    msg = "Ctrl+a".encode("utf-8")
-    print_pimsg(cmd, msg)
-    sock.send(serialize_cmd(cmd, msg))
-
-def print_pimsg(cmd, payload):
-    print(f"Sending {cmd.name}, |{payload}| ({binascii.hexlify(payload)}) [payload len: {len(payload)}]")
-
-def serialize_cmd(cmd, msg):
-    return bytes([cmd, len(msg)]) + msg
+    msg = PiControlMessage(PiControlCmd.PI_CTRL_KEYSYM, "Ctrl+a".encode("utf-8"))
+    print(msg)
+    sock.send(msg.serialized)
 
 def main():
     args = parse_args()
