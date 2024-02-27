@@ -12,6 +12,9 @@
 #define LOOPBACK_UP_RUNNING (IFF_UP|IFF_RUNNING|IFF_LOOPBACK)
 #define UP_RUNNING          (IFF_UP|IFF_RUNNING)
 
+#define IPV4_SOCKADDR_SZ    sizeof(struct sockaddr_in)
+#define IPV6_SOCKADDR_SZ    sizeof(struct sockaddr_in6)
+
 static inline bool non_loopback_up_and_running(struct ifaddrs *interface) {
     return (interface->ifa_flags & LOOPBACK_UP_RUNNING) == UP_RUNNING;
 }
@@ -51,16 +54,15 @@ char *get_ip_address() {
     pictrl_log_debug("Interface: %s\n", iface->ifa_name);
 
     char *ip = NULL;
-    const socklen_t len = sizeof(struct sockaddr);
     int ip_query_res = -1;
     switch (iface->ifa_addr->sa_family) {
         case AF_INET:
             ip = malloc(INET_ADDRSTRLEN);
-            ip_query_res = getnameinfo(iface->ifa_addr, len, ip, INET_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
+            ip_query_res = getnameinfo(iface->ifa_addr, IPV4_SOCKADDR_SZ, ip, INET_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
             break;
         case AF_INET6:
             ip = malloc(INET6_ADDRSTRLEN);
-            ip_query_res = getnameinfo(iface->ifa_addr, len, ip, INET6_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
+            ip_query_res = getnameinfo(iface->ifa_addr, IPV6_SOCKADDR_SZ, ip, INET6_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
             break;
         default:
             pictrl_log_critical("Unknown interface type.\n");
