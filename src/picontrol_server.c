@@ -1,6 +1,8 @@
+#include <errno.h>
 #include <inttypes.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <xdo.h>
 
@@ -23,7 +25,6 @@ volatile sig_atomic_t should_exit = false;
 int main() {
     char *ip = get_ip_address();
     if (ip == NULL) {
-        pictrl_log_critical("You are not connected to the internet.\n");
         return 1;
     }
     pictrl_log("Connect at: %s:%d\n", ip, SERVER_PORT);
@@ -43,8 +44,8 @@ int main() {
     pictrl_log_debug("Finished listening on file descriptor %d\n", listenfd);
 
     // Close listening socket
-    if ((close(listenfd)) < 0) {
-        pictrl_log_error("Error closing the listening socket.\n");
+    if ((close(listenfd)) != 0) {
+        pictrl_log_error("Error closing the listening socket: %s\n", strerror(errno));
     }
     pictrl_log_debug("Closed listen socket on file descriptor %d\n", listenfd);
     pictrl_log_debug("Exiting with code %d\n", listen_ret);
@@ -54,8 +55,7 @@ int main() {
 static int setup_server() {
     int listenfd = socket(AF_INET, SOCK_STREAM, 0);
     if (listenfd < 0) {
-        // TODO: for all of the error messages, print the error message associated with errno
-        pictrl_log_error("Error creating socket.\n");
+        pictrl_log_error("Error creating socket: %s\n", strerror(errno));
         return -1;
     }
 
@@ -65,16 +65,19 @@ static int setup_server() {
         .sin_port = htons(SERVER_PORT),
     };
 
-    if ((bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) < 0) {
-        // TODO: Convert the address to a string
-        close(listenfd);
-        pictrl_log_error("Couldn't bind socket to %" PRIu32 ":%d.\n", INADDR_ANY, SERVER_PORT);
+    if ((bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr))) != 0) {
+        pictrl_log_error("Couldn't bind socket to port %d: %s\n", SERVER_PORT, strerror(errno));
+        if (close(listenfd) != 0) {
+            pictrl_log_error("Couldn't close listen socket: %s\n", strerror(errno));
+        }
         return -1;
     }
 
-    if ((listen(listenfd, MAX_CONNS)) < 0) {
-        close(listenfd);
-        pictrl_log_error("Error listening to the socket.\n");
+    if ((listen(listenfd, MAX_CONNS)) != 0) {
+        pictrl_log_error("Error listening to the socket: %s\n", strerror(errno));
+        if (close(listenfd) != 0) {
+            pictrl_log_error("Couldn't close listen socket: %s\n", strerror(errno));
+        }
         return -1;
     }
 
@@ -107,7 +110,7 @@ static int picontrol_listen(int listenfd) {
         // Accept connection
         pi_client.connfd = accept(listenfd, (struct sockaddr *)&pi_client.client, &pi_client.client_sz);
         if (pi_client.connfd < 0) {
-            pictrl_log_error("Error accepting new connection.\n");
+            pictrl_log_error("Error accepting new connection: %s\n", strerror(errno));
             break;
         }
         pictrl_client_get_ip_and_port(&pi_client);
@@ -117,8 +120,8 @@ static int picontrol_listen(int listenfd) {
         ret = handle_connection(&pi_client, &recv_buf, xdo);
 
         // Close connection
-        if ((close(pi_client.connfd)) < 0) {
-            pictrl_log_error("Error closing the new socket.\n");
+        if ((close(pi_client.connfd)) != 0) {
+            pictrl_log_error("Error closing the new socket: %s\n", strerror(errno));
             break;
         }
 
@@ -137,11 +140,11 @@ static int picontrol_listen(int listenfd) {
     }
     sigaction(SIGINT, &old_sigint_handler, NULL);
 
-    pictrl_log_debug("Destroying ring buffer\n");
     pictrl_rb_destroy(&recv_buf);
+    pictrl_log_debug("Destroyed ring buffer\n");
 
-    pictrl_log_debug("Freeing xdo\n");
     xdo_free(xdo);
+    pictrl_log_debug("Freed xdo\n");
     return ret;
 }
 
