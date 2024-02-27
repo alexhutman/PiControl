@@ -52,18 +52,24 @@ char *get_ip_address() {
 
     char *ip = NULL;
     const socklen_t len = sizeof(struct sockaddr);
+    int ip_query_res = -1;
     switch (iface->ifa_addr->sa_family) {
         case AF_INET:
-            ip = malloc(INET_ADDRSTRLEN);  // TODO: err handling
-            getnameinfo(iface->ifa_addr, len, ip, INET_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
+            ip = malloc(INET_ADDRSTRLEN);
+            ip_query_res = getnameinfo(iface->ifa_addr, len, ip, INET_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
             break;
         case AF_INET6:
-            ip = malloc(INET6_ADDRSTRLEN); // TODO: err handling
-            getnameinfo(iface->ifa_addr, len, ip, INET6_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
+            ip = malloc(INET6_ADDRSTRLEN);
+            ip_query_res = getnameinfo(iface->ifa_addr, len, ip, INET6_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
             break;
         default:
             pictrl_log_critical("Unknown interface type.\n");
     }
+
+    if (ip_query_res != 0) {
+        pictrl_log_error("Error retrieving IP for interface %s: %s\n", iface->ifa_name, gai_strerror(ip_query_res));
+    }
+
     freeifaddrs(interfaces);
     return ip;
 }
