@@ -13,6 +13,8 @@ SERVER         := $(BIN_DIR)/picontrol_server
 TEST_SCRIPT    := $(BIN_DIR)/run_tests
 PITEST_SO_PATH := $(BIN_DIR)/pitest/pitest.so
 
+SERVER_OBJS    := $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/networking/iputils.o $(SRC_DIR)/data_structures/ring_buffer.o $(SRC_DIR)/backend/pictrl_xdo.o $(SRC_DIR)/backend/picontrol_uinput.o $(SRC_DIR)/backend/picontrol_backend.o
+
 PITEST_SRC_DIR := $(TEST_DIR)/pitest
 PITEST_C_FILES := $(shell find $(PITEST_SRC_DIR) -type f -name \*.c)
 PITEST_OBJ     := $(PITEST_C_FILES:.c=.o)
@@ -49,7 +51,7 @@ clean:
 	find $(SRC_DIR)/ $(TEST_DIR)/ -type f \( -name \*.o -o -name \*.d \) | xargs -r rm
 
 ################################### Targets ####################################
-$(SERVER): $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/networking/iputils.o $(SRC_DIR)/data_structures/ring_buffer.o $(SRC_DIR)/backend/pictrl_xdo.o
+$(SERVER): $(SERVER_OBJS)
 	$(info PiControl: Making $@)
 	$(CC) $^ -o $@ -lxdo -I$(SRC_DIR_FULL)
 
