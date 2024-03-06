@@ -4,9 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <xdo.h>
-
-#include "backend/pictrl_xdo.h"
+#include "backend/picontrol_backend.h"
 #include "data_structures/ring_buffer.h"
 #include "logging/log_utils.h"
 #include "networking/iputils.h"
@@ -16,7 +14,7 @@
 
 static int setup_server();
 static int picontrol_listen(int fd);
-static int handle_connection(pictrl_client_t *client, pictrl_rb_t *rb, xdo_t *xdo);
+static int handle_connection(pictrl_client_t *client, pictrl_rb_t *rb, pictrl_backend *backend);
 
 void interrupt_handler(int signum);
 
@@ -85,12 +83,12 @@ static int setup_server() {
 }
 
 static int picontrol_listen(int listenfd) {
-    xdo_t *xdo = create_xdo();
-    if (xdo == NULL) {
-        pictrl_log_error("Unable to create xdo_t instance\n");
+    pictrl_backend *backend = pictrl_backend_new();
+    if (backend == NULL) {
+        pictrl_log_error("Unable to create PiControl backend!\n");
         return -1;
     }
-    pictrl_log_debug("Acquired new xdo instance\n");
+    pictrl_log_debug("Using %s backend\n", pictrl_backend_name(backend->type));
 
     pictrl_client_t pi_client = pictrl_client_new();
 
@@ -117,7 +115,7 @@ static int picontrol_listen(int listenfd) {
         pictrl_log_info("Client at %s:%d connected.\n", pi_client.client_ip, pi_client.client_port);
 
         // Handle connection
-        ret = handle_connection(&pi_client, &recv_buf, xdo);
+        ret = handle_connection(&pi_client, &recv_buf, backend);
 
         // Close connection
         if ((close(pi_client.connfd)) != 0) {
@@ -143,12 +141,12 @@ static int picontrol_listen(int listenfd) {
     pictrl_rb_destroy(&recv_buf);
     pictrl_log_debug("Destroyed ring buffer\n");
 
-    xdo_free(xdo);
-    pictrl_log_debug("Freed xdo\n");
+    pictrl_backend_free(backend);
+    pictrl_log_debug("Freed backend\n");
     return ret;
 }
 
-static int handle_connection(pictrl_client_t *pi_client, pictrl_rb_t *rb, xdo_t *xdo) {
+static int handle_connection(pictrl_client_t *pi_client, pictrl_rb_t *rb, pictrl_backend *backend) {
     ssize_t n;
     // TODO: Block on this write, since we can't do anything unless we have the command and payload_size
     while ((n = pictrl_rb_write(pi_client->connfd, 2, rb)) > 0) { // 2 for the `cmd` and `payload_size`
@@ -180,13 +178,13 @@ static int handle_connection(pictrl_client_t *pi_client, pictrl_rb_t *rb, xdo_t 
         // Handle command
         switch (header.command) {
             case PI_CTRL_MOUSE_MV:
-                handle_mouse_move(rb, xdo);
+                handle_mouse_move(rb, backend);
                 break;
             case PI_CTRL_TEXT:
-                handle_text(rb, xdo);
+                handle_text(rb, backend);
                 break;
             case PI_CTRL_KEYSYM:
-                handle_keysym(rb, xdo);
+                handle_keysym(rb, backend);
                 break;
             // TODO: On disconnect command, return 0?
             default:
