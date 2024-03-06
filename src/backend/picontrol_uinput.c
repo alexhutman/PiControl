@@ -163,6 +163,14 @@ static const pictrl_key_combo pictrl_ascii_to_event_codes[] = {
     PICTRL_NOOP_KEY_COMB()
 };
 
+pictrl_uinput_t *pictrl_uinput_backend_new() {
+    return malloc(sizeof(pictrl_uinput_t));
+}
+
+void pictrl_uinput_backend_free(pictrl_uinput_t *uinput) {
+    free(uinput);
+}
+
 void picontrol_type_char(int fd, char c) {
     // TODO: Error handling on `picontrol_emit` calls
     struct timeval cur_time;

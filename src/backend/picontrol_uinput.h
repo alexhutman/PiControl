@@ -3,6 +3,7 @@
 
 #include <linux/uinput.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -56,4 +57,11 @@ static inline ssize_t picontrol_emit(int fd, int type, int code,
     return write(fd, &ie, sizeof(ie));
 }
 
+/*** TODO: REVISIT! ***/
+typedef int pictrl_uinput_t;
+/**********************/
+
+
+pictrl_uinput_t *pictrl_uinput_backend_new();
+void pictrl_uinput_backend_free(pictrl_uinput_t *uinput);
 #endif
