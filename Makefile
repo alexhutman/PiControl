@@ -28,6 +28,7 @@ TEST_DIR_FULL  := $(BASE_DIR)/$(TEST_DIR)
 
 CC             := gcc
 CFLAGS         := -MMD -MP -Wall -Wextra
+CFLAGS         += -DPICTRL_XDO
 
 ifdef DEBUG
 	CFLAGS += -DPI_CTRL_DEBUG -ggdb -Og
