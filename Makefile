@@ -28,9 +28,9 @@ CC             := gcc
 CFLAGS         := -MMD -MP -Wall -Wextra
 
 ifdef DEBUG
-	override CFLAGS += -DPI_CTRL_DEBUG -ggdb -Og
+	CFLAGS += -DPI_CTRL_DEBUG -ggdb -Og
 else
-	override CFLAGS += -O3
+	CFLAGS += -O3
 endif
 
 ################################ Phony Targets #################################
