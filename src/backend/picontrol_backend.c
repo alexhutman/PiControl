@@ -44,6 +44,7 @@ void pictrl_backend_free(pictrl_backend *backend) {
 #else // default
     pictrl_uinput_backend_free((pictrl_uinput_t *)backend->backend);
 #endif
+    free(backend);
 }
 
 void handle_mouse_move(pictrl_rb_t *rb, pictrl_backend *backend) {
