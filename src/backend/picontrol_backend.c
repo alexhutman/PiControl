@@ -35,7 +35,7 @@ pictrl_backend *pictrl_backend_new() {
         return NULL;
     }
 
-	return new_backend;
+    return new_backend;
 }
 
 void pictrl_backend_free(pictrl_backend *backend) {
