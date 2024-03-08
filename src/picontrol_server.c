@@ -108,7 +108,9 @@ static int picontrol_listen(int listenfd) {
         // Accept connection
         pi_client.connfd = accept(listenfd, (struct sockaddr *)&pi_client.client, &pi_client.client_sz);
         if (pi_client.connfd < 0) {
-            pictrl_log_error("Error accepting new connection: %s\n", strerror(errno));
+            if (errno != EINTR) {
+                pictrl_log_error("Error accepting new connection: %s\n", strerror(errno));
+            }
             break;
         }
         pictrl_client_get_ip_and_port(&pi_client);
