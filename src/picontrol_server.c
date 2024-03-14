@@ -41,6 +41,12 @@ int main() {
     }
     pictrl_log_debug("Finished listening on file descriptor %d\n", listenfd);
 
+    // Shut down listening socket
+    if ((shutdown(listenfd, SHUT_RDWR)) != 0) {
+        pictrl_log_error("Error shutting down the listening socket: %s\n", strerror(errno));
+    }
+    pictrl_log_debug("Shut down listen socket on file descriptor %d\n", listenfd);
+
     // Close listening socket
     if ((close(listenfd)) != 0) {
         pictrl_log_error("Error closing the listening socket: %s\n", strerror(errno));
