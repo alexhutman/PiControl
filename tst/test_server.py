@@ -161,14 +161,14 @@ def receive_chunk(sock, size):
 def test_one_msg(sock):
     msg = PiControlMessage(PiControlCmd.PI_CTRL_KEY_PRESS, "и".encode("utf-8"))
     print(msg)
-    sock.send(msg.serialized)
+    sock.sendall(msg.serialized)
 
 def test_multiple_msgs(sock):
     text = "Hello, world!"
     for char in map(lambda c: c.encode("utf-8"), text):
         msg = PiControlMessage(PiControlCmd.PI_CTRL_KEY_PRESS, char)
         print(msg)
-        sock.send(msg.serialized)
+        sock.sendall(msg.serialized)
         time.sleep(0.3)
         
 def test_continuous_msgs(sock):
@@ -180,13 +180,13 @@ def test_continuous_msgs(sock):
 
         msg = PiControlMessage(PiControlCmd.PI_CTRL_KEY_PRESS, char)
         print(msg) # TODO: make normal function (not method) that prints "Sending {msg}"
-        sock.send(msg.serialized)
+        sock.sendall(msg.serialized)
 
 def test_russian(sock):
     for encoded_char in map(lambda c: c.encode('utf-8'), "Здравствуйте"):
         msg = PiControlMessage(PiControlCmd.PI_CTRL_KEY_PRESS, encoded_char)
         print(msg)
-        sock.send(msg.serialized)
+        sock.sendall(msg.serialized)
         time.sleep(0.5)
         
 def test_mouse_move(sock):
@@ -197,14 +197,14 @@ def test_mouse_move(sock):
     for _ in range(25):
         msg = PiControlMessage(PiControlCmd.PI_CTRL_MOUSE_MV, rel_mv)
         print(msg)
-        sock.send(msg.serialized)
+        sock.sendall(msg.serialized)
 
         time.sleep(0.1)
 
 def test_keysym(sock):
     msg = PiControlMessage(PiControlCmd.PI_CTRL_KEYSYM, "Ctrl+a".encode("utf-8"))
     print(msg)
-    sock.send(msg.serialized)
+    sock.sendall(msg.serialized)
 
 def shut_down_sock(sock):
     try:
