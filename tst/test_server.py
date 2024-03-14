@@ -2,6 +2,7 @@
 
 import argparse
 import binascii
+import errno
 import socket
 import sys
 import time
@@ -205,6 +206,13 @@ def test_keysym(sock):
     print(msg)
     sock.send(msg.serialized)
 
+def shut_down_sock(sock):
+    try:
+        sock.shutdown(socket.SHUT_RDWR)
+    except OSError as err:
+        if err.errno != errno.ENOTCONN:
+            raise
+
 def main():
     args = parse_args()
 
@@ -219,7 +227,7 @@ def main():
         print("Exiting...")
     finally:
         print("Closing socket...")
-        sock.shutdown(socket.SHUT_RDWR)
+        shut_down_sock(sock)
         sock.close()
 
 if __name__ == "__main__":
