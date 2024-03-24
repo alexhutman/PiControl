@@ -14,21 +14,21 @@ TOTAL_TESTS=0
 FAILED_TESTS=0
 
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PITEST_DIR"
-while read -d $'\0' file
+while read -d $'\0' test
 do
     if ((TOTAL_TESTS > 0)) ; then
         echo
     fi
 
-    echo "[TEST] Running $file"
-    $file
+    echo "[TEST] Running $test"
+    $test
     status=$?
 
     ((TOTAL_TESTS++))
     if [ $status -eq 0 ] ; then
-        echo "[PASS] $file"
+        echo "[PASS] $test"
     else
-        >&2 echo "[FAIL] $file"
+        >&2 echo "[FAIL] $test"
         ((FAILED_TESTS++))
         if [ "$PICTRL_EXIT_ON_FAIL" = "true" ] ; then
             break
