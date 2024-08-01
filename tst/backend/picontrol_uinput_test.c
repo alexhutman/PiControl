@@ -83,12 +83,13 @@ int main() {
 }
 
 static int test_mv_mouse() {
+    struct input_event ie;
     struct timeval cur_time;
     for (int i=0; i<50; i++) {
         // Move mouse diagonally by about 7 units
-        picontrol_emit(virt_keyboard_fd, EV_REL, REL_X, 5, &cur_time);
-        picontrol_emit(virt_keyboard_fd, EV_REL, REL_Y, 5, &cur_time);
-        picontrol_emit(virt_keyboard_fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+        picontrol_emit(&ie, virt_keyboard_fd, EV_REL, REL_X, 5, &cur_time);
+        picontrol_emit(&ie, virt_keyboard_fd, EV_REL, REL_Y, 5, &cur_time);
+        picontrol_emit(&ie, virt_keyboard_fd, EV_SYN, SYN_REPORT, 0, &cur_time);
     }
 
     // TODO: fix these return vals when/if error handling is added
@@ -97,13 +98,14 @@ static int test_mv_mouse() {
 }
 
 static int test_ctrl_c() {
+    struct input_event ie;
     struct timeval cur_time;
-    picontrol_emit(virt_keyboard_fd, EV_KEY, KEY_LEFTCTRL, PICTRL_KEY_DOWN, &cur_time);
-    picontrol_emit(virt_keyboard_fd, EV_KEY, KEY_C, PICTRL_KEY_DOWN, &cur_time);
-    picontrol_emit(virt_keyboard_fd, EV_SYN, SYN_REPORT, 0, &cur_time);
-    picontrol_emit(virt_keyboard_fd, EV_KEY, KEY_LEFTCTRL, PICTRL_KEY_UP, &cur_time);
-    picontrol_emit(virt_keyboard_fd, EV_KEY, KEY_C, PICTRL_KEY_UP, &cur_time);
-    picontrol_emit(virt_keyboard_fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+    picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_LEFTCTRL, PICTRL_KEY_DOWN, &cur_time);
+    picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_C, PICTRL_KEY_DOWN, &cur_time);
+    picontrol_emit(&ie, virt_keyboard_fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+    picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_LEFTCTRL, PICTRL_KEY_UP, &cur_time);
+    picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_C, PICTRL_KEY_UP, &cur_time);
+    picontrol_emit(&ie, virt_keyboard_fd, EV_SYN, SYN_REPORT, 0, &cur_time);
 
     return 1;
 }

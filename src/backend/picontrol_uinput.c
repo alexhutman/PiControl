@@ -173,19 +173,20 @@ void pictrl_uinput_backend_free(pictrl_uinput_t *uinput) {
 
 void picontrol_type_char(int fd, char c) {
     // TODO: Error handling on `picontrol_emit` calls
+    struct input_event ie;
     struct timeval cur_time;
 
     // Key down
     for (size_t i=0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
-        picontrol_emit(fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_DOWN, &cur_time);
+        picontrol_emit(&ie, fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_DOWN, &cur_time);
     }
-    picontrol_emit(fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+    picontrol_emit(&ie, fd, EV_SYN, SYN_REPORT, 0, &cur_time);
 
     // Key up
     for (size_t i=0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
-        picontrol_emit(fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_UP, &cur_time);
+        picontrol_emit(&ie, fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_UP, &cur_time);
     }
-    picontrol_emit(fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+    picontrol_emit(&ie, fd, EV_SYN, SYN_REPORT, 0, &cur_time);
 }
 
 int picontrol_create_virtual_keyboard() {
