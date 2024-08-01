@@ -4,7 +4,6 @@
 #include <linux/uinput.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <sys/time.h>
 #include <unistd.h>
 
 #include "picontrol_config.h"
@@ -20,6 +19,8 @@
     .num_keys = (sizeof((int[]){__VA_ARGS__})/sizeof(int)), \
     .keys = {__VA_ARGS__} \
 }
+
+#define PICTRL_KEY_DELAY_USEC 200000 // 200ms
 
 int picontrol_create_virtual_keyboard();
 int picontrol_destroy_virtual_keyboard(int fd);
@@ -45,8 +46,6 @@ typedef enum {
 // TODO: Clean up this abomination?
 static inline ssize_t picontrol_emit(struct input_event *ie, int fd, int type, int code,
         pictrl_key_status val, struct timeval *cur_time) {
-    gettimeofday(cur_time, NULL); // Does the time actually matter?
-
     ie->type = type;
     ie->code = code;
     ie->value = val;

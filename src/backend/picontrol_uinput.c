@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "logging/log_utils.h"
 #include "picontrol_uinput.h"
@@ -175,16 +176,19 @@ void picontrol_type_char(int fd, char c) {
     // TODO: Error handling on `picontrol_emit` calls
     struct input_event ie;
     struct timeval cur_time;
+    gettimeofday(&cur_time, NULL);
 
     // Key down
     for (size_t i=0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
         picontrol_emit(&ie, fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_DOWN, &cur_time);
+        cur_time.tv_usec += PICTRL_KEY_DELAY_USEC;
     }
     picontrol_emit(&ie, fd, EV_SYN, SYN_REPORT, 0, &cur_time);
 
     // Key up
     for (size_t i=0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
         picontrol_emit(&ie, fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_UP, &cur_time);
+        cur_time.tv_usec += PICTRL_KEY_DELAY_USEC;
     }
     picontrol_emit(&ie, fd, EV_SYN, SYN_REPORT, 0, &cur_time);
 }
