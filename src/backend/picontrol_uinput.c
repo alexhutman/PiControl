@@ -1,5 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <string.h>
 #include <sys/time.h>
 
@@ -172,25 +174,32 @@ void pictrl_uinput_backend_free(pictrl_uinput_t *uinput) {
     free(uinput);
 }
 
-void picontrol_type_char(int fd, char c) {
+bool picontrol_type_char(int fd, char c) {
     // TODO: Error handling on `picontrol_emit` calls
     struct input_event ie;
     struct timeval cur_time;
+    const size_t ie_sz = sizeof(ie);
     gettimeofday(&cur_time, NULL);
+    bool ret = true;
 
     // Key down
     for (size_t i=0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
-        picontrol_emit(&ie, fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_DOWN, &cur_time);
+        ret &= picontrol_emit(&ie, fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_DOWN, &cur_time) == ie_sz;
         cur_time.tv_usec += PICTRL_KEY_DELAY_USEC;
     }
-    picontrol_emit(&ie, fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+    ret &= picontrol_emit(&ie, fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
+    if (!ret) {
+        return false;
+    }
 
     // Key up
     for (size_t i=0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
-        picontrol_emit(&ie, fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_UP, &cur_time);
+        ret &= picontrol_emit(&ie, fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_UP, &cur_time) == ie_sz;
         cur_time.tv_usec += PICTRL_KEY_DELAY_USEC;
     }
-    picontrol_emit(&ie, fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+    ret &= picontrol_emit(&ie, fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
+
+    return ret;
 }
 
 int picontrol_create_virtual_keyboard() {
@@ -251,9 +260,15 @@ int picontrol_destroy_virtual_keyboard(int fd) {
     return (destroy_ret >= 0 && close_ret == 0) ? 0 : -1;
 }
 
-void picontrol_print_str(int fd, char *str) {
-    char *p = str;
+size_t picontrol_print_str(int fd, const char *str) {
+    char *p = (char *)str;
+    size_t chars_written = 0;
     while (*p) {
-        picontrol_type_char(fd, *p++);
+        size_t written = picontrol_type_char(fd, *p++) ? 1 : 0;
+        chars_written += written;
+        if (written == 0) {
+            break;
+        }
     }
+    return chars_written;
 }

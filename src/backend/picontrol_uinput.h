@@ -2,6 +2,7 @@
 #define _PICTRL_UINPUT_H
 
 #include <linux/uinput.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -24,8 +25,8 @@
 
 int picontrol_create_virtual_keyboard();
 int picontrol_destroy_virtual_keyboard(int fd);
-void picontrol_type_char(int fd, char c);
-void picontrol_print_str(int fd, char *str);
+bool picontrol_type_char(int fd, char c);
+size_t picontrol_print_str(int fd, const char *str);
 
 typedef struct {
     // INCLUSIVE ranges (both ends)

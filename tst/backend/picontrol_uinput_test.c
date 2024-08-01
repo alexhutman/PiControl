@@ -128,6 +128,6 @@ static int test_all_ascii_chars() {
 }
 
 static int test_typing() {
-    picontrol_print_str(virt_keyboard_fd, "echo Hello World!\n");
-    return 1;
+    const char str[] = "echo Hello World!\n";
+    return picontrol_print_str(virt_keyboard_fd, str) == (sizeof(str)-1) ? 0 : 1;
 }
