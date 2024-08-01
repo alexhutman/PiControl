@@ -43,18 +43,16 @@ typedef enum {
 } pictrl_key_status;
 
 // TODO: Clean up this abomination?
-static inline ssize_t picontrol_emit(int fd, int type, int code,
+static inline ssize_t picontrol_emit(struct input_event *ie, int fd, int type, int code,
         pictrl_key_status val, struct timeval *cur_time) {
     gettimeofday(cur_time, NULL); // Does the time actually matter?
 
-    struct input_event ie = {
-        .type = type,
-        .code = code,
-        .value = val,
-        .time = *cur_time
-    };
+    ie->type = type;
+    ie->code = code;
+    ie->value = val;
+    ie->time = *cur_time;
 
-    return write(fd, &ie, sizeof(ie));
+    return write(fd, ie, sizeof(*ie));
 }
 
 /*** TODO: REVISIT! ***/
