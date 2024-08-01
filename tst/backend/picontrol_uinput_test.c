@@ -122,9 +122,11 @@ static int test_ctrl_c() {
 
 static int test_all_ascii_chars() {
     for (char c = 0x20; c < 0x7F; c++) {
-        picontrol_type_char(virt_keyboard_fd, c);
+        if (!picontrol_type_char(virt_keyboard_fd, c)) {
+            return 1;
+        }
     }
-    return 1;
+    return 0;
 }
 
 static int test_typing() {
