@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 #include "data_structures/ring_buffer.h"
 #include "model/picontrol.h"
 
@@ -18,8 +20,8 @@ static inline PiCtrlHeader pictrl_rb_get_header(pictrl_rb_t *rb) {
 // Assumes they're the first 2 items in the ring buffer
 static inline PiCtrlMouseCoord pictrl_rb_get_mouse_coords(pictrl_rb_t *rb) {
     const PiCtrlMouseCoord ret = {
-        .x = (int)pictrl_rb_get(rb, 0),
-        .y = (int)pictrl_rb_get(rb, 1)
+        .x = (int8_t)pictrl_rb_get(rb, 0),
+        .y = (int8_t)pictrl_rb_get(rb, 1)
     };
 
     const size_t new_data_start_idx = (rb->data_start + 2) % rb->capacity;
