@@ -6,6 +6,7 @@
 #include <sys/time.h>
 
 #include "logging/log_utils.h"
+#include "model/picontrol.h"
 #include "picontrol_uinput.h"
 #include "util.h"
 
@@ -200,7 +201,17 @@ void pictrl_uinput_backend_free(pictrl_uinput_t *uinput) {
     free(uinput);
 }
 
-bool picontrol_uinput_type_char(int fd, char c) {
+void picontrol_uinput_move_mouse_rel(pictrl_uinput_t *uinput, PiCtrlMouseCoord coords) {
+    struct input_event ie;
+    struct timeval cur_time;
+    gettimeofday(&cur_time, NULL);
+
+    picontrol_emit(&ie, uinput->fd, EV_REL, REL_X, coords.x, &cur_time);
+    picontrol_emit(&ie, uinput->fd, EV_REL, REL_Y, coords.y, &cur_time);
+    picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+}
+
+bool picontrol_uinput_type_char(pictrl_uinput_t *uinput, char c) {
     // TODO: Error handling on `picontrol_emit` calls
     struct input_event ie;
     struct timeval cur_time;
@@ -210,20 +221,20 @@ bool picontrol_uinput_type_char(int fd, char c) {
 
     // Key down
     for (size_t i=0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
-        ret &= picontrol_emit(&ie, fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_DOWN, &cur_time) == ie_sz;
+        ret &= picontrol_emit(&ie, uinput->fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_DOWN, &cur_time) == ie_sz;
         cur_time.tv_usec += PICTRL_KEY_DELAY_USEC;
     }
-    ret &= picontrol_emit(&ie, fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
+    ret &= picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
     if (!ret) {
         return false;
     }
 
     // Key up
     for (size_t i=0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
-        ret &= picontrol_emit(&ie, fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_UP, &cur_time) == ie_sz;
+        ret &= picontrol_emit(&ie, uinput->fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i], PICTRL_KEY_UP, &cur_time) == ie_sz;
         cur_time.tv_usec += PICTRL_KEY_DELAY_USEC;
     }
-    ret &= picontrol_emit(&ie, fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
+    ret &= picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
 
     return ret;
 }
@@ -286,11 +297,11 @@ int picontrol_destroy_virtual_keyboard(int fd) {
     return (destroy_ret >= 0 && close_ret == 0) ? 0 : -1;
 }
 
-size_t picontrol_uinput_print_str(int fd, const char *str) {
+size_t picontrol_uinput_print_str(pictrl_uinput_t *uinput, const char *str) {
     char *p = (char *)str;
     size_t chars_written = 0;
     while (*p) {
-        size_t written = picontrol_uinput_type_char(fd, *p++) ? 1 : 0;
+        size_t written = picontrol_uinput_type_char(uinput, *p++) ? 1 : 0;
         chars_written += written;
         if (written == 0) {
             break;

@@ -60,7 +60,7 @@ void handle_mouse_move(pictrl_rb_t *rb, pictrl_backend *backend) {
         pictrl_log_warn("Mouse was unable to be moved (%d, %d) relative units.\n", coords.x, coords.y);
     }
 #else
-    pictrl_log_stub("UINPUT IS SUPPOSED TO MOVE MOUSE (%d, %d) RELATIVE UNITS.\n\n", coords.x, coords.y);
+    picontrol_uinput_move_mouse_rel(&backend->backend->uinput, coords);
 #endif
 }
 
@@ -74,7 +74,7 @@ void handle_text(pictrl_rb_t *rb, pictrl_backend *backend) {
 #ifdef PICTRL_XDO
     xdo_enter_text_window((xdo_t *)backend->backend, CURRENTWINDOW, text, XDO_KEYSTROKE_DELAY); // TODO: what if sizeof(char) != sizeof(uint8_t)?
 #else
-    picontrol_type_char(backend->backend->uinput.fd, *text);
+    picontrol_uinput_type_char(&backend->backend->uinput, *text);
 #endif
 
     const size_t new_data_start_idx = (rb->data_start + rb->num_items) % rb->capacity;
