@@ -17,7 +17,7 @@
 
 static int test_mv_mouse();
 static int test_all_ascii_chars();
-static int test_ctrl_c();
+static int test_ctrl_g();
 static int test_typing();
 
 // Fixtures
@@ -57,8 +57,8 @@ int main() {
             .test_function = &test_all_ascii_chars,
         },
         {
-            .test_name = "Ctrl+C",
-            .test_function = &test_ctrl_c,
+            .test_name = "Ctrl+G",
+            .test_function = &test_ctrl_g,
         },
         {
             .test_name = "Normal typing test",
@@ -100,24 +100,27 @@ static int test_mv_mouse() {
     return 1;
 }
 
-static int test_ctrl_c() {
+static int test_ctrl_g() {
     struct input_event ie;
     struct timeval cur_time;
     gettimeofday(&cur_time, NULL);
-    const size_t delay = 100;
-    picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_LEFTCTRL, PICTRL_KEY_DOWN, &cur_time);
-    cur_time.tv_usec += delay;
-    picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_C, PICTRL_KEY_DOWN, &cur_time);
-    cur_time.tv_usec += delay;
-    picontrol_emit(&ie, virt_keyboard_fd, EV_SYN, SYN_REPORT, 0, &cur_time);
-    cur_time.tv_usec += delay;
-    picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_LEFTCTRL, PICTRL_KEY_UP, &cur_time);
-    cur_time.tv_usec += delay;
-    picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_C, PICTRL_KEY_UP, &cur_time);
-    cur_time.tv_usec += delay;
-    picontrol_emit(&ie, virt_keyboard_fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+    bool ret = true;
+    const size_t ie_sz = sizeof(ie);
 
-    return 1;
+    const size_t delay_us = 1000;
+    ret &= picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_LEFTCTRL, PICTRL_KEY_DOWN, &cur_time) == ie_sz;
+    cur_time.tv_usec += delay_us;
+    ret &= picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_G, PICTRL_KEY_DOWN, &cur_time) == ie_sz;
+    cur_time.tv_usec += delay_us;
+    ret &= picontrol_emit(&ie, virt_keyboard_fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
+    cur_time.tv_usec += delay_us;
+    ret &= picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_LEFTCTRL, PICTRL_KEY_UP, &cur_time) == ie_sz;
+    cur_time.tv_usec += delay_us;
+    ret &= picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_G, PICTRL_KEY_UP, &cur_time) == ie_sz;
+    cur_time.tv_usec += delay_us;
+    ret &= picontrol_emit(&ie, virt_keyboard_fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
+
+    return ret ? 0 : 1;
 }
 
 static int test_all_ascii_chars() {
