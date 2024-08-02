@@ -87,17 +87,20 @@ static int test_mv_mouse() {
     struct input_event ie;
     struct timeval cur_time;
     gettimeofday(&cur_time, NULL);
+
+    const size_t ie_sz = sizeof(ie);
+    const size_t delay_us = 1000;
+
+    bool ret = true;
     for (int i=0; i<50; i++) {
         // Move mouse diagonally by about 7 units
-        picontrol_emit(&ie, virt_keyboard_fd, EV_REL, REL_X, 5, &cur_time);
-        picontrol_emit(&ie, virt_keyboard_fd, EV_REL, REL_Y, 5, &cur_time);
-        picontrol_emit(&ie, virt_keyboard_fd, EV_SYN, SYN_REPORT, 0, &cur_time);
-        cur_time.tv_usec += 50;
+        ret &= picontrol_emit(&ie, virt_keyboard_fd, EV_REL, REL_X, 5, &cur_time) == ie_sz;
+        ret &= picontrol_emit(&ie, virt_keyboard_fd, EV_REL, REL_Y, 5, &cur_time) == ie_sz;
+        ret &= picontrol_emit(&ie, virt_keyboard_fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
+        cur_time.tv_usec += delay_us;
     }
 
-    // TODO: fix these return vals when/if error handling is added
-    // I also can't test this atm since I'm on WSL :(
-    return 1;
+    return ret ? 0 : 1;
 }
 
 static int test_ctrl_g() {
