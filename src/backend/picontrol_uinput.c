@@ -170,20 +170,20 @@ pictrl_uinput_t *pictrl_uinput_backend_new() {
 }
 
 int pictrl_uinput_backend_init(pictrl_uinput_t *uinput) {
-    pictrl_log_debug("Creating virtual keyboard...\n");
     int fd = picontrol_create_virtual_keyboard();
     if (fd < 0) {
+        pictrl_log_error("Could not create virtual keyboard\n");
         uinput->fd = -1;
         return -1;
     }
+    pictrl_log_debug("Created virtual keyboard\n");
     uinput->fd = fd;
     return 0;
 }
 
 int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput) {
-    pictrl_log_debug("Destroying virtual keyboard...\n");
     if (uinput->fd < 0) {
-        pictrl_log_debug("Virtual keyboard was not open...\n");
+        pictrl_log_warn("Virtual keyboard was not open...\n");
         return -1;
     }
 
@@ -191,6 +191,7 @@ int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput) {
     if (ret < 0) {
         return -1;
     }
+    pictrl_log_debug("Destroyed virtual keyboard\n");
     uinput->fd = -1;
     return 0;
 }
