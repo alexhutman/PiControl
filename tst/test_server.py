@@ -32,6 +32,9 @@ class _Getch:
             raise KeyboardInterrupt
         elif char == b'\x04':
             raise EOFError
+        elif char == b'\x0D':
+            # CR -> LF
+            char = b'\x0A'
         return char
 
 class _GetchUnix:
