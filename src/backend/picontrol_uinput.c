@@ -162,8 +162,7 @@ static const pictrl_key_combo pictrl_ascii_to_event_codes[] = {
     PICTRL_KEY_COMB(KEY_LEFTSHIFT, KEY_BACKSLASH),
     PICTRL_KEY_COMB(KEY_LEFTSHIFT, KEY_RIGHTBRACE),
     PICTRL_KEY_COMB(KEY_LEFTSHIFT, KEY_GRAVE),
-
-    PICTRL_NOOP_KEY_COMB()
+    PICTRL_KEY_COMB(KEY_BACKSPACE)
 };
 
 pictrl_uinput_t *pictrl_uinput_backend_new() {
