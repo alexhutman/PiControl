@@ -55,11 +55,13 @@ static inline ssize_t picontrol_emit(struct input_event *ie, int fd, int type, i
     return write(fd, ie, sizeof(*ie));
 }
 
-/*** TODO: REVISIT! ***/
-typedef int pictrl_uinput_t;
-/**********************/
+typedef struct {
+    int fd;
+} pictrl_uinput_t;
 
 
 pictrl_uinput_t *pictrl_uinput_backend_new();
+int pictrl_uinput_backend_init(pictrl_uinput_t *uinput);
+int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput);
 void pictrl_uinput_backend_free(pictrl_uinput_t *uinput);
 #endif

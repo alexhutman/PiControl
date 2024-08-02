@@ -170,6 +170,26 @@ pictrl_uinput_t *pictrl_uinput_backend_new() {
     return malloc(sizeof(pictrl_uinput_t));
 }
 
+int pictrl_uinput_backend_init(pictrl_uinput_t *uinput) {
+    pictrl_log_debug("Creating virtual keyboard...\n");
+    int fd = picontrol_create_virtual_keyboard();
+    if (fd < 0) {
+        return -1;
+    }
+    uinput->fd = fd;
+    return 0;
+}
+
+int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput) {
+    pictrl_log_debug("Destroying virtual keyboard...\n");
+    int ret = picontrol_destroy_virtual_keyboard(uinput->fd);
+    if (ret < 0) {
+        return -1;
+    }
+    uinput->fd = -1;
+    return 0;
+}
+
 void pictrl_uinput_backend_free(pictrl_uinput_t *uinput) {
     free(uinput);
 }
