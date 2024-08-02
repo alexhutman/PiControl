@@ -200,7 +200,7 @@ void pictrl_uinput_backend_free(pictrl_uinput_t *uinput) {
     free(uinput);
 }
 
-bool picontrol_type_char(int fd, char c) {
+bool picontrol_uinput_type_char(int fd, char c) {
     // TODO: Error handling on `picontrol_emit` calls
     struct input_event ie;
     struct timeval cur_time;
@@ -286,11 +286,11 @@ int picontrol_destroy_virtual_keyboard(int fd) {
     return (destroy_ret >= 0 && close_ret == 0) ? 0 : -1;
 }
 
-size_t picontrol_print_str(int fd, const char *str) {
+size_t picontrol_uinput_print_str(int fd, const char *str) {
     char *p = (char *)str;
     size_t chars_written = 0;
     while (*p) {
-        size_t written = picontrol_type_char(fd, *p++) ? 1 : 0;
+        size_t written = picontrol_uinput_type_char(fd, *p++) ? 1 : 0;
         chars_written += written;
         if (written == 0) {
             break;
