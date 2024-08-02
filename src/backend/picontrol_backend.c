@@ -56,7 +56,7 @@ void handle_mouse_move(pictrl_rb_t *rb, pictrl_backend *backend) {
 
 #ifdef PICTRL_XDO
     pictrl_log_debug("Moving mouse (%d, %d) relative units using xdo.\n\n", coords.x, coords.y);
-    if (xdo_move_mouse_relative((xdo_t *)backend->backend, coords.x, coords.y) != 0) {
+    if (xdo_move_mouse_relative(&backend->backend->xdo, coords.x, coords.y) != 0) {
         pictrl_log_warn("Mouse was unable to be moved (%d, %d) relative units.\n", coords.x, coords.y);
     }
 #else
@@ -72,7 +72,7 @@ void handle_text(pictrl_rb_t *rb, pictrl_backend *backend) {
     text[rb->num_items] = 0;
 
 #ifdef PICTRL_XDO
-    xdo_enter_text_window((xdo_t *)backend->backend, CURRENTWINDOW, text, XDO_KEYSTROKE_DELAY); // TODO: what if sizeof(char) != sizeof(uint8_t)?
+    xdo_enter_text_window(&backend->backend->xdo, CURRENTWINDOW, text, XDO_KEYSTROKE_DELAY); // TODO: what if sizeof(char) != sizeof(uint8_t)?
 #else
     picontrol_uinput_type_char(&backend->backend->uinput, *text);
 #endif
@@ -90,9 +90,9 @@ void handle_keysym(pictrl_rb_t *rb, pictrl_backend *backend) {
     keysym[rb->num_items] = 0;
 
 #ifdef PICTRL_XDO
-    xdo_send_keysequence_window((xdo_t *)backend->backend, CURRENTWINDOW, keysym, XDO_KEYSTROKE_DELAY);
+    xdo_send_keysequence_window(&backend->backend->xdo, CURRENTWINDOW, keysym, XDO_KEYSTROKE_DELAY);
 #else
-    pictrl_log_stub("UINPUT IS SUPPOSED TO INPUT KEYSYM(S) \"%s\".\n\n", keysym);
+    picontrol_uinput_type_keysym(&backend->backend->uinput, keysym);
 #endif
 
     const size_t new_data_start_idx = (rb->data_start + rb->num_items) % rb->capacity;

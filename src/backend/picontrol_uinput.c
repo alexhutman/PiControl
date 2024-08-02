@@ -239,6 +239,10 @@ bool picontrol_uinput_type_char(pictrl_uinput_t *uinput, char c) {
     return ret;
 }
 
+void picontrol_uinput_type_keysym(pictrl_uinput_t *uinput, char *keysym) {
+    pictrl_log_stub("FIGURE OUT HOW TO TYPE KEYSYMS\n");
+}
+
 int picontrol_create_virtual_keyboard() {
     int fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
     if (fd < 0) {
