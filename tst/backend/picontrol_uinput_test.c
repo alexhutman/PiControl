@@ -61,7 +61,7 @@ int main() {
             .test_function = &test_ctrl_g,
         },
         {
-            .test_name = "Normal typing test",
+            .test_name = "Normal typing (echo command)",
             .test_function = &test_typing,
         },
     };
@@ -104,10 +104,11 @@ static int test_ctrl_g() {
     struct input_event ie;
     struct timeval cur_time;
     gettimeofday(&cur_time, NULL);
-    bool ret = true;
-    const size_t ie_sz = sizeof(ie);
 
+    const size_t ie_sz = sizeof(ie);
     const size_t delay_us = 1000;
+
+    bool ret = true;
     ret &= picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_LEFTCTRL, PICTRL_KEY_DOWN, &cur_time) == ie_sz;
     cur_time.tv_usec += delay_us;
     ret &= picontrol_emit(&ie, virt_keyboard_fd, EV_KEY, KEY_G, PICTRL_KEY_DOWN, &cur_time) == ie_sz;
