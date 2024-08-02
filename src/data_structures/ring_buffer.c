@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include "data_structures/ring_buffer.h"
+#include "logging/log_utils.h"
 
 
 pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *rb, size_t capacity) {
@@ -162,3 +163,51 @@ void pictrl_rb_copy(pictrl_rb_t *rb, void *dest) {
     memcpy(dest, pictrl_rb_data_start_address(rb), num_bytes_first_pass*sizeof(uint8_t));
     memcpy(dest + num_bytes_first_pass, rb->buffer, (rb->num_items - num_bytes_first_pass)*sizeof(uint8_t));
 }
+
+// Using `pictrl_rb_read`
+void print_ring_buffer(pictrl_rb_t *rb) {
+    pictrl_log("\n------------------------------\n"
+           "Capacity:     %zu\n"
+           "Buffer start: %p\n"
+           "Data start:   %zu\n"
+           "Num items:    %zu\n"
+           "Buffer:       ",
+           rb->capacity,
+           rb->buffer,
+           rb->data_start,
+           rb->num_items);
+
+    print_rb_in_order(rb);
+    pictrl_log("RAW buffer:   ");
+    print_raw_buf(rb);
+    pictrl_log("\n");
+}
+
+void print_rb_in_order(pictrl_rb_t *rb) {
+    const size_t n_first_pass = rb->capacity - rb->data_start;
+
+    pictrl_log("[");
+    for (size_t cur = 0; cur < n_first_pass; cur++) {
+        pictrl_log("%u, ", rb->buffer[rb->data_start + cur]);
+    }
+    for (size_t cur = 0; cur < rb->data_start - 1; cur++) {
+        pictrl_log("%u, ", rb->buffer[cur]);
+    }
+    pictrl_log("%u]\n", rb->buffer[rb->data_start - 1]);
+}
+void print_raw_buf(pictrl_rb_t *rb) {
+    print_buf(rb->buffer, rb->num_items);
+}
+
+void print_buf(void *data, size_t n) {
+    if (n == 0) {
+        pictrl_log("(empty)\n");
+        return;
+    }
+    pictrl_log("|");
+    for (size_t cur = 0; cur < n - 1; cur++) {
+        pictrl_log("%02x, ", ((uint8_t *) data)[cur]);
+    }
+    pictrl_log("%02x|\n", ((uint8_t *) data)[n - 1]);
+}
+

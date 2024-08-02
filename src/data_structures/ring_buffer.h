@@ -28,6 +28,11 @@ ssize_t pictrl_rb_write(int, size_t, pictrl_rb_t*);
 void pictrl_rb_clear(pictrl_rb_t*);
 void pictrl_rb_copy(pictrl_rb_t *rb, void *dest);
 
+void print_ring_buffer(pictrl_rb_t*);
+void print_rb_in_order(pictrl_rb_t*);
+void print_raw_buf(pictrl_rb_t*);
+void print_buf(void*, size_t);
+
 // Static "methods"
 static inline bool pictrl_rb_data_wrapped(pictrl_rb_t *rb) {
     const size_t data_end_idx = rb->data_start + rb->num_items;
