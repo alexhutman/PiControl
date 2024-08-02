@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "backend/picontrol_backend.h"
+#include "backend/picontrol_uinput.h"
 #include "logging/log_utils.h"
 #include "picontrol_config.h"
 #include "serialize.h"
@@ -29,6 +30,7 @@ pictrl_backend *pictrl_backend_new() {
 #else // default
     new_backend->backend = (pictrl_backend_t *)pictrl_uinput_backend_new();
     new_backend->type = PICTRL_BACKEND_UINPUT;
+    pictrl_uinput_backend_init(&new_backend->backend->uinput);
 #endif
     if (new_backend->backend == NULL) {
         free(new_backend);
@@ -40,9 +42,10 @@ pictrl_backend *pictrl_backend_new() {
 
 void pictrl_backend_free(pictrl_backend *backend) {
 #ifdef PICTRL_XDO
-    pictrl_xdo_backend_free((xdo_t *)backend->backend);
+    pictrl_xdo_backend_free(&backend->backend->xdo);
 #else // default
-    pictrl_uinput_backend_free((pictrl_uinput_t *)backend->backend);
+    pictrl_uinput_backend_destroy(&backend->backend->uinput);
+    pictrl_uinput_backend_free(&backend->backend->uinput);
 #endif
     free(backend);
 }
@@ -71,7 +74,7 @@ void handle_text(pictrl_rb_t *rb, pictrl_backend *backend) {
 #ifdef PICTRL_XDO
     xdo_enter_text_window((xdo_t *)backend->backend, CURRENTWINDOW, text, XDO_KEYSTROKE_DELAY); // TODO: what if sizeof(char) != sizeof(uint8_t)?
 #else
-    pictrl_log_stub("UINPUT IS SUPPOSED TO TYPE \"%s\".\n\n", text);
+    picontrol_type_char(backend->backend->uinput.fd, *text);
 #endif
 
     const size_t new_data_start_idx = (rb->data_start + rb->num_items) % rb->capacity;
