@@ -21,10 +21,6 @@ static int test_write_more_than_free();
 static int test_simple_wraparound();
 static int test_clear_full_buffer();
 
-static void print_ring_buffer(pictrl_rb_t*);
-static void print_rb_in_order(pictrl_rb_t*);
-static void print_raw_buf(pictrl_rb_t*);
-static void print_buf(void*, size_t);
 static ssize_t rb_read_until_completion(int fd, size_t count, pictrl_rb_t *rb, pictrl_read_flag flag);
 static ssize_t rb_write_until_completion(int fd, size_t count, pictrl_rb_t *rb);
 static size_t read_from_test_file(uint8_t *data, size_t count);
@@ -359,53 +355,6 @@ int test_clear_full_buffer() {
 
     pictrl_log_debug("Ring buffer is empty as expected\n");
     return 0;
-}
-
-// Using `pictrl_rb_read`
-static void print_ring_buffer(pictrl_rb_t *rb) {
-    pictrl_log("\n------------------------------\n"
-           "Capacity:     %zu\n"
-           "Buffer start: %p\n"
-           "Data start:   %zu\n"
-           "Num items:    %zu\n"
-           "Buffer:       ",
-           rb->capacity,
-           rb->buffer,
-           rb->data_start,
-           rb->num_items);
-
-    print_rb_in_order(rb);
-    pictrl_log("RAW buffer:   ");
-    print_raw_buf(rb);
-    pictrl_log("\n");
-}
-
-static void print_rb_in_order(pictrl_rb_t *rb) {
-    const size_t n_first_pass = rb->capacity - rb->data_start;
-
-    pictrl_log("[");
-    for (size_t cur = 0; cur < n_first_pass; cur++) {
-        pictrl_log("%u, ", rb->buffer[rb->data_start + cur]);
-    }
-    for (size_t cur = 0; cur < rb->data_start - 1; cur++) {
-        pictrl_log("%u, ", rb->buffer[cur]);
-    }
-    pictrl_log("%u]\n", rb->buffer[rb->data_start - 1]);
-}
-static void print_raw_buf(pictrl_rb_t *rb) {
-    print_buf(rb->buffer, rb->num_items);
-}
-
-static void print_buf(void *data, size_t n) {
-    if (n == 0) {
-        pictrl_log("(empty)\n");
-        return;
-    }
-    pictrl_log("|");
-    for (size_t cur = 0; cur < n - 1; cur++) {
-        pictrl_log("%02x, ", ((uint8_t *) data)[cur]);
-    }
-    pictrl_log("%02x|\n", ((uint8_t *) data)[n - 1]);
 }
 
 // These are surely not thread-safe
