@@ -130,6 +130,7 @@ def parse_args():
         "cont": test_continuous_msgs,
         "ksym": test_keysym,
         "maus": test_mouse_move,
+        "maus-man": test_mouse_move_manual,
         "rus":  test_russian,
     }
     parser.add_argument("--tests",
@@ -203,6 +204,31 @@ def test_mouse_move(sock):
         sock.sendall(msg.serialized)
 
         time.sleep(0.1)
+
+def test_mouse_move_manual(sock):
+    n = 10
+    valid_chars = {
+            b"\x1b[A": (0, -n), # UP
+            b"\x1b[B": (0,  n), # DOWN
+            b"\x1b[D": (-n, 0), # LEFT
+            b"\x1b[C": (n,  0), # RIGHT
+        }
+    while True:
+        try:
+            arrow_key = b''.join([getch() for _ in range(3)]) # It's 3 bytes
+            print(f"{arrow_key=}")
+        except KeyboardInterrupt:
+            break
+
+        if arrow_key not in valid_chars:
+            continue
+
+        rel_x, rel_y = valid_chars[arrow_key]
+        rel_mv = rel_x.to_bytes(1, 'big', signed=True) + rel_y.to_bytes(1, 'big', signed=True)
+
+        msg = PiControlMessage(PiControlCmd.PI_CTRL_MOUSE_MV, rel_mv)
+        print(msg)
+        sock.sendall(msg.serialized)
 
 def test_keysym(sock):
     msg = PiControlMessage(PiControlCmd.PI_CTRL_KEYSYM, "Ctrl+a".encode("utf-8"))
