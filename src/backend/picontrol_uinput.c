@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <linux/input-event-codes.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
@@ -199,6 +200,42 @@ int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput) {
 
 void pictrl_uinput_backend_free(pictrl_uinput_t *uinput) {
     free(uinput);
+}
+
+void picontrol_uinput_click_mouse(pictrl_uinput_t *uinput, PiCtrlMouseBtnStatus status) {
+    struct input_event ie;
+    struct timeval cur_time;
+    gettimeofday(&cur_time, NULL);
+
+    int kernel_btn;
+    switch (status.btn) {
+        case PI_CTRL_MOUSE_LEFT:
+            pictrl_log_debug("LEFT MOUSE BUTTON\n");
+            kernel_btn = BTN_LEFT;
+            break;
+        case PI_CTRL_MOUSE_RIGHT:
+            pictrl_log_debug("RIGHT MOUSE BUTTON\n");
+            kernel_btn = BTN_RIGHT;
+            break;
+        default:
+            pictrl_log_error("Invalid mouse button: %d\n", status.btn);
+            return;
+    }
+
+    switch (status.click) {
+        case PI_CTRL_MOUSE_DOWN:
+            pictrl_log_debug("MOUSE DOWN\n");
+            picontrol_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_DOWN, &cur_time);
+            picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+            break;
+        case PI_CTRL_MOUSE_UP:
+            pictrl_log_debug("MOUSE UP\n");
+            picontrol_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_UP, &cur_time);
+            picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+            break;
+        default:
+            pictrl_log_error("Invalid mouse click status: %d\n", status.click);
+    }
 }
 
 void picontrol_uinput_move_mouse_rel(pictrl_uinput_t *uinput, PiCtrlMouseCoord coords) {

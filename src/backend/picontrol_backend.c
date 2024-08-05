@@ -50,6 +50,16 @@ void pictrl_backend_free(pictrl_backend *backend) {
     free(backend);
 }
 
+void handle_mouse_click(pictrl_rb_t *rb, pictrl_backend *backend) {
+    const PiCtrlMouseBtnStatus btn = pictrl_rb_get_mouse_status(rb);
+
+#ifdef PICTRL_XDO
+    pictrl_log_stub("Not implemented\n");
+#else
+    picontrol_uinput_click_mouse(&backend->backend->uinput, btn);
+#endif
+}
+
 void handle_mouse_move(pictrl_rb_t *rb, pictrl_backend *backend) {
     // extract the relative X and Y mouse locations to move by
     const PiCtrlMouseCoord coords = pictrl_rb_get_mouse_coords(rb);

@@ -188,6 +188,9 @@ static int handle_connection(pictrl_client_t *pi_client, pictrl_rb_t *rb, pictrl
             case PI_CTRL_MOUSE_MV:
                 handle_mouse_move(rb, backend);
                 break;
+            case PI_CTRL_MOUSE_CLICK:
+                handle_mouse_click(rb, backend);
+                break;
             case PI_CTRL_TEXT:
                 handle_text(rb, backend);
                 break;

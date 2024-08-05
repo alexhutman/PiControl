@@ -30,6 +30,7 @@ pictrl_backend *pictrl_backend_new();
 void pictrl_backend_free(pictrl_backend *backend);
 const char *pictrl_backend_name(pictrl_backend_type type);
 
+void handle_mouse_click(pictrl_rb_t *rb, pictrl_backend *backend);
 void handle_mouse_move(pictrl_rb_t *rb, pictrl_backend *backend);
 void handle_text(pictrl_rb_t *rb, pictrl_backend *backend);
 void handle_keysym(pictrl_rb_t *rb, pictrl_backend *backend);

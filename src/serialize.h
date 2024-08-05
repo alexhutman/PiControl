@@ -17,6 +17,21 @@ static inline PiCtrlHeader pictrl_rb_get_header(pictrl_rb_t *rb) {
     return ret;
 }
 
+// Assumes it's the first item in the ring buffer
+static inline PiCtrlMouseBtnStatus pictrl_rb_get_mouse_status(pictrl_rb_t *rb) {
+    uint8_t byte = pictrl_rb_get(rb, 0);
+    const PiCtrlMouseBtnStatus ret = {
+        .btn   = byte & (1 << 1),
+        .click = byte & (1 << 0),
+    };
+
+    const size_t new_data_start_idx = (rb->data_start + 1) % rb->capacity;
+    rb->data_start = new_data_start_idx;
+
+    rb->num_items -= 1;
+    return ret;
+}
+
 // Assumes they're the first 2 items in the ring buffer
 static inline PiCtrlMouseCoord pictrl_rb_get_mouse_coords(pictrl_rb_t *rb) {
     const PiCtrlMouseCoord ret = {
