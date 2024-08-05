@@ -1,0 +1,40 @@
+name: Build and Test
+env:
+  SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  DEBUG: true
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  dedupe:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - name: Sanity checks
+        run: |
+            echo "ref/sha = ${{ github.head_ref || github.ref_name }}/${{ github.event.pull_request.head.sha || github.sha }}"
+      - id: skip_check
+        name: Check for duplicate jobs
+        uses: fkirc/skip-duplicate-actions@v5.3.1
+        with:
+          concurrent_skipping: 'same_content_newer'
+          paths_ignore: '["**/README.md", "**/docs/**"]'
+  build-and-test:
+    needs: dedupe
+    runs-on: ubuntu-latest
+    if: needs.dedupe.outputs.should_skip != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.1.7
+      - name: Build tests
+        run: |
+          make test
+      - name: Run tests
+        run: |
+          sudo ./bin/run_tests
