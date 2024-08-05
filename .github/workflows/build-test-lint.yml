@@ -38,3 +38,13 @@ jobs:
       - name: Run tests
         run: |
           sudo ./bin/run_tests
+  lint:
+    needs: build-and-test
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.1.7
+      - name: Lint code
+        run: |
+          find . -type f \( -iname \*.c -o -iname \*.h \) | xargs clang-format -style=google --dry-run --Werror
