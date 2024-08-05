@@ -58,13 +58,21 @@ getch = _Getch()
 #######################################
 
 class PiControlCmd(IntEnum):
-        PI_CTRL_HEARTBEAT  = 0      # Client: Send heartbeat so server can disconnect if connection is lost
-        PI_CTRL_MOUSE_MV   = auto() # Client: Send x,y of relative position to move mouse to
-        PI_CTRL_MOUSE_DOWN = auto() # Client: Say to press mouse down (no data required)
-        PI_CTRL_MOUSE_UP   = auto() # Client: Say to press mouse up (no data required)
-        PI_CTRL_MOUSE_CLK  = auto() # Client: Say to click (mouseup, then mousedown) mouse (no data required)
-        PI_CTRL_KEY_PRESS  = auto() # Client: Send UTF-8 value of key to be pressed (details TBD)
-        PI_CTRL_KEYSYM     = auto() # Client: Send keysym (combination)
+        PI_CTRL_HEARTBEAT   = 0      # Client: Send heartbeat so server can disconnect if connection is lost
+        PI_CTRL_MOUSE_MV    = auto() # Client: Send x,y of relative position to move mouse to
+        PI_CTRL_MOUSE_CLICK = auto() # Client: Say to click (mouseup or mousedown) mouse (left or right button)
+                                         # This is 1 byte, where 00000021 the 2 == PiCtrlMouseBtn and the 1 == PiCtrlMouseClick
+        PI_CTRL_KEY_PRESS   = auto() # Client: Send UTF-8 value of key to be pressed (details TBD)
+        PI_CTRL_KEYSYM      = auto() # Client: Send keysym (combination)
+
+class PiControlMouseBtn(IntEnum):
+        PI_CTRL_MOUSE_LEFT  = 0
+        PI_CTRL_MOUSE_RIGHT = 1
+
+class PiControlMouseClick(IntEnum):
+        PI_CTRL_MOUSE_UP    = 0
+        PI_CTRL_MOUSE_DOWN  = 1
+
 
 class PiControlMessage:
     __slots__ = '__dict__', '_cmd', '_payload', 'payload_len', '_serialized'
@@ -207,7 +215,7 @@ def test_mouse_move(sock):
 
 def test_mouse_move_manual(sock):
     n = 10
-    valid_chars = {
+    valid_arrow_chars = {
             b"\x1b[A": (0, -n), # UP
             b"\x1b[B": (0,  n), # DOWN
             b"\x1b[D": (-n, 0), # LEFT
@@ -215,20 +223,32 @@ def test_mouse_move_manual(sock):
         }
     while True:
         try:
-            arrow_key = b''.join([getch() for _ in range(3)]) # It's 3 bytes
-            print(f"{arrow_key=}")
+            char = getch()
+            if char == b"\x1b": # esc -- an arrow key (hopefully)
+                sequence = b''.join([char] + [getch() for _ in range(2)]) # It's 2 more bytes
+                if sequence not in valid_arrow_chars:
+                    continue
+                rel_x, rel_y = valid_arrow_chars[sequence]
+                rel_mv = rel_x.to_bytes(1, 'big', signed=True) + rel_y.to_bytes(1, 'big', signed=True)
+
+                msg = PiControlMessage(PiControlCmd.PI_CTRL_MOUSE_MV, rel_mv)
+                print(msg)
+                sock.sendall(msg.serialized)
+            elif char == b"\x20": # space
+                # Mouse down
+                payload =  PiControlMouseBtn.PI_CTRL_MOUSE_LEFT << 1
+                payload |= PiControlMouseClick.PI_CTRL_MOUSE_DOWN << 0
+                msg = PiControlMessage(PiControlCmd.PI_CTRL_MOUSE_CLICK, payload.to_bytes(1, 'big'))
+                print(msg)
+                sock.sendall(msg.serialized)
+
+                # Mouse up
+                payload &= PiControlMouseClick.PI_CTRL_MOUSE_UP << 0
+                msg.payload = payload.to_bytes(1, 'big')
+                print(msg)
+                sock.sendall(msg.serialized)
         except KeyboardInterrupt:
             break
-
-        if arrow_key not in valid_chars:
-            continue
-
-        rel_x, rel_y = valid_chars[arrow_key]
-        rel_mv = rel_x.to_bytes(1, 'big', signed=True) + rel_y.to_bytes(1, 'big', signed=True)
-
-        msg = PiControlMessage(PiControlCmd.PI_CTRL_MOUSE_MV, rel_mv)
-        print(msg)
-        sock.sendall(msg.serialized)
 
 def test_keysym(sock):
     msg = PiControlMessage(PiControlCmd.PI_CTRL_KEYSYM, "Ctrl+a".encode("utf-8"))
