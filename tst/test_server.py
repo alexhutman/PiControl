@@ -211,7 +211,7 @@ def test_mouse_move(sock):
         print(msg)
         sock.sendall(msg.serialized)
 
-        time.sleep(0.1)
+        time.sleep(0.002)
 
 def test_mouse_move_manual(sock):
     n = 10
