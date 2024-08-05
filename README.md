@@ -1,7 +1,8 @@
 # PiControl
 
 This is the server used to connect to the iOS/Android applications for PiControl.
-The iOS app source code can be found here and the Android version can be found here (TODO: eventually link to the repos).
+The mobile applications will be linked here when they are in a usable state.
 
-## Dependencies
+## Dependencies (Optional) (Limited functionality)
 libxdo - `sudo apt install libxdo-dev`
+  - `USE_XDO=true make picontrol_server`
