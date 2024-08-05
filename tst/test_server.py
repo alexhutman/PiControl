@@ -241,6 +241,7 @@ def test_mouse_move_manual(sock):
                 msg = PiControlMessage(PiControlCmd.PI_CTRL_MOUSE_CLICK, payload.to_bytes(1, 'big'))
                 print(msg)
                 sock.sendall(msg.serialized)
+                time.sleep(0.002)
 
                 # Mouse up
                 payload &= PiControlMouseClick.PI_CTRL_MOUSE_UP << 0

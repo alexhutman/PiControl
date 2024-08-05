@@ -210,9 +210,11 @@ void picontrol_uinput_click_mouse(pictrl_uinput_t *uinput, PiCtrlMouseBtnStatus 
     int kernel_btn;
     switch (status.btn) {
         case PI_CTRL_MOUSE_LEFT:
+            pictrl_log_debug("LEFT MOUSE BUTTON\n");
             kernel_btn = BTN_LEFT;
             break;
         case PI_CTRL_MOUSE_RIGHT:
+            pictrl_log_debug("RIGHT MOUSE BUTTON\n");
             kernel_btn = BTN_RIGHT;
             break;
         default:
@@ -222,9 +224,13 @@ void picontrol_uinput_click_mouse(pictrl_uinput_t *uinput, PiCtrlMouseBtnStatus 
 
     switch (status.click) {
         case PI_CTRL_MOUSE_DOWN:
-            picontrol_emit(&ie, uinput->fd, EV_KEY, kernel_btn, 1, &cur_time);
+            pictrl_log_debug("MOUSE DOWN\n");
+            picontrol_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_DOWN, &cur_time);
+            picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
             break;
         case PI_CTRL_MOUSE_UP:
+            pictrl_log_debug("MOUSE UP\n");
+            picontrol_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_UP, &cur_time);
             picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
             break;
         default:
