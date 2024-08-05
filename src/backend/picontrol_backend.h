@@ -4,27 +4,23 @@
 #include "backend/picontrol_uinput.h"
 #include "data_structures/ring_buffer.h"
 
-#ifdef PICTRL_XDO // TODO: Use an xdo definition directly?
+#ifdef PICTRL_XDO  // TODO: Use an xdo definition directly?
 #include <xdo.h>
 #endif
 
-typedef enum {
-    PICTRL_BACKEND_UINPUT,
-    PICTRL_BACKEND_XDO
-} pictrl_backend_type;
+typedef enum { PICTRL_BACKEND_UINPUT, PICTRL_BACKEND_XDO } pictrl_backend_type;
 
 typedef union {
-    pictrl_uinput_t uinput;
+  pictrl_uinput_t uinput;
 #ifdef PICTRL_XDO
-    xdo_t xdo;
+  xdo_t xdo;
 #endif
 } pictrl_backend_t;
 
 typedef struct {
-    pictrl_backend_type type;
-    pictrl_backend_t *backend;
+  pictrl_backend_type type;
+  pictrl_backend_t *backend;
 } pictrl_backend;
-
 
 pictrl_backend *pictrl_backend_new();
 void pictrl_backend_free(pictrl_backend *backend);
