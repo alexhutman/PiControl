@@ -25,7 +25,17 @@ jobs:
         with:
           concurrent_skipping: 'same_content_newer'
           paths_ignore: '["**/README.md", "**/docs/**"]'
-  build-and-test:
+  build:
+    needs: dedupe
+    runs-on: ubuntu-latest
+    if: needs.dedupe.outputs.should_skip != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.1.7
+      - name: Build server
+        run: |
+          make server
+  test:
     needs: dedupe
     runs-on: ubuntu-latest
     if: needs.dedupe.outputs.should_skip != 'true'
@@ -39,7 +49,7 @@ jobs:
         run: |
           sudo ./bin/run_tests
   lint:
-    needs: build-and-test
+    needs: dedupe
     runs-on:
       - ubuntu-latest
     steps:
