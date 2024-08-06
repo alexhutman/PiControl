@@ -9,7 +9,7 @@
 #include <sys/time.h>
 
 #include "logging/log_utils.h"
-#include "model/picontrol.h"
+#include "model/protocol.h"
 #include "util.h"
 
 // `errmsg` currently MUST take exactly 1 param: the string of the error

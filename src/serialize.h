@@ -1,7 +1,8 @@
 #include <stdint.h>
 
 #include "data_structures/ring_buffer.h"
-#include "model/picontrol.h"
+#include "model/mouse.h"
+#include "model/protocol.h"
 
 // Assumes that rb->data_start is pointing at the beginning of the header in the
 // ring buffer already

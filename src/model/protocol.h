@@ -1,9 +1,8 @@
-#ifndef _PICTRL_MODEL_H
-#define _PICTRL_MODEL_H
+#ifndef _PICTRL_MODEL_PROTOCOL_H
+#define _PICTRL_MODEL_PROTOCOL_H
 
 #include <unistd.h>
 
-// Types
 typedef enum {
   PI_CTRL_HEARTBEAT,  // Client: Send heartbeat so server can disconnect if
                       // connection is lost
@@ -21,21 +20,5 @@ typedef struct {
   PiCtrlCmd command;
   size_t payload_size;
 } PiCtrlHeader;
-
-typedef enum { PI_CTRL_MOUSE_LEFT = 0, PI_CTRL_MOUSE_RIGHT = 1 } PiCtrlMouseBtn;
-
-typedef enum {
-  PI_CTRL_MOUSE_UP = 0,
-  PI_CTRL_MOUSE_DOWN = 1,
-} PiCtrlMouseClick;
-
-typedef struct {
-  PiCtrlMouseBtn btn;
-  PiCtrlMouseClick click;
-} PiCtrlMouseBtnStatus;
-
-typedef struct {
-  int x, y;
-} PiCtrlMouseCoord;
 
 #endif
