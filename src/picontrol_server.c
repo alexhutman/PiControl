@@ -9,7 +9,7 @@
 #include "logging/log_utils.h"
 #include "networking/iputils.h"
 #include "picontrol_config.h"
-#include "serialize.h"
+#include "serialize/protocol.h"
 
 static int setup_server();
 static int picontrol_listen(int fd);

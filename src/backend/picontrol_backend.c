@@ -5,7 +5,7 @@
 #include "backend/picontrol_uinput.h"
 #include "logging/log_utils.h"
 #include "picontrol_config.h"
-#include "serialize.h"
+#include "serialize/mouse.h"
 
 #ifdef PICTRL_XDO  // TODO: Use an xdo definition directly?
 #include <xdo.h>
