@@ -50,8 +50,8 @@ void pictrl_backend_free(pictrl_backend *backend) {
 
 void handle_mouse_click(pictrl_rb_t *rb, pictrl_backend *backend) {
 #ifdef PICTRL_XDO
-  (void) rb;
-  (void) backend;
+  (void)rb;
+  (void)backend;
   pictrl_log_stub("Not implemented\n");
 #else
   const PiCtrlMouseBtnStatus btn = pictrl_rb_get_mouse_status(rb);

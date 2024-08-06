@@ -7,7 +7,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "model/picontrol.h"
+#include "model/mouse.h"
+#include "model/protocol.h"
 #include "picontrol_config.h"
 
 #define PICTRL_NOOP_KEY_COMB() \
