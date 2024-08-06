@@ -10,7 +10,7 @@
 #ifdef PICTRL_XDO  // TODO: Use an xdo definition directly?
 #include <xdo.h>
 
-#include "backend/pictrl_xdo.h"
+#include "backend/picontrol_xdo.h"
 #endif
 
 static const char *PICTRL_BACKEND_NAMES[] = {"uinput", "xdo"};

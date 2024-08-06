@@ -1,4 +1,4 @@
-#include "backend/pictrl_xdo.h"
+#include "backend/picontrol_xdo.h"
 
 #include <stdlib.h>
 #include <xdo.h>

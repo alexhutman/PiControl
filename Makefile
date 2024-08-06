@@ -38,7 +38,7 @@ endif
 XDO_FLAG :=
 ifdef USE_XDO
 	CFLAGS      += -DPICTRL_XDO
-	SERVER_OBJS += $(SRC_DIR)/backend/pictrl_xdo.o
+	SERVER_OBJS += $(SRC_DIR)/backend/picontrol_xdo.o
 	XDO_FLAG    += -lxdo
 endif
 
