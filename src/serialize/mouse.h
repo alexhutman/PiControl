@@ -31,7 +31,8 @@ static inline PiCtrlMouseBtnStatus pictrl_rb_get_mouse_status(pictrl_rb_t *rb) {
 }
 
 // Assumes they're the first 2 items in the ring buffer
-// This should probably only be used for relative coordinates due to the signedness
+// This should probably only be used for relative coordinates due to the
+// signedness
 //
 // All bytes are signed
 // ---------------------------
