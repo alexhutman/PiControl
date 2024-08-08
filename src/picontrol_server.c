@@ -143,7 +143,6 @@ static int picontrol_listen(int listenfd) {
 
     if (ret != 0) {
       pictrl_log_error("Error handling the connection.\n");
-      break;
     }
 
     // Clear out the buffer on each new connection
