@@ -45,8 +45,9 @@ int main() {
   if ((shutdown(listenfd, SHUT_RDWR)) != 0) {
     pictrl_log_error("Error shutting down the listening socket: %s\n",
                      strerror(errno));
+  } else {
+    pictrl_log_debug("Shut down listen socket on file descriptor %d\n", listenfd);
   }
-  pictrl_log_debug("Shut down listen socket on file descriptor %d\n", listenfd);
 
   // Close listening socket
   if ((close(listenfd)) != 0) {
@@ -129,9 +130,17 @@ static int picontrol_listen(int listenfd) {
     // Handle connection
     ret = handle_connection(&pi_client, &recv_buf, backend);
 
+    // Shut down client socket
+    if ((shutdown(pi_client.connfd, SHUT_RDWR)) != 0) {
+      pictrl_log_error("Error shutting down the client socket: %s\n",
+                       strerror(errno));
+    } else {
+      pictrl_log_debug("Shut down client socket on file descriptor %d\n", pi_client.connfd);
+    }
+
     // Close connection
     if ((close(pi_client.connfd)) != 0) {
-      pictrl_log_error("Error closing the new socket: %s\n", strerror(errno));
+      pictrl_log_error("Error closing the client socket: %s\n", strerror(errno));
       break;
     }
 
