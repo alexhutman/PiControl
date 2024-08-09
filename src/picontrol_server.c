@@ -93,6 +93,7 @@ static int setup_server() {
 }
 
 static int picontrol_listen(int listenfd) {
+  // Create backend
   pictrl_backend *backend = pictrl_backend_new();
   if (backend == NULL) {
     pictrl_log_error("Unable to create PiControl backend!\n");
@@ -100,9 +101,9 @@ static int picontrol_listen(int listenfd) {
   }
   pictrl_log_debug("Using %s backend\n", pictrl_backend_name(backend->type));
 
+  // Create + initialize ring buffer
   pictrl_client_t pi_client = pictrl_client_new();
-
-  pictrl_rb_t recv_buf;  // Receive ring buffer
+  pictrl_rb_t recv_buf;
   pictrl_rb_init(&recv_buf, MAX_BUF);
 
   // Set SIGINT and SIGTERM handlers
@@ -157,16 +158,17 @@ static int picontrol_listen(int listenfd) {
                      pi_client.connfd);
     pictrl_log_info("Client at %s:%d disconnected.\n", pi_client.client_ip,
                     pi_client.client_port);
-    pictrl_client_clear(&pi_client);
-
     if (ret != 0) {
       pictrl_log_error("Error handling the connection.\n");
     }
 
-    // Clear out the buffer on each new connection
+    // Clear out the buffer/client on each new connection
     pictrl_rb_clear(&recv_buf);
     pictrl_log_debug("Cleared ring buffer\n");
+    pictrl_client_clear(&pi_client);
+    pictrl_log_debug("Cleared client\n");
   }
+  // Restore old signal handlers
   sigaction(SIGINT, &old_sigint_handler, NULL);
   sigaction(SIGTRAP, &old_sigterm_handler, NULL);
 
