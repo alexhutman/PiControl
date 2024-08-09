@@ -146,6 +146,8 @@ static int picontrol_listen(int listenfd) {
     // Close connection
     if ((close(pi_client.connfd)) != 0) {
       pictrl_log_error("Error closing the client socket: %s\n", strerror(errno));
+      pictrl_rb_clear(&recv_buf);
+      pictrl_log_debug("Cleared ring buffer\n");
       pictrl_client_clear(&pi_client);
       pictrl_log_debug("Cleared client\n");
       break;
