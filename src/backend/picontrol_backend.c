@@ -28,9 +28,9 @@ pictrl_backend *pictrl_backend_new() {
 #else  // default
   new_backend->backend = (pictrl_backend_t *)pictrl_uinput_backend_new();
   new_backend->type = PICTRL_BACKEND_UINPUT;
-  pictrl_uinput_backend_init(&new_backend->backend->uinput);
+  int init_ret = pictrl_uinput_backend_init(&new_backend->backend->uinput);
 #endif
-  if (new_backend->backend == NULL) {
+  if (new_backend->backend == NULL || init_ret < 0) {
     free(new_backend);
     return NULL;
   }
