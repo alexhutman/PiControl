@@ -105,13 +105,18 @@ static int picontrol_listen(int listenfd) {
   pictrl_rb_t recv_buf;  // Receive ring buffer
   pictrl_rb_init(&recv_buf, MAX_BUF);
 
-  struct sigaction old_sigint_handler;
+  // Set SIGINT and SIGTERM handlers
+  struct sigaction old_sigint_handler, old_sigterm_handler;
   struct sigaction new_sigint_handler = {.sa_handler = &interrupt_handler,
                                          .sa_flags = 0};
+  struct sigaction new_sigterm_handler = {.sa_handler = &interrupt_handler,
+                                         .sa_flags = 0};
   sigemptyset(&new_sigint_handler.sa_mask);
+  sigemptyset(&new_sigterm_handler.sa_mask);
+  sigaction(SIGINT, &new_sigint_handler, &old_sigint_handler);
+  sigaction(SIGTERM, &new_sigterm_handler, &old_sigterm_handler);
 
   int ret = -1;
-  sigaction(SIGINT, &new_sigint_handler, &old_sigint_handler);
   while (!should_exit) {
     // Accept connection
     pi_client.connfd = accept(listenfd, (struct sockaddr *)&pi_client.client,
@@ -159,6 +164,7 @@ static int picontrol_listen(int listenfd) {
     pictrl_log_debug("Cleared ring buffer\n");
   }
   sigaction(SIGINT, &old_sigint_handler, NULL);
+  sigaction(SIGTRAP, &old_sigterm_handler, NULL);
 
   pictrl_rb_destroy(&recv_buf);
   pictrl_log_debug("Destroyed ring buffer\n");
