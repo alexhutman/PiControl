@@ -12,7 +12,7 @@
 #include "serialize/protocol.h"
 
 static int setup_server();
-static int picontrol_listen(int fd);
+static int picontrol_listen(int fd, pictrl_backend *backend);
 static int handle_connection(pictrl_client_t *client, pictrl_rb_t *rb,
                              pictrl_backend *backend);
 
@@ -21,6 +21,15 @@ void interrupt_handler(int signum);
 volatile sig_atomic_t should_exit = false;
 
 int main() {
+  // Create backend
+  pictrl_backend *backend = pictrl_backend_new();
+  if (backend == NULL) {
+    pictrl_log_error("Unable to create PiControl backend!\n");
+    return -1;
+  }
+  pictrl_log_debug("Using %s backend\n", pictrl_backend_name(backend->type));
+
+  // Get our IP
   char *ip = get_ip_address();
   if (ip == NULL) {
     return 1;
@@ -35,11 +44,14 @@ int main() {
   }
   pictrl_log_debug("Acquired listen socket on file descriptor %d\n", listenfd);
 
-  int listen_ret = picontrol_listen(listenfd);
+  int listen_ret = picontrol_listen(listenfd, backend);
   if (listen_ret < 0) {
     pictrl_log_critical("Error occurred while listening...\n");
   }
   pictrl_log_debug("Finished listening on file descriptor %d\n", listenfd);
+
+  pictrl_backend_free(backend);
+  pictrl_log_debug("Freed backend\n");
 
   // Shut down listening socket
   if ((shutdown(listenfd, SHUT_RDWR)) != 0) {
@@ -92,15 +104,7 @@ static int setup_server() {
   return listenfd;
 }
 
-static int picontrol_listen(int listenfd) {
-  // Create backend
-  pictrl_backend *backend = pictrl_backend_new();
-  if (backend == NULL) {
-    pictrl_log_error("Unable to create PiControl backend!\n");
-    return -1;
-  }
-  pictrl_log_debug("Using %s backend\n", pictrl_backend_name(backend->type));
-
+static int picontrol_listen(int listenfd, pictrl_backend *backend) {
   // Create + initialize ring buffer
   pictrl_client_t pi_client = pictrl_client_new();
   pictrl_rb_t recv_buf;
@@ -174,9 +178,6 @@ static int picontrol_listen(int listenfd) {
 
   pictrl_rb_destroy(&recv_buf);
   pictrl_log_debug("Destroyed ring buffer\n");
-
-  pictrl_backend_free(backend);
-  pictrl_log_debug("Freed backend\n");
   return ret;
 }
 
