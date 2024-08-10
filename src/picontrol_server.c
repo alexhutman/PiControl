@@ -58,7 +58,8 @@ int main() {
     pictrl_log_error("Error shutting down the listening socket: %s\n",
                      strerror(errno));
   } else {
-    pictrl_log_debug("Shut down listen socket on file descriptor %d\n", listenfd);
+    pictrl_log_debug("Shut down listen socket on file descriptor %d\n",
+                     listenfd);
   }
 
   // Close listening socket
@@ -115,7 +116,7 @@ static int picontrol_listen(int listenfd, pictrl_backend *backend) {
   struct sigaction new_sigint_handler = {.sa_handler = &interrupt_handler,
                                          .sa_flags = 0};
   struct sigaction new_sigterm_handler = {.sa_handler = &interrupt_handler,
-                                         .sa_flags = 0};
+                                          .sa_flags = 0};
   sigemptyset(&new_sigint_handler.sa_mask);
   sigemptyset(&new_sigterm_handler.sa_mask);
   sigaction(SIGINT, &new_sigint_handler, &old_sigint_handler);
@@ -145,12 +146,14 @@ static int picontrol_listen(int listenfd, pictrl_backend *backend) {
       pictrl_log_error("Error shutting down the client socket: %s\n",
                        strerror(errno));
     } else {
-      pictrl_log_debug("Shut down client socket on file descriptor %d\n", pi_client.connfd);
+      pictrl_log_debug("Shut down client socket on file descriptor %d\n",
+                       pi_client.connfd);
     }
 
     // Close connection
     if ((close(pi_client.connfd)) != 0) {
-      pictrl_log_error("Error closing the client socket: %s\n", strerror(errno));
+      pictrl_log_error("Error closing the client socket: %s\n",
+                       strerror(errno));
       pictrl_rb_clear(&recv_buf);
       pictrl_log_debug("Cleared ring buffer\n");
       pictrl_client_clear(&pi_client);
