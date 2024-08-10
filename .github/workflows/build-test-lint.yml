@@ -1,5 +1,6 @@
 name: Build and Test
 env:
+  REF: ${{ github.head_ref || github.ref_name }}
   SHA: ${{ github.event.pull_request.head.sha || github.sha }}
   DEBUG: true
 on:
@@ -18,7 +19,7 @@ jobs:
     steps:
       - name: Sanity checks
         run: |
-            echo "ref/sha = ${{ github.head_ref || github.ref_name }}/${{ github.event.pull_request.head.sha || github.sha }}"
+            echo "ref/sha = ${{ env.REF }}/${{ env.SHA }}"
       - id: skip_check
         name: Check for duplicate jobs
         uses: fkirc/skip-duplicate-actions@v5.3.1
