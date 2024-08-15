@@ -1,6 +1,7 @@
 #include "backend/picontrol_backend.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "backend/picontrol_uinput.h"
 #include "logging/log_utils.h"
@@ -10,6 +11,7 @@
 #ifdef PICTRL_XDO  // TODO: Use an xdo definition directly?
 #include <xdo.h>
 
+#include "backend/picontrol_xdo.h"
 #include "backend/picontrol_xdo.h"
 #endif
 
@@ -48,20 +50,20 @@ void pictrl_backend_free(pictrl_backend *backend) {
   free(backend);
 }
 
-void handle_mouse_click(pictrl_rb_t *rb, pictrl_backend *backend) {
+void handle_mouse_click(pictrl_backend *backend, RawPiCtrlMessage *msg) {
 #ifdef PICTRL_XDO
   (void)rb;
   (void)backend;
   pictrl_log_stub("Not implemented\n");
 #else
-  const PiCtrlMouseBtnStatus btn = pictrl_rb_get_mouse_status(rb);
+  const PiCtrlMouseBtnStatus btn = pictrl_get_mouse_status(msg);
   picontrol_uinput_click_mouse(&backend->backend->uinput, btn);
 #endif
 }
 
-void handle_mouse_move(pictrl_rb_t *rb, pictrl_backend *backend) {
+void handle_mouse_move(pictrl_backend *backend, RawPiCtrlMessage *msg) {
   // extract the relative X and Y mouse locations to move by
-  const PiCtrlMouseCoord coords = pictrl_rb_get_mouse_coords(rb);
+  const PiCtrlMouseCoord coords = pictrl_get_mouse_coords(msg);
 
 #ifdef PICTRL_XDO
   pictrl_log_debug("Moving mouse (%d, %d) relative units using xdo.\n\n",
@@ -76,13 +78,12 @@ void handle_mouse_move(pictrl_rb_t *rb, pictrl_backend *backend) {
 #endif
 }
 
-void handle_text(pictrl_rb_t *rb, pictrl_backend *backend) {
+void handle_text(pictrl_backend *backend, RawPiCtrlMessage *msg) {
   // `xdo_enter_text_window` expects a null-terminated string, there are more
   // efficient approaches but this works
   static char text[MAX_BUF];
-  pictrl_rb_copy(rb, text);
-
-  text[rb->num_items] = 0;
+  memcpy(text, msg->payload, msg->header.payload_size);
+  text[msg->header.payload_size] = 0;
 
 #ifdef PICTRL_XDO
   xdo_enter_text_window(
@@ -91,20 +92,14 @@ void handle_text(pictrl_rb_t *rb, pictrl_backend *backend) {
 #else
   picontrol_uinput_type_char(&backend->backend->uinput, *text);
 #endif
-
-  const size_t new_data_start_idx =
-      (rb->data_start + rb->num_items) % rb->capacity;
-  rb->data_start = new_data_start_idx;
-  rb->num_items = 0;
 }
 
-void handle_keysym(pictrl_rb_t *rb, pictrl_backend *backend) {
+void handle_keysym(pictrl_backend *backend, RawPiCtrlMessage *msg) {
   // `xdo_send_keysequence_window` expects a null-terminated string, there are
   // more efficient approaches but this works
   static char keysym[MAX_BUF];
-  pictrl_rb_copy(rb, keysym);
-
-  keysym[rb->num_items] = 0;
+  memcpy(keysym, msg->payload, msg->header.payload_size);
+  keysym[msg->header.payload_size] = 0;
 
 #ifdef PICTRL_XDO
   xdo_send_keysequence_window(&backend->backend->xdo, CURRENTWINDOW, keysym,
@@ -112,9 +107,4 @@ void handle_keysym(pictrl_rb_t *rb, pictrl_backend *backend) {
 #else
   picontrol_uinput_type_keysym(&backend->backend->uinput, keysym);
 #endif
-
-  const size_t new_data_start_idx =
-      (rb->data_start + rb->num_items) % rb->capacity;
-  rb->data_start = new_data_start_idx;
-  rb->num_items = 0;
 }
