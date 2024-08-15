@@ -13,7 +13,7 @@ SERVER         := $(BIN_DIR)/picontrol_server
 TEST_SCRIPT    := $(BIN_DIR)/run_tests
 PITEST_SO_PATH := $(BIN_DIR)/pitest/pitest.so
 
-SERVER_OBJS    := $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/networking/iputils.o $(SRC_DIR)/data_structures/ring_buffer.o $(SRC_DIR)/backend/picontrol_uinput.o $(SRC_DIR)/backend/picontrol_backend.o
+SERVER_OBJS    := $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/networking/iputils.o $(SRC_DIR)/networking/websocket_protocol.o $(SRC_DIR)/serialize/protocol.o $(SRC_DIR)/backend/picontrol_uinput.o $(SRC_DIR)/backend/picontrol_backend.o
 
 PITEST_SRC_DIR := $(TEST_DIR)/pitest
 PITEST_C_FILES := $(shell find $(PITEST_SRC_DIR) -type f -name \*.c)
@@ -60,7 +60,7 @@ clean:
 ################################### Targets ####################################
 $(SERVER): $(SERVER_OBJS)
 	$(info PiControl: Making $@)
-	$(CC) $^ -o $@ $(XDO_FLAG) -I$(SRC_DIR_FULL)
+	$(CC) $^ -o $@ $(XDO_FLAG) -I$(SRC_DIR_FULL) -lwebsockets
 
 $(PITEST_SO_PATH): $(PITEST_OBJ)
 	$(info PiControl: Linking pitest library $@ using components: $^)

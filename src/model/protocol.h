@@ -1,6 +1,7 @@
 #ifndef _PICTRL_MODEL_PROTOCOL_H
 #define _PICTRL_MODEL_PROTOCOL_H
 
+#include <stdint.h>
 #include <unistd.h>
 
 typedef enum {
@@ -13,8 +14,14 @@ typedef enum {
 } PiCtrlCmd;
 
 typedef struct {
-  PiCtrlCmd command;
-  size_t payload_size;
-} PiCtrlHeader;
+	uint8_t cmd;
+	uint8_t payload_size;
+} RawPictrlHeader;
+
+typedef struct {
+    RawPictrlHeader header;
+    uint8_t *payload;
+} RawPiCtrlMessage;
+
 
 #endif
