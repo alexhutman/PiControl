@@ -28,6 +28,7 @@ int main() {
   const struct lws_context_creation_info info = {
       .port = SERVER_PORT,
       .protocols = protocols,
+      .options = LWS_SERVER_OPTION_FALLBACK_TO_APPLY_LISTEN_ACCEPT_CONFIG,
       .gid = -1,
       .uid = -1,
   };
