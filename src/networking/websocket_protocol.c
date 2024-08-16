@@ -3,7 +3,9 @@
 #include <libwebsockets.h>
 
 #include "backend/picontrol_backend.h"
+#include "networking/iputils.h"
 #include "networking/websocket_protocol.h"
+#include "picontrol_config.h"
 #include "serialize/protocol.h"
 
 typedef struct {
@@ -52,6 +54,14 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
                 return -1;
             }
             lwsl_user("Using %s backend\n", pictrl_backend_name(pictx->backend->type));
+
+            // Get our IP
+            char *ip = get_ip_address();
+            if (ip == NULL) {
+              return 1;
+            }
+            lwsl_user("Connect at: %s:%d\n", ip, SERVER_PORT);
+            free(ip);
             break;
         case LWS_CALLBACK_RAW_RX:
             // Surely sizeof(uint8_t) == sizeof(char) always... right?
