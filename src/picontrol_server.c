@@ -30,11 +30,6 @@ const struct lws_protocols protocols[] = {
     LWS_PROTOCOL_LIST_TERM
 };
 
-struct payload {
-	unsigned char data[LWS_PRE + MAX_BUF];
-	size_t len;
-} recv_payload;
-
 
 int main() {
   // Get our IP
@@ -57,10 +52,10 @@ int main() {
 		return 1;
   }
 
-  picontrol_listen(ws_context);
+  int ret = picontrol_listen(ws_context);
 
   lws_context_destroy(ws_context);
-  return 0;
+  return ret;
 }
 
 static int picontrol_listen(struct lws_context *context) {
