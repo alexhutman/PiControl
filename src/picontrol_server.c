@@ -40,6 +40,8 @@ int main() {
   pictrl_log("Connect at: %s:%d\n", ip, SERVER_PORT);
   free(ip);
 
+  int logs = LLL_USER | LLL_ERR | LLL_WARN | LLL_NOTICE;
+  lws_set_log_level(logs, NULL);
   const struct lws_context_creation_info info = {
       .port = SERVER_PORT,
       .protocols = protocols,
