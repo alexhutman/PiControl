@@ -3,7 +3,6 @@
 #include <libwebsockets.h>
 
 #include "backend/picontrol_backend.h"
-#include "logging/log_utils.h"
 #include "networking/websocket_protocol.h"
 #include "serialize/protocol.h"
 
@@ -29,7 +28,7 @@ static int handle_message(pictrl_backend *backend, RawPiCtrlMessage *msg) {
       break;
     // TODO: On disconnect command, return 0?
     default:
-      pictrl_log_error("Invalid command: %d.\n", msg->header.cmd);
+      lwsl_err("Invalid command: %d.\n", msg->header.cmd);
   }
 
   return 0;
@@ -48,10 +47,10 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
             // Create backend
             pictx->backend = pictrl_backend_new();
             if (pictx->backend == NULL) {
-                pictrl_log_error("Unable to create PiControl backend!\n");
+                lwsl_err("Unable to create PiControl backend!\n");
                 return -1;
             }
-            pictrl_log_debug("Using %s backend\n", pictrl_backend_name(pictx->backend->type));
+            lwsl_user("Using %s backend\n", pictrl_backend_name(pictx->backend->type));
             break;
         case LWS_CALLBACK_RAW_RX:
             // Surely sizeof(uint8_t) == sizeof(char) always... right?
