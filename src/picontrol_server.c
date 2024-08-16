@@ -81,7 +81,7 @@ static int picontrol_listen(struct lws_context *context) {
   }
   // Restore old signal handlers
   sigaction(SIGINT, &old_sigint_handler, NULL);
-  sigaction(SIGTRAP, &old_sigterm_handler, NULL);
+  sigaction(SIGTERM, &old_sigterm_handler, NULL);
 
   return 0;
 }
