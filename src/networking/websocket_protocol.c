@@ -57,6 +57,7 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
             lwsl_notice("LWS_CALLBACK_RAW_RX (%zu)\n", len);
             RawPiCtrlMessage msg = parse_to_pictrl_msg(in, len);
             handle_message(pictx->backend, &msg);
+            break;
         case LWS_CALLBACK_PROTOCOL_DESTROY:
             lwsl_notice("LWS_CALLBACK_PROTOCOL_DESTROY\n");
             if (pictx->backend != NULL) {
