@@ -3,6 +3,7 @@
 #include <libwebsockets.h>
 
 #include "backend/picontrol_backend.h"
+#include "model/protocol.h"
 #include "networking/iputils.h"
 #include "networking/websocket_protocol.h"
 #include "picontrol_config.h"
@@ -10,6 +11,7 @@
 
 typedef struct {
     pictrl_backend *backend;
+    RawPiCtrlMessage msg;
 } PiContext;
 
 
@@ -66,11 +68,10 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
         case LWS_CALLBACK_RAW_ADOPT:
             lwsl_notice("LWS_CALLBACK_RAW_ADOPT (%zu)\n", len);
             break;
-        case LWS_CALLBACK_RAW_RX:
+        case LWS_CALLBACK_RECEIVE:
             // Surely sizeof(uint8_t) == sizeof(char) always... right?
-            lwsl_notice("LWS_CALLBACK_RAW_RX (%zu)\n", len);
-            RawPiCtrlMessage msg = parse_to_pictrl_msg(in, len);
-            handle_message(pictx->backend, &msg);
+            pictx->msg = parse_to_pictrl_msg(in, len);
+            handle_message(pictx->backend, &pictx->msg);
             break;
         case LWS_CALLBACK_PROTOCOL_DESTROY:
             lwsl_notice("LWS_CALLBACK_PROTOCOL_DESTROY\n");
