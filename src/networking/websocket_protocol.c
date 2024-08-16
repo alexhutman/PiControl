@@ -37,6 +37,7 @@ static int handle_message(pictrl_backend *backend, RawPiCtrlMessage *msg) {
 // https://github.com/warmcat/libwebsockets/blob/main/minimal-examples-lowlevel/raw/minimal-raw-audio/audio.c
 int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
         void *user, void *in, size_t len) {
+    (void)user;
     PiContext *pictx = (PiContext *)lws_protocol_vh_priv_get(lws_get_vhost(wsi), lws_get_protocol(wsi));
 
     switch (reason) {
