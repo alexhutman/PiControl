@@ -11,8 +11,6 @@
 
 static int picontrol_listen(struct lws_context *context);
 
-void interrupt_handler(int signum);
-
 volatile sig_atomic_t should_exit = false;
 
 const struct lws_protocols protocols[] = {
@@ -49,12 +47,24 @@ int main() {
   return ret;
 }
 
+void interrupt_handler(int signum) {
+  (void)signum;  // To shut compiler up about unused var
+  lwsl_debug("SIGINT received. Shutting down...\n");
+  should_exit = true;
+}
+
+void term_handler(int signum) {
+  (void)signum;
+  lwsl_debug("SIGTERM received. Shutting down...\n");
+  should_exit = true;
+}
+
 static int picontrol_listen(struct lws_context *context) {
   // Set SIGINT and SIGTERM handlers
   struct sigaction old_sigint_handler, old_sigterm_handler;
   struct sigaction new_sigint_handler = {.sa_handler = &interrupt_handler,
                                          .sa_flags = 0};
-  struct sigaction new_sigterm_handler = {.sa_handler = &interrupt_handler,
+  struct sigaction new_sigterm_handler = {.sa_handler = &term_handler,
                                           .sa_flags = 0};
   sigemptyset(&new_sigint_handler.sa_mask);
   sigemptyset(&new_sigterm_handler.sa_mask);
@@ -70,9 +80,4 @@ static int picontrol_listen(struct lws_context *context) {
   sigaction(SIGTERM, &old_sigterm_handler, NULL);
 
   return 0;
-}
-
-void interrupt_handler(int signum) {
-  (void)signum;  // To shut compiler up about unused var
-  should_exit = true;
 }
