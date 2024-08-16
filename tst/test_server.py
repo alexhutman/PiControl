@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import argparse
+import asyncio
 import binascii
 import errno
-import socket
 import sys
 import time
+import websockets
 
 from enum import IntEnum, auto
 from functools import cached_property
@@ -157,11 +158,23 @@ def parse_args():
     args.tests = list(args.tests)
     return args
 
-def create_sock(addr, port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    serv_addr = (addr, port)
-    sock.connect(serv_addr)
+def get_ws_addr(addr, port):
+    return ''.join(["ws://", addr, ":", str(port)])
+
+async def create_websock(addr):
+    try:
+        sock = await websockets.connect(addr)
+    except OSError as os_err:
+        if os_err.errno == errno.EHOSTUNREACH:
+            raise OSError(f"Could not connect to {addr}! "
+                          "Is PiControl running on your Pi? "
+                          "Are you connected to the same network?") from os_err
+        raise
     return sock
+
+async def close_websock(sock):
+    await sock.close()
+    return
 
 """
 def receive_chunk(sock, size):
@@ -170,20 +183,20 @@ def receive_chunk(sock, size):
     return recv_chunk
 """
 
-def test_one_msg(sock):
+async def test_one_msg(sock):
     msg = PiControlMessage(PiControlCmd.PI_CTRL_KEY_PRESS, "и".encode("utf-8"))
     print(msg)
-    sock.sendall(msg.serialized)
+    await sock.send(msg.serialized)
 
-def test_multiple_msgs(sock):
+async def test_multiple_msgs(sock):
     text = "Hello, world!"
     for char in map(lambda c: c.encode("utf-8"), text):
         msg = PiControlMessage(PiControlCmd.PI_CTRL_KEY_PRESS, char)
         print(msg)
-        sock.sendall(msg.serialized)
+        await sock.send(msg.serialized)
         time.sleep(0.3)
         
-def test_continuous_msgs(sock):
+async def test_continuous_msgs(sock):
     while True:
         try:
             char = getch()
@@ -192,16 +205,16 @@ def test_continuous_msgs(sock):
 
         msg = PiControlMessage(PiControlCmd.PI_CTRL_KEY_PRESS, char)
         print(msg) # TODO: make normal function (not method) that prints "Sending {msg}"
-        sock.sendall(msg.serialized)
+        await sock.send(msg.serialized)
 
-def test_russian(sock):
+async def test_russian(sock):
     for encoded_char in map(lambda c: c.encode('utf-8'), "Здравствуйте"):
         msg = PiControlMessage(PiControlCmd.PI_CTRL_KEY_PRESS, encoded_char)
         print(msg)
-        sock.sendall(msg.serialized)
+        await sock.send(msg.serialized)
         time.sleep(0.5)
         
-def test_mouse_move(sock):
+async def test_mouse_move(sock):
     rel_x, rel_y = 1, 1
     rel_mv = rel_x.to_bytes(1, 'big') + rel_y.to_bytes(1, 'big')
 
@@ -209,11 +222,11 @@ def test_mouse_move(sock):
     for _ in range(25):
         msg = PiControlMessage(PiControlCmd.PI_CTRL_MOUSE_MV, rel_mv)
         print(msg)
-        sock.sendall(msg.serialized)
+        await sock.send(msg.serialized)
 
         time.sleep(0.002)
 
-def test_mouse_move_manual(sock):
+async def test_mouse_move_manual(sock):
     n = 10
     valid_arrow_chars = {
             b"\x1b[A": (0, -n), # UP
@@ -233,52 +246,44 @@ def test_mouse_move_manual(sock):
 
                 msg = PiControlMessage(PiControlCmd.PI_CTRL_MOUSE_MV, rel_mv)
                 print(msg)
-                sock.sendall(msg.serialized)
+                await sock.send(msg.serialized)
             elif char == b"\x20": # space
                 # Mouse down
                 payload =  PiControlMouseBtn.PI_CTRL_MOUSE_LEFT << 1
                 payload |= PiControlMouseClick.PI_CTRL_MOUSE_DOWN << 0
                 msg = PiControlMessage(PiControlCmd.PI_CTRL_MOUSE_CLICK, payload.to_bytes(1, 'big'))
                 print(msg)
-                sock.sendall(msg.serialized)
+                await sock.send(msg.serialized)
                 time.sleep(0.002)
 
                 # Mouse up
                 payload &= PiControlMouseClick.PI_CTRL_MOUSE_UP << 0
                 msg.payload = payload.to_bytes(1, 'big')
                 print(msg)
-                sock.sendall(msg.serialized)
+                await sock.send(msg.serialized)
         except KeyboardInterrupt:
             break
 
-def test_keysym(sock):
+async def test_keysym(sock):
     msg = PiControlMessage(PiControlCmd.PI_CTRL_KEYSYM, "Ctrl+a".encode("utf-8"))
     print(msg)
-    sock.sendall(msg.serialized)
+    await sock.send(msg.serialized)
 
-def shut_down_sock(sock):
-    try:
-        sock.shutdown(socket.SHUT_RDWR)
-    except OSError as err:
-        if err.errno != errno.ENOTCONN:
-            raise
-
-def main():
+async def main():
     args = parse_args()
 
-    sock = create_sock(args.address, args.port)
+    ws_addr = get_ws_addr(args.address, args.port)
+    sock = await asyncio.create_task(create_websock(ws_addr))
+
     try:
         for test in args.tests:
             print(f"Running {test.__name__}...")
-            test(sock)
-    except BrokenPipeError:
-        print("Connection closed by server.")
+            await test(sock)
     except KeyboardInterrupt:
         print("Exiting...")
     finally:
         print("Closing socket...")
-        shut_down_sock(sock)
-        sock.close()
+        await close_websock(sock)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
