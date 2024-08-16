@@ -63,6 +63,9 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
             lwsl_user("Connect at: %s:%d\n", ip, SERVER_PORT);
             free(ip);
             break;
+        case LWS_CALLBACK_RAW_ADOPT:
+            lwsl_notice("LWS_CALLBACK_RAW_ADOPT (%zu)\n", len);
+            break;
         case LWS_CALLBACK_RAW_RX:
             // Surely sizeof(uint8_t) == sizeof(char) always... right?
             lwsl_notice("LWS_CALLBACK_RAW_RX (%zu)\n", len);
