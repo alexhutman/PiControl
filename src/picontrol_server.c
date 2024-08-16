@@ -7,11 +7,7 @@
 #include <libwebsockets.h>
 
 #include "backend/picontrol_backend.h"
-#include "data_structures/ring_buffer.h"
-#include "logging/log_utils.h"
-#include "networking/iputils.h"
 #include "networking/websocket_protocol.h"
-#include "picontrol_config.h"
 
 static int picontrol_listen(struct lws_context *context);
 
