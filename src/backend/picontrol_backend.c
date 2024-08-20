@@ -12,7 +12,6 @@
 #include <xdo.h>
 
 #include "backend/picontrol_xdo.h"
-#include "backend/picontrol_xdo.h"
 #endif
 
 static const char *PICTRL_BACKEND_NAMES[] = {"uinput", "xdo"};

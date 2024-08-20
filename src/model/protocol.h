@@ -14,14 +14,13 @@ typedef enum {
 } PiCtrlCmd;
 
 typedef struct {
-	uint8_t cmd;
-	uint8_t payload_size;
+  uint8_t cmd;
+  uint8_t payload_size;
 } RawPictrlHeader;
 
 typedef struct {
-    RawPictrlHeader header;
-    uint8_t *payload;
+  RawPictrlHeader header;
+  uint8_t *payload;
 } RawPiCtrlMessage;
-
 
 #endif
