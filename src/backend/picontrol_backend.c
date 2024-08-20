@@ -23,13 +23,14 @@ const char *pictrl_backend_name(pictrl_backend_type type) {
 
 pictrl_backend *pictrl_backend_new() {
   pictrl_backend *new_backend = malloc(sizeof(*new_backend));
+  int init_ret = 0;
 #ifdef PICTRL_XDO
   new_backend->backend = (pictrl_backend_t *)pictrl_xdo_backend_new();
   new_backend->type = PICTRL_BACKEND_XDO;
 #else  // default
   new_backend->backend = (pictrl_backend_t *)pictrl_uinput_backend_new();
   new_backend->type = PICTRL_BACKEND_UINPUT;
-  int init_ret = pictrl_uinput_backend_init(&new_backend->backend->uinput);
+  init_ret = pictrl_uinput_backend_init(&new_backend->backend->uinput);
 #endif
   if (new_backend->backend == NULL || init_ret < 0) {
     free(new_backend);
@@ -51,7 +52,7 @@ void pictrl_backend_free(pictrl_backend *backend) {
 
 void handle_mouse_click(pictrl_backend *backend, RawPiCtrlMessage *msg) {
 #ifdef PICTRL_XDO
-  (void)rb;
+  (void)msg;
   (void)backend;
   pictrl_log_stub("Not implemented\n");
 #else
@@ -78,32 +79,32 @@ void handle_mouse_move(pictrl_backend *backend, RawPiCtrlMessage *msg) {
 }
 
 void handle_text(pictrl_backend *backend, RawPiCtrlMessage *msg) {
+#ifdef PICTRL_XDO
   // `xdo_enter_text_window` expects a null-terminated string, there are more
   // efficient approaches but this works
   static char text[MAX_BUF];
   memcpy(text, msg->payload, msg->header.payload_size);
   text[msg->header.payload_size] = 0;
 
-#ifdef PICTRL_XDO
   xdo_enter_text_window(
       &backend->backend->xdo, CURRENTWINDOW, text,
       XDO_KEYSTROKE_DELAY);  // TODO: what if sizeof(char) != sizeof(uint8_t)?
 #else
-  picontrol_uinput_type_char(&backend->backend->uinput, *text);
+  picontrol_uinput_type_char(&backend->backend->uinput, *msg->payload);
 #endif
 }
 
 void handle_keysym(pictrl_backend *backend, RawPiCtrlMessage *msg) {
+#ifdef PICTRL_XDO
   // `xdo_send_keysequence_window` expects a null-terminated string, there are
   // more efficient approaches but this works
   static char keysym[MAX_BUF];
   memcpy(keysym, msg->payload, msg->header.payload_size);
   keysym[msg->header.payload_size] = 0;
 
-#ifdef PICTRL_XDO
   xdo_send_keysequence_window(&backend->backend->xdo, CURRENTWINDOW, keysym,
                               XDO_KEYSTROKE_DELAY);
 #else
-  picontrol_uinput_type_keysym(&backend->backend->uinput, keysym);
+  picontrol_uinput_type_keysym(&backend->backend->uinput, (char *)msg->payload);
 #endif
 }
