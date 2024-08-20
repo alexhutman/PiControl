@@ -31,10 +31,24 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.dedupe.outputs.should_skip != 'true'
     steps:
-      - name: Checkout code
+      - name: Checkout libwebsockets
         uses: actions/checkout@v4.1.7
+        with:
+          repository: warmcat/libwebsockets
+          path: libwebsockets
+          ref: v4.3-stable
+      - name: Build + install libwebsockets
+        run: |
+          cd libwebsockets
+          cmake .
+          sudo make install
+      - name: Checkout PiControl
+        uses: actions/checkout@v4.1.7
+        with:
+          path: picontrol
       - name: Build server
         run: |
+          cd picontrol
           make server
   test:
     needs: dedupe
