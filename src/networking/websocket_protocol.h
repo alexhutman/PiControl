@@ -3,7 +3,6 @@
 
 #include <libwebsockets.h>
 
-
 lws_callback_function callback_picontrol;
 
 #endif

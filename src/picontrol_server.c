@@ -1,6 +1,5 @@
-#include <signal.h>
-
 #include <libwebsockets.h>
+#include <signal.h>
 
 #include "backend/picontrol_backend.h"
 #include "networking/websocket_protocol.h"
@@ -15,11 +14,9 @@ const struct lws_protocols protocols[] = {
         .callback = &callback_picontrol,
         .per_session_data_size = 0,
         .rx_buffer_size = 0,
-        .id = 1 // First iteration of the protocol (ignored by lws)
+        .id = 1  // First iteration of the protocol (ignored by lws)
     },
-    LWS_PROTOCOL_LIST_TERM
-};
-
+    LWS_PROTOCOL_LIST_TERM};
 
 int main() {
   int logs = LLL_USER | LLL_ERR | LLL_WARN | LLL_NOTICE;
@@ -34,8 +31,8 @@ int main() {
   };
   struct lws_context *ws_context = lws_create_context(&info);
   if (ws_context == NULL) {
-		lwsl_err("lws init failed\n");
-		return 1;
+    lwsl_err("lws init failed\n");
+    return 1;
   }
 
   int ret = picontrol_listen(ws_context);
@@ -70,7 +67,7 @@ static int picontrol_listen(struct lws_context *context) {
 
   int n = 0;
   while (n >= 0 && !should_exit) {
-      n = lws_service(context, 0);
+    n = lws_service(context, 0);
   }
   // Restore old signal handlers
   sigaction(SIGINT, &old_sigint_handler, NULL);
