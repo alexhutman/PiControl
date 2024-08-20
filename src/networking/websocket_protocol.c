@@ -14,24 +14,25 @@ typedef struct {
   RawPiCtrlMessage msg;
 } PiContext;
 
-static int handle_message(pictrl_backend *backend, RawPiCtrlMessage *msg) {
+static int handle_message(PiContext *pictx) {
   // Handle command
-  switch (msg->header.cmd) {
+  switch (pictx->msg.header.cmd) {
     case PI_CTRL_MOUSE_MV:
-      handle_mouse_move(backend, msg);
+      handle_mouse_move(pictx->backend, &pictx->msg);
       break;
     case PI_CTRL_MOUSE_CLICK:
-      handle_mouse_click(backend, msg);
+      handle_mouse_click(pictx->backend, &pictx->msg);
       break;
     case PI_CTRL_TEXT:
-      handle_text(backend, msg);
+      handle_text(pictx->backend, &pictx->msg);
       break;
     case PI_CTRL_KEYSYM:
-      handle_keysym(backend, msg);
+      handle_keysym(pictx->backend, &pictx->msg);
       break;
     // TODO: On disconnect command, return 0?
     default:
-      lwsl_err("Invalid command: %d.\n", msg->header.cmd);
+      lwsl_err("Invalid command: %d.\n", pictx->msg.header.cmd);
+      return -1;
   }
 
   return 0;
@@ -72,7 +73,7 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
     case LWS_CALLBACK_RECEIVE:
       // Surely sizeof(uint8_t) == sizeof(char) always... right?
       pictx->msg = parse_to_pictrl_msg(in, len);
-      handle_message(pictx->backend, &pictx->msg);
+      handle_message(pictx);
       break;
     case LWS_CALLBACK_PROTOCOL_DESTROY:
       lwsl_notice("LWS_CALLBACK_PROTOCOL_DESTROY\n");
