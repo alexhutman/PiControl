@@ -44,8 +44,8 @@ ifdef USE_XDO
 endif
 
 ################################ Phony Targets #################################
-.PHONY: all picontrol server install pitest test clean
-all: picontrol server pitest test
+.PHONY: all server install pitest test clean
+all: server pitest test
 
 server: $(SERVER)
 
