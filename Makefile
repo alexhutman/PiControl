@@ -1,4 +1,5 @@
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables
+.DEFAULT_GOAL := server
 
 ################################## Variables ###################################
 BASE_DIR       := .
@@ -45,7 +46,6 @@ endif
 
 ################################ Phony Targets #################################
 .PHONY: all server install pitest test clean
-.DEFAULT_GOAL: server
 all: server pitest test
 
 server: $(SERVER)
