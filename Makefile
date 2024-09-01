@@ -8,6 +8,7 @@ SRC_DIR        := src
 BIN_DIR        := bin
 TEST_DIR       := tst
 BIN_TEST_DIR   := $(BIN_DIR)/$(TEST_DIR)
+INSTALL_DIR    := /usr/local/bin
 
 SERVER         := $(BIN_DIR)/picontrol_server
 TEST_SCRIPT    := $(BIN_DIR)/run_tests
@@ -43,10 +44,13 @@ ifdef USE_XDO
 endif
 
 ################################ Phony Targets #################################
-.PHONY: all picontrol server pitest test clean
+.PHONY: all picontrol server install pitest test clean
 all: picontrol server pitest test
 
 server: $(SERVER)
+
+install: server
+	cp $(SERVER) $(INSTALL_DIR)
 
 pitest: $(PITEST_SO_PATH)
 
