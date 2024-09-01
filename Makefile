@@ -45,6 +45,7 @@ endif
 
 ################################ Phony Targets #################################
 .PHONY: all server install pitest test clean
+.DEFAULT_GOAL: server
 all: server pitest test
 
 server: $(SERVER)
