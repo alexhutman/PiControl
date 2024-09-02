@@ -45,13 +45,18 @@ ifdef USE_XDO
 endif
 
 ################################ Phony Targets #################################
-.PHONY: all server install pitest test clean
+.PHONY: all server install uninstall pitest test clean
 all: server pitest test
 
 server: $(SERVER)
 
 install: server
 	cp $(SERVER) $(INSTALL_DIR)
+	cp daemon/systemd/picontrol.service /etc/systemd/system
+
+uninstall:
+	rm $(INSTALL_DIR)/picontrol_server
+	rm /etc/systemd/system/picontrol.service
 
 pitest: $(PITEST_SO_PATH)
 
