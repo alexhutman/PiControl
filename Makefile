@@ -54,6 +54,7 @@ server: $(SERVER)
 certs:
 	mkdir certs
 	openssl req -new -newkey rsa:4096 -days 3650 -sha256 -nodes -x509 -keyout "certs/picontrol.key" -out "certs/picontrol.pem" -subj "/C=US/ST=NY/L=New York/O=PiControl Enterprises Ltd. GmbH/OU=PiControl Backend/CN=$$(hostname).local"
+	openssl pkcs12 -export -out "certs/picontrol.crt" -inkey certs/picontrol.key -in certs/picontrol.pem -passin pass: -passout pass:
 
 install: server
 	cp $(SERVER) $(INSTALL_DIR)
