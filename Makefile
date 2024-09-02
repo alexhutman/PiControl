@@ -54,10 +54,14 @@ server: $(SERVER)
 install: server
 	cp $(SERVER) $(INSTALL_DIR)
 	cp daemon/systemd/picontrol.service $(SYSTEMD_DIR)
+	systemctl enable "$(SYSTEMD_DIR)/picontrol.service"
+	systemctl start "picontrol.service"
 
 uninstall:
 	rm $(INSTALL_DIR)/picontrol_server
 	rm $(SYSTEMD_DIR)/picontrol.service
+	systemctl disable "$(SYSTEMD_DIR)/picontrol.service"
+	systemctl stop "picontrol.service"
 
 pitest: $(PITEST_SO_PATH)
 
