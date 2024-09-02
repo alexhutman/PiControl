@@ -10,6 +10,7 @@ BIN_DIR        := bin
 TEST_DIR       := tst
 BIN_TEST_DIR   := $(BIN_DIR)/$(TEST_DIR)
 INSTALL_DIR    := /usr/local/bin
+SYSTEMD_DIR    := $(shell pkg-config systemd --variable=systemduserunitdir)
 
 SERVER         := $(BIN_DIR)/picontrol_server
 TEST_SCRIPT    := $(BIN_DIR)/run_tests
@@ -52,11 +53,11 @@ server: $(SERVER)
 
 install: server
 	cp $(SERVER) $(INSTALL_DIR)
-	cp daemon/systemd/picontrol.service /etc/systemd/system
+	cp daemon/systemd/picontrol.service $(SYSTEMD_DIR)
 
 uninstall:
 	rm $(INSTALL_DIR)/picontrol_server
-	rm /etc/systemd/system/picontrol.service
+	rm $(SYSTEMD_DIR)/picontrol.service
 
 pitest: $(PITEST_SO_PATH)
 
