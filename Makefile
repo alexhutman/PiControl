@@ -46,10 +46,14 @@ ifdef USE_XDO
 endif
 
 ################################ Phony Targets #################################
-.PHONY: all server install uninstall pitest test clean
+.PHONY: all server certs rm-certs install uninstall pitest test clean
 all: server pitest test
 
 server: $(SERVER)
+
+certs:
+	mkdir certs
+	openssl req -new -newkey rsa:4096 -days 3650 -sha256 -nodes -x509 -keyout "certs/picontrol.key" -out "certs/picontrol.pem" -subj "/C=US/ST=NY/L=New York/O=PiControl Enterprises Ltd. GmbH/OU=PiControl Backend/CN=$$(hostname).local"
 
 install: server
 	cp $(SERVER) $(INSTALL_DIR)
@@ -66,6 +70,9 @@ uninstall:
 pitest: $(PITEST_SO_PATH)
 
 test: $(TEST_TARGETS) | $(TEST_SCRIPT)
+
+rm-certs:
+	rm -rf certs/
 
 clean:
 	$(info PiControl: Cleaning)
