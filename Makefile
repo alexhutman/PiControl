@@ -58,10 +58,10 @@ install: server
 	systemctl start "picontrol.service"
 
 uninstall:
-	rm $(INSTALL_DIR)/picontrol_server
-	rm $(SYSTEMD_DIR)/picontrol.service
-	systemctl disable "$(SYSTEMD_DIR)/picontrol.service"
 	systemctl stop "picontrol.service"
+	systemctl disable "picontrol.service"
+	rm $(SYSTEMD_DIR)/picontrol.service
+	rm $(INSTALL_DIR)/picontrol_server
 
 pitest: $(PITEST_SO_PATH)
 
