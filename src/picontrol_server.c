@@ -26,8 +26,8 @@ int main() {
       .port = SERVER_PORT,
       .protocols = protocols,
       .options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT,
-      .ssl_cert_filepath = "picontrol.cert",
-      .ssl_private_key_filepath = "picontrol.key",
+      .ssl_cert_filepath = "certs/picontrol.pem",
+      .ssl_private_key_filepath = "certs/picontrol.key",
       .gid = -1,
       .uid = -1,
   };
