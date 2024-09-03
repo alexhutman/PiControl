@@ -1,9 +1,10 @@
 from http import server
 from http.server import HTTPServer, BaseHTTPRequestHandler, SimpleHTTPRequestHandler
 from pathlib import Path
+import socket
 
 
-PORT = 80
+PORT = 8000
 
 
 class PiCertServerDir(SimpleHTTPRequestHandler):
@@ -15,7 +16,7 @@ class PiCertServerDir(SimpleHTTPRequestHandler):
 def start_server():
     try:
         server = HTTPServer(('', PORT), PiCertServerDir)
-        print(f"Starting the server at port {PORT}")
+        print(f"Connect at http://{socket.gethostname()}.local:{PORT}")
         server.serve_forever()
     except KeyboardInterrupt:
         print(f"Closing...")
