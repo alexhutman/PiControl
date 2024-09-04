@@ -25,8 +25,9 @@ int main() {
   const struct lws_context_creation_info info = {
       .port = SERVER_PORT,
       .protocols = protocols,
-      .options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT,
-      .ssl_cert_filepath = "certs/picontrol.pem",
+      .options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT |
+                 LWS_SERVER_OPTION_DISABLE_OS_CA_CERTS,
+      .ssl_cert_filepath = "certs/picontrol.crt",
       .ssl_private_key_filepath = "certs/picontrol.key",
       .gid = -1,
       .uid = -1,
