@@ -26,6 +26,7 @@ static ssize_t rb_write_until_completion(int fd, size_t count, pictrl_rb_t *rb);
 static size_t read_from_test_file(uint8_t *data, size_t count);
 static size_t write_to_test_file(uint8_t *data, size_t count);
 
+#define RING_BUF_SIZE (size_t)8
 #define TEST_FILE_TEMPLATE_PREFIX "./ring_buffer_testXXXXXX"
 #define TEST_FILE_TEMPLATE_SUFFIX ".tmp"
 #define TEST_FILE_TEMPLATE_SUFFIX_LEN \
@@ -35,8 +36,10 @@ static char test_file_name[] =
 
 // Fixtures
 static FILE *test_file = NULL;
+static pictrl_rb_t ring_buffer;
 
 int before_all() {
+  // Create temp file
   const int test_fd = mkstemps(test_file_name, TEST_FILE_TEMPLATE_SUFFIX_LEN);
   if (test_fd < 0) {
     pictrl_log_error("Error creating temp file %s: %s\n", test_file_name,
@@ -44,15 +47,23 @@ int before_all() {
     return -1;
   }
 
+  // Open file, use as fixture
   FILE *test_fp = fdopen(test_fd, "w+");
   if (test_fp == NULL) {
     pictrl_log_error("Error getting FILE pointer for open file %s: %s\n",
                      test_file_name, strerror(errno));
     return -1;
   }
-
   test_file = test_fp;
   pictrl_log_debug("Created temp file %s\n", test_file_name);
+
+  // Initialize ring buffer
+  if (pictrl_rb_init(&ring_buffer, RING_BUF_SIZE) == NULL) {
+    pictrl_log_error("Could not initialize ring buffer\n");
+    return -1;
+  }
+  pictrl_log_debug("Initialized ring buffer to %zu bytes\n", RING_BUF_SIZE);
+
   return 0;
 }
 
@@ -64,6 +75,9 @@ int before_each() {
     return -1;
   }
   pictrl_log_debug("Truncated temp file\n");
+
+  // Clear ring buffer
+  pictrl_rb_clear(&ring_buffer);
   return 0;
 }
 
@@ -86,6 +100,8 @@ int after_all() {
     pictrl_log_debug("Removed temp file %s\n", test_file_name);
   }
 
+  // Destroy ring buffer
+  pictrl_rb_destroy(&ring_buffer);
   return ret;
 }
 
@@ -124,16 +140,7 @@ int main() {
 
 static int test_simple_write() {
   // Arrange
-  const size_t ring_buf_size = 8;
   uint8_t data[] = {4, 9, 5, 6, 1};
-
-  // Initialize ring buffer
-  pictrl_rb_t rb;
-  if (pictrl_rb_init(&rb, ring_buf_size) == NULL) {
-    pictrl_log_error("Could not initialize ring buffer\n");
-    return 1;
-  }
-  pictrl_log_debug("Initialized ring buffer to %zu bytes\n", ring_buf_size);
 
   const size_t num_bytes_to_write = sizeof(data);
   if (write_to_test_file(data, num_bytes_to_write) < num_bytes_to_write) {
@@ -145,7 +152,7 @@ static int test_simple_write() {
 
   // Act
   const int test_fd = fileno(test_file);
-  if (rb_write_until_completion(test_fd, num_bytes_to_write, &rb) !=
+  if (rb_write_until_completion(test_fd, num_bytes_to_write, &ring_buffer) !=
       (ssize_t)num_bytes_to_write) {
     // pictrl_log_error("Error writing to ring buffer\n");
     return 2;
@@ -153,40 +160,33 @@ static int test_simple_write() {
   pictrl_log_debug("Wrote %zu bytes to ring buffer\n", num_bytes_to_write);
 
   // Assert
-  if (!array_equals(rb.buffer, rb.num_items, data, num_bytes_to_write)) {
+  if (!array_equals(ring_buffer.buffer, ring_buffer.num_items, data, num_bytes_to_write)) {
     // TODO: Make these logs all go to stderr.. d'oh
     pictrl_log_error("Data mismatch. Expected data: ");
     print_buf(data, num_bytes_to_write);
     pictrl_log_error("Received: ");
-    print_buf(rb.buffer, num_bytes_to_write);
+    print_buf(ring_buffer.buffer, num_bytes_to_write);
     return 3;
   }
   pictrl_log_debug("Data matches!\n");
+
   return 0;
 }
 
 static int test_simple_read_peek() {
   // Arrange
-  const size_t ring_buf_size = 8;
   uint8_t orig_data[] = {1, 2, 3, 4, 5, 6, 7};
   const size_t num_bytes_to_read = sizeof(orig_data);
 
-  pictrl_rb_t rb;
-  if (pictrl_rb_init(&rb, ring_buf_size) == NULL) {
-    pictrl_log_error("Could not create ring buffer\n");
-    return 1;
-  }
-  pictrl_log_debug("Created ring buffer of size %zu bytes\n", ring_buf_size);
-
   // Populate ring buffer
-  memcpy(rb.buffer, orig_data, num_bytes_to_read);
-  rb.num_items = num_bytes_to_read;
+  memcpy(ring_buffer.buffer, orig_data, num_bytes_to_read);
+  ring_buffer.num_items = num_bytes_to_read;
   pictrl_log_debug("Populated ring buffer with %zu bytes of original data\n",
                    num_bytes_to_read);
 
   // Act
   const int test_fd = fileno(test_file);
-  if (rb_read_until_completion(test_fd, num_bytes_to_read, &rb,
+  if (rb_read_until_completion(test_fd, num_bytes_to_read, &ring_buffer,
                                PICTRL_READ_PEEK) != num_bytes_to_read) {
     pictrl_log_error("Error reading from ring buffer\n");
     return 2;
@@ -210,11 +210,11 @@ static int test_simple_read_peek() {
     return 3;
   }
 
-  if (!array_equals(orig_data, num_bytes_to_read, rb.buffer,
+  if (!array_equals(orig_data, num_bytes_to_read, ring_buffer.buffer,
                     num_bytes_to_read)) {
     pictrl_log_error("Ring buffer data was somehow modified.\nExpected data: ");
     print_buf(orig_data, num_bytes_to_read);
-    print_ring_buffer(&rb);
+    print_ring_buffer(&ring_buffer);
     return 3;
   }
 
@@ -224,16 +224,8 @@ static int test_simple_read_peek() {
 
 int test_write_more_than_free() {
   // Arrange
-  const size_t ring_buf_size = 4;
-  uint8_t orig_data[] = {1, 2, 3, 4, 5, 6, 7};
+  uint8_t orig_data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
   const size_t num_bytes_to_write = sizeof(orig_data);
-
-  pictrl_rb_t rb;
-  if (pictrl_rb_init(&rb, ring_buf_size) == NULL) {
-    pictrl_log_error("Could not create ring buffer\n");
-    return 1;
-  }
-  pictrl_log_debug("Created ring buffer of size %zu bytes\n", ring_buf_size);
 
   if (write_to_test_file(orig_data, num_bytes_to_write) < num_bytes_to_write) {
     return 1;
@@ -244,7 +236,7 @@ int test_write_more_than_free() {
   // Act
   const int test_fd = fileno(test_file);
   size_t num_bytes_written =
-      rb_write_until_completion(test_fd, num_bytes_to_write, &rb);
+      rb_write_until_completion(test_fd, num_bytes_to_write, &ring_buffer);
   if (errno != ENOBUFS) {
     pictrl_log_error(
         "Expected errno to be set to ENOBUFS (%d), but errno is %d\n", ENOBUFS,
@@ -252,22 +244,22 @@ int test_write_more_than_free() {
     return 1;
   }
   if (num_bytes_written !=
-      ring_buf_size) {  // We should've capped out at the rb's capacity
+      ring_buffer.capacity) {  // We should've capped out at the rb's capacity
     pictrl_log_error(
         "Expected to write %zu bytes to ring buffer, but %zu bytes were "
         "somehow written\n",
-        ring_buf_size, num_bytes_written);
+        ring_buffer.capacity, num_bytes_written);
     return 2;
   }
   pictrl_log_debug("Wrote all %zu bytes to ring buffer\n", num_bytes_written);
 
   // Assert
-  if (!array_equals(rb.buffer, rb.capacity, orig_data, ring_buf_size)) {
+  if (!array_equals(ring_buffer.buffer, ring_buffer.capacity, orig_data, RING_BUF_SIZE)) {
     // TODO: Make these logs all go to stderr.. d'oh
     pictrl_log_error("Data mismatch. Expected data: ");
-    print_buf(orig_data, ring_buf_size);
+    print_buf(orig_data, RING_BUF_SIZE);
     pictrl_log_error("Received: ");
-    print_buf(rb.buffer, ring_buf_size);
+    print_buf(ring_buffer.buffer, RING_BUF_SIZE);
     return 3;
   }
   // TODO: Check that rest of array is in the file
@@ -277,32 +269,23 @@ int test_write_more_than_free() {
 
 int test_simple_wraparound() {
   // Arrange
-  uint8_t orig_data[] = {1, 2, 3, 4};
-  const size_t ring_buf_size = sizeof(orig_data);
+  uint8_t orig_data[] = {1, 2, 3, 4, 5, 6, 7, 8};
 
-  // Init rb
-  pictrl_rb_t rb;
-  if (pictrl_rb_init(&rb, ring_buf_size) == NULL) {
-    pictrl_log_error("Could not create ring buffer\n");
-    return 1;
-  }
-  pictrl_log_debug("Created ring buffer of size %zu bytes\n", ring_buf_size);
-
-  if (write_to_test_file(orig_data, ring_buf_size) < ring_buf_size) {
+  if (write_to_test_file(orig_data, RING_BUF_SIZE) < RING_BUF_SIZE) {
     return 1;
   }
   rewind(test_file);
   pictrl_log_debug("Wrote test data to temp file\n");
 
   // Act
-  rb.data_start += ring_buf_size - 1;
+  ring_buffer.data_start += RING_BUF_SIZE - 1;
   const int test_fd = fileno(test_file);
   const ssize_t num_bytes_written =
-      rb_write_until_completion(test_fd, ring_buf_size, &rb);
-  if (num_bytes_written != ring_buf_size) {
+      rb_write_until_completion(test_fd, RING_BUF_SIZE, &ring_buffer);
+  if (num_bytes_written != RING_BUF_SIZE) {
     pictrl_log_error(
         "Expected to write %zu bytes, but %zd bytes were somehow written\n",
-        ring_buf_size, num_bytes_written);
+        RING_BUF_SIZE, num_bytes_written);
     return 2;
   }
   pictrl_log_debug(
@@ -311,13 +294,13 @@ int test_simple_wraparound() {
       num_bytes_written);
 
   // Assert
-  uint8_t expected_data[] = {2, 3, 4, 1};
-  if (!array_equals(rb.buffer, rb.capacity, expected_data, rb.capacity)) {
+  uint8_t expected_data[] = {2, 3, 4, 5, 6, 7, 8, 1};
+  if (!array_equals(ring_buffer.buffer, ring_buffer.capacity, expected_data, ring_buffer.capacity)) {
     // TODO: Make these logs all go to stderr.. d'oh
     pictrl_log_error("Data mismatch. Expected data: ");
-    print_buf(expected_data, ring_buf_size);
+    print_buf(expected_data, RING_BUF_SIZE);
     pictrl_log_error("Received: ");
-    print_buf(rb.buffer, ring_buf_size);
+    print_buf(ring_buffer.buffer, RING_BUF_SIZE);
 
     return 3;
   }
@@ -327,42 +310,32 @@ int test_simple_wraparound() {
 
 int test_clear_full_buffer() {
   // Arrange
-  uint8_t orig_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-  const size_t ring_buf_size = sizeof(orig_data);
-
-  // Initialize ring buffer
-  pictrl_rb_t rb;
-  if (pictrl_rb_init(&rb, ring_buf_size) == NULL) {
-    pictrl_log_error("Could not create ring buffer\n");
-    return -1;
-  }
-  pictrl_log_debug("Initialized ring buffer of size %zu bytes\n",
-                   ring_buf_size);
+  uint8_t orig_data[] = {0, 1, 2, 3, 4, 5, 6, 7};
 
   // Populate ring buffer
-  memcpy(rb.buffer, orig_data, ring_buf_size);
-  rb.num_items = ring_buf_size;
+  memcpy(ring_buffer.buffer, orig_data, RING_BUF_SIZE);
+  ring_buffer.num_items = RING_BUF_SIZE;
   pictrl_log_debug("Populated ring buffer with original data\n");
 
   // Act
-  pictrl_rb_clear(&rb);
+  pictrl_rb_clear(&ring_buffer);
   pictrl_log_debug("Cleared ring buffer\n");
 
   // Assert
   uint8_t expected_data[sizeof(orig_data)] = {0};
-  if (!array_equals(rb.buffer, rb.capacity, expected_data, ring_buf_size)) {
+  if (!array_equals(ring_buffer.buffer, ring_buffer.capacity, expected_data, RING_BUF_SIZE)) {
     // TODO: Make these logs all go to stderr.. d'oh
     pictrl_log_error("Data mismatch. Expected data: ");
-    print_buf(expected_data, ring_buf_size);
+    print_buf(expected_data, RING_BUF_SIZE);
     pictrl_log_error("Received: ");
-    print_buf(rb.buffer, ring_buf_size);
+    print_buf(ring_buffer.buffer, RING_BUF_SIZE);
     return 3;
-  } else if (rb.num_items != 0) {
-    pictrl_log_error("Expected num_items to be 0. Received: %zu", rb.num_items);
+  } else if (ring_buffer.num_items != 0) {
+    pictrl_log_error("Expected num_items to be 0. Received: %zu", ring_buffer.num_items);
     return 4;
-  } else if (rb.data_start != 0) {
+  } else if (ring_buffer.data_start != 0) {
     pictrl_log_error("Expected data_start to be 0. Received: %zu",
-                     rb.data_start);
+                     ring_buffer.data_start);
     return 5;
   }
 
