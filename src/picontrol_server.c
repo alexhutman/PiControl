@@ -12,7 +12,7 @@ const struct lws_protocols protocols[] = {
     {
         .name = "picontrol",
         .callback = &callback_picontrol,
-        .per_session_data_size = 0,
+        .per_session_data_size = sizeof(SessionData),
         .rx_buffer_size = 0,
         .id = 1  // First iteration of the protocol (ignored by lws)
     },

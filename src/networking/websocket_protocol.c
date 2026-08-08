@@ -9,29 +9,25 @@
 #include "picontrol_config.h"
 #include "serialize/protocol.h"
 
-typedef struct {
-  pictrl_backend *backend;
-  RawPiCtrlMessage msg;
-} PiContext;
 
-static int handle_message(PiContext *pictx) {
+static int handle_message(pictrl_backend *backend, RawPiCtrlMessage *msg) {
   // Handle command
-  switch (pictx->msg.header.cmd) {
+  switch (msg->header.cmd) {
     case PI_CTRL_MOUSE_MV:
-      handle_mouse_move(pictx->backend, &pictx->msg);
+      handle_mouse_move(backend, msg);
       break;
     case PI_CTRL_MOUSE_CLICK:
-      handle_mouse_click(pictx->backend, &pictx->msg);
+      handle_mouse_click(backend, msg);
       break;
     case PI_CTRL_TEXT:
-      handle_text(pictx->backend, &pictx->msg);
+      handle_text(backend, msg);
       break;
     case PI_CTRL_KEYSYM:
-      handle_keysym(pictx->backend, &pictx->msg);
+      handle_keysym(backend, msg);
       break;
     // TODO: On disconnect command, return 0?
     default:
-      lwsl_err("Invalid command: %d.\n", pictx->msg.header.cmd);
+      lwsl_err("Invalid command: %d.\n", msg->header.cmd);
       return -1;
   }
 
@@ -41,23 +37,23 @@ static int handle_message(PiContext *pictx) {
 // https://github.com/warmcat/libwebsockets/blob/main/minimal-examples-lowlevel/raw/minimal-raw-audio/audio.c
 int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
                        void *user, void *in, size_t len) {
-  (void)user;
-  PiContext *pictx = (PiContext *)lws_protocol_vh_priv_get(
+  SessionData *pss = (SessionData *)user;
+  PerVHostData *vhd = (PerVHostData *)lws_protocol_vh_priv_get(
       lws_get_vhost(wsi), lws_get_protocol(wsi));
 
   switch (reason) {
     case LWS_CALLBACK_PROTOCOL_INIT:
       lwsl_notice("LWS_CALLBACK_PROTOCOL_INIT\n");
-      pictx = lws_protocol_vh_priv_zalloc(
-          lws_get_vhost(wsi), lws_get_protocol(wsi), sizeof(*pictx));
+      vhd = lws_protocol_vh_priv_zalloc(
+          lws_get_vhost(wsi), lws_get_protocol(wsi), sizeof(*vhd));
       // Create backend
-      pictx->backend = pictrl_backend_new();
-      if (pictx->backend == NULL) {
+      vhd->backend = pictrl_backend_new();
+      if (vhd->backend == NULL) {
         lwsl_err("Unable to create PiControl backend!\n");
         return -1;
       }
       lwsl_user("Using %s backend\n",
-                pictrl_backend_name(pictx->backend->type));
+                pictrl_backend_name(vhd->backend->type));
 
       // Get our IP
       char *ip = get_ip_address();
@@ -70,17 +66,24 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
     case LWS_CALLBACK_RAW_ADOPT:
       lwsl_notice("LWS_CALLBACK_RAW_ADOPT (%zu)\n", len);
       break;
+    case LWS_CALLBACK_ESTABLISHED:
+      memset(&pss->msg, 0, sizeof(pss->msg));
+      break;
     case LWS_CALLBACK_RECEIVE:
       // Surely sizeof(uint8_t) == sizeof(char) always... right?
-      pictx->msg = parse_to_pictrl_msg(in, len);
-      handle_message(pictx);
+      pss->msg = parse_to_pictrl_msg(in, len);
+      handle_message(vhd->backend, &pss->msg);
+      break;
+    case LWS_CALLBACK_CLOSED:
+      // Free any per-user session data
       break;
     case LWS_CALLBACK_PROTOCOL_DESTROY:
       lwsl_notice("LWS_CALLBACK_PROTOCOL_DESTROY\n");
-      if (pictx->backend != NULL) {
+      if (vhd->backend != NULL) {
         // TODO: prob some error handling
         lwsl_user("Freeing backend...\n");
-        pictrl_backend_free(pictx->backend);
+        pictrl_backend_free(vhd->backend);
+        vhd->backend = NULL;
       }
       break;
     default:
