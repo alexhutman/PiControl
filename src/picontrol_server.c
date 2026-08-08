@@ -3,10 +3,11 @@
 
 #include "backend/picontrol_backend.h"
 #include "networking/websocket_protocol.h"
+#include <stdbool.h>
 
 static int picontrol_listen(struct lws_context *context);
 
-volatile sig_atomic_t should_exit = false;
+static volatile sig_atomic_t should_exit = false;
 
 const struct lws_protocols protocols[] = {
     {
@@ -41,29 +42,19 @@ int main() {
   return ret;
 }
 
-void interrupt_handler(int signum) {
+void sig_handler(int signum) {
   (void)signum;  // To shut compiler up about unused var
-  lwsl_debug("SIGINT received. Shutting down...\n");
-  should_exit = true;
-}
-
-void term_handler(int signum) {
-  (void)signum;
-  lwsl_debug("SIGTERM received. Shutting down...\n");
   should_exit = true;
 }
 
 static int picontrol_listen(struct lws_context *context) {
   // Set SIGINT and SIGTERM handlers
   struct sigaction old_sigint_handler, old_sigterm_handler;
-  struct sigaction new_sigint_handler = {.sa_handler = &interrupt_handler,
-                                         .sa_flags = 0};
-  struct sigaction new_sigterm_handler = {.sa_handler = &term_handler,
-                                          .sa_flags = 0};
-  sigemptyset(&new_sigint_handler.sa_mask);
-  sigemptyset(&new_sigterm_handler.sa_mask);
-  sigaction(SIGINT, &new_sigint_handler, &old_sigint_handler);
-  sigaction(SIGTERM, &new_sigterm_handler, &old_sigterm_handler);
+  struct sigaction new_sig_handler = {.sa_handler = &sig_handler,
+                                      .sa_flags = 0};
+  sigemptyset(&new_sig_handler.sa_mask);
+  sigaction(SIGINT, &new_sig_handler, &old_sigint_handler);
+  sigaction(SIGTERM, &new_sig_handler, &old_sigterm_handler);
 
   int n = 0;
   while (n >= 0 && !should_exit) {
