@@ -1,7 +1,8 @@
 #include "backend/picontrol_xdo.h"
 
-#include <stdlib.h>
 #include <xdo.h>
+
+#include <stdlib.h>
 
 xdo_t *pictrl_xdo_backend_new() {
   const char *display = getenv("DISPLAY");

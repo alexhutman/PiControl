@@ -1,15 +1,15 @@
 #ifndef _PICTRL_UINPUT_H
 #define _PICTRL_UINPUT_H
 
+#include "model/mouse.h"
+#include "picontrol_config.h"
+
 #include <linux/uinput.h>
+#include <unistd.h>
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <unistd.h>
-
-#include "model/mouse.h"
-#include "model/protocol.h"
-#include "picontrol_config.h"
 
 #define PICTRL_NOOP_KEY_COMB() \
   {                            \

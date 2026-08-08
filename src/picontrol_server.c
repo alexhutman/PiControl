@@ -1,8 +1,9 @@
-#include <libwebsockets.h>
-#include <signal.h>
-
-#include "backend/picontrol_backend.h"
 #include "networking/websocket_protocol.h"
+#include "picontrol_config.h"
+
+#include <libwebsockets.h>
+
+#include <signal.h>
 #include <stdbool.h>
 
 static int picontrol_listen(struct lws_context *context);

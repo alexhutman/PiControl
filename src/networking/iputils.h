@@ -3,6 +3,7 @@
 
 #include <arpa/inet.h>
 #include <net/if.h>
+
 #include <string.h>
 
 // Client struct size

@@ -2,7 +2,7 @@
 #define _PICTRL_BACKEND_H
 
 #include "backend/picontrol_uinput.h"
-#include "data_structures/ring_buffer.h"
+#include "model/protocol.h"
 
 #ifdef PICTRL_XDO  // TODO: Use an xdo definition directly?
 #include <xdo.h>

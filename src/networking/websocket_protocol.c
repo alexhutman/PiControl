@@ -1,14 +1,14 @@
 #include "networking/websocket_protocol.h"
 
-#include <libwebsockets.h>
-#include <stddef.h>
-
 #include "backend/picontrol_backend.h"
 #include "model/protocol.h"
 #include "networking/iputils.h"
 #include "picontrol_config.h"
 #include "serialize/protocol.h"
 
+#include <libwebsockets.h>
+
+#include <stddef.h>
 
 static int handle_message(pictrl_backend *backend, RawPiCtrlMessage *msg) {
   // Handle command

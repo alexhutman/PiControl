@@ -1,13 +1,14 @@
+#include "logging/log_utils.h"
+
 #include <arpa/inet.h>
-#include <errno.h>
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <netdb.h>
+
+#include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "logging/log_utils.h"
 
 #define LOOPBACK_UP_RUNNING (IFF_UP | IFF_RUNNING | IFF_LOOPBACK)
 #define UP_RUNNING (IFF_UP | IFF_RUNNING)

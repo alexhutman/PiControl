@@ -1,10 +1,10 @@
 #ifndef _PICTRL_SERIALIZE_MOUSE_H
 #define _PICTRL_SERIALIZE_MOUSE_H
 
-#include <stdint.h>
-
 #include "model/mouse.h"
 #include "model/protocol.h"
+
+#include <stdint.h>
 
 // All bytes are unsigned
 // -------------------------

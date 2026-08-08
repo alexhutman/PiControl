@@ -3,8 +3,6 @@
 
 #include <xdo.h>
 
-#include "backend/picontrol_backend.h"
-
 // Delay between xdo keystrokes in microseconds
 #define XDO_KEYSTROKE_DELAY (useconds_t)10000
 

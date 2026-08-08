@@ -1,9 +1,9 @@
 #ifndef _PICTRL_SERIALIZE_PROTOCOL_H
 #define _PICTRL_SERIALIZE_PROTOCOL_H
 
-#include <stdint.h>
-
 #include "model/protocol.h"
+
+#include <stdint.h>
 
 // Assumes that rb->data_start is pointing at the beginning of the header in the
 // ring buffer already

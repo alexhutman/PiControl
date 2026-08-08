@@ -1,13 +1,14 @@
 #include "data_structures/ring_buffer.h"
 
+#include "logging/log_utils.h"
+
+#include <unistd.h>
+
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-
-#include "logging/log_utils.h"
 
 pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *rb, size_t capacity) {
   if (capacity == 0) {

@@ -1,8 +1,9 @@
 #ifndef _PICTRL_MODEL_PROTOCOL_H
 #define _PICTRL_MODEL_PROTOCOL_H
 
-#include <stdint.h>
 #include <unistd.h>
+
+#include <stdint.h>
 
 typedef enum {
   PI_CTRL_HEARTBEAT,  // Client: Send heartbeat so server can disconnect if

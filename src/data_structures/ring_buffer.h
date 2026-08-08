@@ -1,10 +1,11 @@
 #ifndef _PICTRL_RING_BUFFER_H
 #define _PICTRL_RING_BUFFER_H
 
+#include <unistd.h>
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <unistd.h>
 
 // Types
 typedef struct pictrl_rb_t {
