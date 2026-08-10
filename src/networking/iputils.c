@@ -50,7 +50,7 @@ char *get_ip_address() {
       }
     }
   }
-  if (iface == NULL) {
+  if (!iface) {
     pictrl_log_critical("You seem to not be connected to the internet!\n");
     freeifaddrs(interfaces);
     return NULL;

@@ -16,7 +16,7 @@ pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *rb, size_t capacity) {
   }
 
   uint8_t *buf = calloc(capacity, sizeof(uint8_t));  // TODO: change to malloc?
-  if (buf == NULL) {
+  if (!buf) {
     return NULL;
   }
   rb->buffer = buf;
@@ -28,7 +28,7 @@ pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *rb, size_t capacity) {
 }
 
 void pictrl_rb_destroy(pictrl_rb_t *rb) {
-  if (rb == NULL) {
+  if (!rb) {
     return;
   }
   free(rb->buffer);

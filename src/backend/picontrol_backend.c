@@ -32,7 +32,7 @@ pictrl_backend *pictrl_backend_new() {
   new_backend->type = PICTRL_BACKEND_UINPUT;
   init_ret = pictrl_uinput_backend_init(&new_backend->backend->uinput);
 #endif
-  if (new_backend->backend == NULL || init_ret < 0) {
+  if (!new_backend->backend || init_ret < 0) {
     free(new_backend);
     return NULL;
   }

@@ -32,7 +32,7 @@ int main() {
       .uid = -1,
   };
   struct lws_context *ws_context = lws_create_context(&info);
-  if (ws_context == NULL) {
+  if (!ws_context) {
     lwsl_err("lws init failed\n");
     return 1;
   }

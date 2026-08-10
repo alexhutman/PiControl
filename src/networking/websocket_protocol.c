@@ -57,8 +57,8 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
 
       // Get our IP
       char *ip = get_ip_address();
-      if (ip == NULL) {
-        return 1;
+      if (!ip) {
+        return -2;
       }
       lwsl_user("Connect at: %s:%d\n", ip, SERVER_PORT);
       free(ip);
