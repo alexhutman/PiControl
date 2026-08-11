@@ -122,7 +122,6 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
 
   switch (reason) {
     case LWS_CALLBACK_PROTOCOL_INIT:
-      lwsl_notice("LWS_CALLBACK_PROTOCOL_INIT\n");
       vhd = initialize_vhost_data(wsi);
       if (!vhd) return -1;
       pictrl_log_debug("Initialized vhost data\n");
@@ -134,9 +133,6 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
       }
       lwsl_user("Connect at: %s:%d\n", ip, SERVER_PORT);
       free(ip);
-      break;
-    case LWS_CALLBACK_RAW_ADOPT:
-      lwsl_notice("LWS_CALLBACK_RAW_ADOPT (%zu)\n", len);
       break;
     case LWS_CALLBACK_ESTABLISHED: {
       if (!pss) break;
@@ -159,7 +155,6 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
       lwsl_notice("[CONN] + Disconnected | IP: %s\n", pss->client_ip);
       break;
     case LWS_CALLBACK_PROTOCOL_DESTROY:
-      lwsl_notice("LWS_CALLBACK_PROTOCOL_DESTROY\n");
       destroy_vhost_data(vhd);
       pictrl_log_debug("Destroyed vhost data\n");
       break;
