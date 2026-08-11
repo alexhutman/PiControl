@@ -2,7 +2,7 @@
 #define _PICTRL_NETWORK_WS_H
 
 #include "backend/picontrol_backend.h"
-#include "model/protocol.h"
+#include "serialize/protocol.h"
 
 #include <libwebsockets.h>
 
@@ -11,7 +11,7 @@ typedef struct {
 } PerVHostData;
 
 typedef struct {
-  RawPiCtrlMessage msg;
+  PiCtrlMsgDeserializer des;
 } SessionData;
 
 lws_callback_function callback_picontrol;

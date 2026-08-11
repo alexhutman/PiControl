@@ -9,6 +9,9 @@
 #include <libwebsockets.h>
 
 #include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 static int handle_message(pictrl_backend *backend, RawPiCtrlMessage *msg) {
   // Handle command
@@ -34,6 +37,79 @@ static int handle_message(pictrl_backend *backend, RawPiCtrlMessage *msg) {
   return 0;
 }
 
+static PerVHostData* initialize_vhost_data(struct lws *wsi) {
+    PerVHostData *vhd = lws_protocol_vh_priv_zalloc(lws_get_vhost(wsi),
+                                                    lws_get_protocol(wsi),
+                                                    sizeof(*vhd));
+    if (!vhd) return NULL;
+
+    // Create backend
+    vhd->backend = pictrl_backend_new();
+    if (!vhd->backend) {
+      lwsl_err("Unable to create PiControl backend!\n");
+      return NULL;
+    }
+    lwsl_user("Using %s backend\n",
+              pictrl_backend_name(vhd->backend->type));
+    return vhd;
+}
+
+static int initialize_session_data(SessionData *pss) {
+    return initialize_deserializer(&pss->des);
+}
+
+static int destroy_session_data(SessionData *pss) {
+    return destroy_deserializer(&pss->des);
+}
+
+static int destroy_vhost_data(PerVHostData *vhd) {
+    if (!vhd) return -1;
+    if (vhd->backend) {
+      // TODO: prob some error handling
+      lwsl_user("Freeing backend...\n");
+      pictrl_backend_free(vhd->backend);
+      vhd->backend = NULL;
+    }
+    return 0;
+}
+
+static int receive_data(struct lws *wsi, pictrl_backend *backend, PiCtrlMsgDeserializer *des, void *in, size_t len) {
+    if (!des) {
+        lwsl_err("Per-session user struct is null\n");
+        return -1;
+    }
+    if (!des->in.rx_buffer) {
+        lwsl_err("Per-session rx_buffer is null\n");
+        return -2;
+    }
+    if ((des->in.rx_buffered_bytes + len) > MAX_PICTRL_MSG_SIZE) {
+        lwsl_err("Incoming data exceeds expected boundaries. Dropping connection.\n");
+        return -3;
+    }
+
+    if (lws_is_first_fragment(wsi)) {
+        des->in.rx_buffered_bytes = 0;
+    }
+
+    // Copy as much as we receive into rx_buffer
+    memcpy(&des->in.rx_buffer[des->in.rx_buffered_bytes], in, len);
+    des->in.rx_buffered_bytes += len;
+
+    const size_t remaining = lws_remaining_packet_payload(wsi);
+    const int is_final = lws_is_final_fragment(wsi);
+
+    if (remaining == 0 && is_final) {
+        // End of transmission
+        int ret = deserialize_network_data(des);
+        if (ret < 0) return ret;
+
+        handle_message(backend, &des->out.msg);
+    } else {
+        lwsl_debug("Received fragment slice. Waiting for the remaining %zu pieces...\n", remaining);
+    }
+    return 0;
+}
+
 // https://github.com/warmcat/libwebsockets/blob/main/minimal-examples-lowlevel/raw/minimal-raw-audio/audio.c
 int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
                        void *user, void *in, size_t len) {
@@ -44,16 +120,8 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
   switch (reason) {
     case LWS_CALLBACK_PROTOCOL_INIT:
       lwsl_notice("LWS_CALLBACK_PROTOCOL_INIT\n");
-      vhd = lws_protocol_vh_priv_zalloc(
-          lws_get_vhost(wsi), lws_get_protocol(wsi), sizeof(*vhd));
-      // Create backend
-      vhd->backend = pictrl_backend_new();
-      if (vhd->backend == NULL) {
-        lwsl_err("Unable to create PiControl backend!\n");
-        return -1;
-      }
-      lwsl_user("Using %s backend\n",
-                pictrl_backend_name(vhd->backend->type));
+      vhd = initialize_vhost_data(wsi);
+      if (!vhd) return -1;
 
       // Get our IP
       char *ip = get_ip_address();
@@ -66,25 +134,20 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
     case LWS_CALLBACK_RAW_ADOPT:
       lwsl_notice("LWS_CALLBACK_RAW_ADOPT (%zu)\n", len);
       break;
-    case LWS_CALLBACK_ESTABLISHED:
-      memset(&pss->msg, 0, sizeof(pss->msg));
+    case LWS_CALLBACK_ESTABLISHED: {
+      int ret = initialize_session_data(pss);
+      if (ret < 0) return ret;
       break;
+    }
     case LWS_CALLBACK_RECEIVE:
-      // Surely sizeof(uint8_t) == sizeof(char) always... right?
-      pss->msg = parse_to_pictrl_msg(in, len);
-      handle_message(vhd->backend, &pss->msg);
+      receive_data(wsi, vhd->backend, &pss->des, in, len);
       break;
     case LWS_CALLBACK_CLOSED:
-      // Free any per-user session data
+      destroy_session_data(pss);
       break;
     case LWS_CALLBACK_PROTOCOL_DESTROY:
       lwsl_notice("LWS_CALLBACK_PROTOCOL_DESTROY\n");
-      if (vhd->backend != NULL) {
-        // TODO: prob some error handling
-        lwsl_user("Freeing backend...\n");
-        pictrl_backend_free(vhd->backend);
-        vhd->backend = NULL;
-      }
+      destroy_vhost_data(vhd);
       break;
     default:
       break;
