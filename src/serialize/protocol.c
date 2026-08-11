@@ -3,6 +3,8 @@
 #include "logging/log_utils.h"
 #include "model/protocol.h"
 
+#include <inttypes.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -43,17 +45,13 @@ int destroy_deserializer(PiCtrlMsgDeserializer *des) {
 int deserialize_network_data(PiCtrlMsgDeserializer *des) {
     if (!des->in.rx_buffer || !des->out.msg.payload) return -1;
 
-    const size_t payload_size = (size_t)(des->in.rx_buffer[1]);
+    const uint8_t payload_size = des->in.rx_buffer[1];
     const size_t expected_wire_size = sizeof(des->out.msg.header.cmd) + sizeof(des->out.msg.header.payload_size)
                                     + payload_size;
     if (des->in.rx_buffered_bytes != expected_wire_size) {
         pictrl_log_warn("Transmission struct size mismatch. Got %zu bytes, expected %zu\n",
                         des->in.rx_buffered_bytes, expected_wire_size);
         return -2;
-    }
-    if (payload_size > MAX_PAYLOAD_SIZE) {
-        pictrl_log_error("Received payload size > max payload size. This shouldn't be possible\n");
-        return -3;
     }
 
     size_t offset = 0;
@@ -74,7 +72,7 @@ int deserialize_network_data(PiCtrlMsgDeserializer *des) {
             pictrl_log_error("Couldn't realloc payload\n");
             return -4;
         }
-        pictrl_log_debug("Realloc'd deserialized payload buffer size from %zu to %zu\n",
+        pictrl_log_debug("Realloc'd deserialized payload buffer size from %" PRIu8 " to %" PRIu8 "\n",
                          des->out.payload_buf_size, payload_size);
         des->out.msg.payload = new_region;
         des->out.payload_buf_size = payload_size;
