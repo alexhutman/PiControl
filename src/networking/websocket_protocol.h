@@ -12,6 +12,7 @@ typedef struct {
 
 typedef struct {
   PiCtrlMsgDeserializer des;
+  char client_ip[46];
 } SessionData;
 
 lws_callback_function callback_picontrol;

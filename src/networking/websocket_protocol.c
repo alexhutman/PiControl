@@ -125,6 +125,7 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
       lwsl_notice("LWS_CALLBACK_PROTOCOL_INIT\n");
       vhd = initialize_vhost_data(wsi);
       if (!vhd) return -1;
+      pictrl_log_debug("Initialized vhost data\n");
 
       // Get our IP
       char *ip = get_ip_address();
@@ -138,23 +139,29 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
       lwsl_notice("LWS_CALLBACK_RAW_ADOPT (%zu)\n", len);
       break;
     case LWS_CALLBACK_ESTABLISHED: {
-      char ip_buf[64];
-      lws_get_peer_simple(wsi, ip_buf, sizeof(ip_buf));
-      lwsl_user("User connected from %s\n", ip_buf);
+      if (!pss) break;
+      lws_get_peer_simple(wsi, pss->client_ip, sizeof(pss->client_ip));
+      lwsl_notice("[CONN] + Established | IP: %s\n", pss->client_ip);
 
       int ret = initialize_session_data(pss);
       if (ret < 0) return ret;
+      pictrl_log_debug("Initialized session data\n");
       break;
     }
     case LWS_CALLBACK_RECEIVE:
+      if (!pss) break;
       receive_data(wsi, vhd->backend, &pss->des, in, len);
       break;
     case LWS_CALLBACK_CLOSED:
+      if (!pss) break;
       destroy_session_data(pss);
+      pictrl_log_debug("Destroyed session data\n");
+      lwsl_notice("[CONN] + Disconnected | IP: %s\n", pss->client_ip);
       break;
     case LWS_CALLBACK_PROTOCOL_DESTROY:
       lwsl_notice("LWS_CALLBACK_PROTOCOL_DESTROY\n");
       destroy_vhost_data(vhd);
+      pictrl_log_debug("Destroyed vhost data\n");
       break;
     default:
       break;

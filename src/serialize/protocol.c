@@ -21,6 +21,7 @@ int initialize_deserializer(PiCtrlMsgDeserializer *des) {
         pictrl_log_error("Could not allocate RawPiCtrlMessage payload\n");
         return -3;
     }
+    des->out.payload_buf_size = num_initial_bytes;
     return 0;
 }
 
@@ -73,6 +74,8 @@ int deserialize_network_data(PiCtrlMsgDeserializer *des) {
             pictrl_log_error("Couldn't realloc payload\n");
             return -4;
         }
+        pictrl_log_debug("Realloc'd deserialized payload buffer size from %zu to %zu\n",
+                         des->out.payload_buf_size, payload_size);
         des->out.msg.payload = new_region;
         des->out.payload_buf_size = payload_size;
     }
