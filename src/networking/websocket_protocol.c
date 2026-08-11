@@ -1,6 +1,7 @@
 #include "networking/websocket_protocol.h"
 
 #include "backend/picontrol_backend.h"
+#include "logging/log_utils.h"
 #include "model/protocol.h"
 #include "networking/iputils.h"
 #include "picontrol_config.h"
@@ -65,7 +66,7 @@ static int destroy_vhost_data(PerVHostData *vhd) {
     if (!vhd) return -1;
     if (vhd->backend) {
       // TODO: prob some error handling
-      lwsl_debug("Freeing backend...\n");
+      pictrl_log_debug("Freeing backend...\n");
       pictrl_backend_free(vhd->backend);
       vhd->backend = NULL;
     }
@@ -101,13 +102,13 @@ static int receive_data(struct lws *wsi, pictrl_backend *backend, PiCtrlMsgDeser
         // End of transmission
         int ret = deserialize_network_data(des);
         if (ret < 0) return ret;
-        lwsl_debug("Deserialized PiControlMsg\n");
+        pictrl_log_debug("Deserialized PiControlMsg\n");
 
         ret = handle_message(backend, &des->out.msg);
         if (ret < 0) return ret;
-        lwsl_debug("PiControlMsg handled\n");
+        pictrl_log_debug("PiControlMsg handled\n");
     } else {
-        lwsl_debug("Received fragment slice. Waiting for the remaining %zu pieces...\n", remaining);
+        pictrl_log_debug("Received fragment slice. Waiting for the remaining %zu pieces...\n", remaining);
     }
     return 0;
 }
