@@ -1,5 +1,6 @@
 #include "serialize/protocol.h"
 
+#include "logging/log_utils.h"
 #include "model/protocol.h"
 
 #include <stdlib.h>
@@ -10,15 +11,14 @@ int initialize_deserializer(PiCtrlMsgDeserializer *des) {
     des->in.rx_buffer = calloc(1, MAX_PICTRL_MSG_SIZE);
     des->in.rx_buffered_bytes = 0;
     if (!des->in.rx_buffer) {
-        // TODO: Do something with these logs
-        //lwsl_err("Could not allocate rx_buffer\n");
+        pictrl_log_error("Could not allocate rx_buffer\n");
         return -2;
     }
 
     const size_t num_initial_bytes = 1;
     des->out.msg.payload = calloc(num_initial_bytes, sizeof(*(des->out.msg.payload)));
     if (!des->out.msg.payload) {
-        //lwsl_err("Could not allocate RawPiCtrlMessage payload\n");
+        pictrl_log_error("Could not allocate RawPiCtrlMessage payload\n");
         return -3;
     }
     return 0;
@@ -46,12 +46,12 @@ int deserialize_network_data(PiCtrlMsgDeserializer *des) {
     const size_t expected_wire_size = sizeof(des->out.msg.header.cmd) + sizeof(des->out.msg.header.payload_size)
                                     + payload_size;
     if (des->in.rx_buffered_bytes != expected_wire_size) {
-        //lwsl_warn("Transmission struct size mismatch. Got %zu bytes, expected %zu\n",
-                  //des->in.rx_buffered_bytes, expected_wire_size);
+        pictrl_log_warn("Transmission struct size mismatch. Got %zu bytes, expected %zu\n",
+                        des->in.rx_buffered_bytes, expected_wire_size);
         return -2;
     }
     if (payload_size > MAX_PAYLOAD_SIZE) {
-        //lwsl_debug("This shouldn't be possible");
+        pictrl_log_error("Received payload size > max payload size. This shouldn't be possible\n");
         return -3;
     }
 
@@ -70,8 +70,7 @@ int deserialize_network_data(PiCtrlMsgDeserializer *des) {
     if (payload_size > des->out.payload_buf_size) {
         uint8_t *new_region = realloc(des->out.msg.payload, payload_size);
         if (!new_region) {
-            // TODO: Free payload?
-            //lwsl_err("Couldn't realloc payload: %s\n", strerror(errno));
+            pictrl_log_error("Couldn't realloc payload\n");
             return -4;
         }
         des->out.msg.payload = new_region;

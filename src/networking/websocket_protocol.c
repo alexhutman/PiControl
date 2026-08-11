@@ -43,7 +43,6 @@ static PerVHostData* initialize_vhost_data(struct lws *wsi) {
                                                     sizeof(*vhd));
     if (!vhd) return NULL;
 
-    // Create backend
     vhd->backend = pictrl_backend_new();
     if (!vhd->backend) {
       lwsl_err("Unable to create PiControl backend!\n");
@@ -66,7 +65,7 @@ static int destroy_vhost_data(PerVHostData *vhd) {
     if (!vhd) return -1;
     if (vhd->backend) {
       // TODO: prob some error handling
-      lwsl_user("Freeing backend...\n");
+      lwsl_debug("Freeing backend...\n");
       pictrl_backend_free(vhd->backend);
       vhd->backend = NULL;
     }
@@ -102,8 +101,11 @@ static int receive_data(struct lws *wsi, pictrl_backend *backend, PiCtrlMsgDeser
         // End of transmission
         int ret = deserialize_network_data(des);
         if (ret < 0) return ret;
+        lwsl_debug("Deserialized PiControlMsg\n");
 
-        handle_message(backend, &des->out.msg);
+        ret = handle_message(backend, &des->out.msg);
+        if (ret < 0) return ret;
+        lwsl_debug("PiControlMsg handled\n");
     } else {
         lwsl_debug("Received fragment slice. Waiting for the remaining %zu pieces...\n", remaining);
     }
@@ -135,6 +137,10 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
       lwsl_notice("LWS_CALLBACK_RAW_ADOPT (%zu)\n", len);
       break;
     case LWS_CALLBACK_ESTABLISHED: {
+      char ip_buf[64];
+      lws_get_peer_simple(wsi, ip_buf, sizeof(ip_buf));
+      lwsl_user("User connected from %s\n", ip_buf);
+
       int ret = initialize_session_data(pss);
       if (ret < 0) return ret;
       break;
