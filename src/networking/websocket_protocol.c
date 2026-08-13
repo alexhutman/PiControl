@@ -100,12 +100,13 @@ static int receive_data(struct lws *wsi, pictrl_backend *backend, PiCtrlMsgDeser
 
     if (remaining == 0 && is_final) {
         // End of transmission
-        int ret = deserialize_network_data(des);
-        if (ret < 0) return ret;
+        if (deserialize_network_data(des) < 0) return -4;
         pictrl_log_debug("Deserialized PiControlMsg\n");
 
-        ret = handle_message(backend, &des->out.msg);
-        if (ret < 0) return ret;
+        if (!validate_pictrl_message(&des->out.msg)) return -5;
+        pictrl_log_debug("Validated PiControlMsg\n");
+
+        if (handle_message(backend, &des->out.msg) < 0) return -6;
         pictrl_log_debug("PiControlMsg handled\n");
     } else {
         pictrl_log_debug("Received fragment slice. Waiting for the remaining %zu pieces...\n", remaining);

@@ -1,6 +1,7 @@
 #ifndef _PICTRL_MODEL_PROTOCOL_H
 #define _PICTRL_MODEL_PROTOCOL_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef enum {
@@ -21,5 +22,7 @@ typedef struct {
   RawPictrlHeader header;
   uint8_t *payload;
 } RawPiCtrlMessage;
+
+bool validate_pictrl_message(RawPiCtrlMessage *msg);
 
 #endif
