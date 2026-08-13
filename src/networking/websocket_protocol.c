@@ -153,7 +153,7 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
       if (!pss) break;
       destroy_session_data(pss);
       pictrl_log_debug("Destroyed session data\n");
-      lwsl_notice("[CONN] + Disconnected | IP: %s\n", pss->client_ip);
+      lwsl_notice("[CONN] - Disconnected | IP: %s\n", pss->client_ip);
       break;
     case LWS_CALLBACK_PROTOCOL_DESTROY:
       destroy_vhost_data(vhd);
