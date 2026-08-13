@@ -1,5 +1,4 @@
-#ifndef _PICTRL_RING_BUFFER_H
-#define _PICTRL_RING_BUFFER_H
+#pragma once
 
 #include <unistd.h>
 
@@ -64,4 +63,3 @@ static inline uint8_t pictrl_rb_get(pictrl_rb_t *rb, size_t idx) {
 static inline uint8_t *pictrl_rb_data_start_address(pictrl_rb_t *rb) {
   return &rb->buffer[rb->data_start];
 }
-#endif

@@ -1,5 +1,4 @@
-#ifndef _PICTRL_BACKEND_H
-#define _PICTRL_BACKEND_H
+#pragma once
 
 #include "backend/picontrol_uinput.h"
 #include "model/protocol.h"
@@ -30,5 +29,3 @@ void handle_mouse_click(pictrl_backend *backend, RawPiCtrlMessage *msg);
 void handle_mouse_move(pictrl_backend *backend, RawPiCtrlMessage *msg);
 void handle_text(pictrl_backend *backend, RawPiCtrlMessage *msg);
 void handle_keysym(pictrl_backend *backend, RawPiCtrlMessage *msg);
-
-#endif

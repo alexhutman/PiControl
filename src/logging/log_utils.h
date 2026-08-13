@@ -1,5 +1,4 @@
-#ifndef _PICTRL_LOGUTILS_H
-#define _PICTRL_LOGUTILS_H
+#pragma once
 
 #include <stdio.h>
 
@@ -26,5 +25,3 @@ NOTE: be careful with strerr() as well: https://stackoverflow.com/q/73167084
 #define pictrl_log_stub(...) printf("[STUB] " __VA_ARGS__)
 
 #define pictrl_log_test_case(...) printf("[CASE] " __VA_ARGS__)
-
-#endif

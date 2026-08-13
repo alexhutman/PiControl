@@ -1,5 +1,4 @@
-#ifndef _PICTRL_IPUTILS_H
-#define _PICTRL_IPUTILS_H
+#pragma once
 
 #include <arpa/inet.h>
 #include <net/if.h>
@@ -46,5 +45,3 @@ static inline void pictrl_client_get_ip_and_port(pictrl_client_t *pi_client) {
           IFNAMSIZ - 1);
   pi_client->client_port = ntohs(pi_client->client.sin_port);
 }
-
-#endif

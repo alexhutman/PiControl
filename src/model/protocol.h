@@ -1,5 +1,4 @@
-#ifndef _PICTRL_MODEL_PROTOCOL_H
-#define _PICTRL_MODEL_PROTOCOL_H
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -24,5 +23,3 @@ typedef struct {
 } RawPiCtrlMessage;
 
 bool validate_pictrl_message(RawPiCtrlMessage *msg);
-
-#endif

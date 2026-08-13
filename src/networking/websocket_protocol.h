@@ -1,5 +1,4 @@
-#ifndef _PICTRL_NETWORK_WS_H
-#define _PICTRL_NETWORK_WS_H
+#pragma once
 
 #include "backend/picontrol_backend.h"
 #include "serialize/protocol.h"
@@ -16,5 +15,3 @@ typedef struct {
 } SessionData;
 
 lws_callback_function callback_picontrol;
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef _PICTRL_SERIALIZE_PROTOCOL_H
-#define _PICTRL_SERIALIZE_PROTOCOL_H
+#pragma once
 
 #include "model/protocol.h"
 
@@ -32,4 +31,3 @@ int destroy_deserializer(PiCtrlMsgDeserializer *des);
 // | CMD (1 byte) | PAYLOAD_SIZE (1 byte) | PAYLOAD (MAX: UINT8_MAX bytes) |
 // -------------------------------------------------------------------------
 int deserialize_network_data(PiCtrlMsgDeserializer *des);
-#endif

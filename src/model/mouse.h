@@ -1,5 +1,4 @@
-#ifndef _PICTRL_MODEL_MOUSE_H
-#define _PICTRL_MODEL_MOUSE_H
+#pragma once
 
 typedef enum { PI_CTRL_MOUSE_LEFT = 0, PI_CTRL_MOUSE_RIGHT = 1 } PiCtrlMouseBtn;
 
@@ -16,5 +15,3 @@ typedef struct {
 typedef struct {
   int x, y;
 } PiCtrlMouseCoord;
-
-#endif

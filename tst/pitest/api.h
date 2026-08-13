@@ -1,5 +1,4 @@
-#ifndef _PITEST_API_H
-#define _PITEST_API_H
+#pragma once
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -30,4 +29,3 @@ typedef struct {
 
 int run_test(const TestCase *);
 size_t run_test_suite(const TestSuite *);
-#endif

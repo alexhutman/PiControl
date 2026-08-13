@@ -1,5 +1,4 @@
-#ifndef _PICTRL_XDO_H
-#define _PICTRL_XDO_H
+#pragma once
 
 #include <xdo.h>
 
@@ -8,5 +7,3 @@
 
 xdo_t *pictrl_xdo_backend_new();
 void pictrl_xdo_backend_free(xdo_t *backend);
-
-#endif

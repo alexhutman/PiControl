@@ -1,5 +1,4 @@
-#ifndef _PICTRL_UINPUT_H
-#define _PICTRL_UINPUT_H
+#pragma once
 
 #include "model/mouse.h"
 #include "picontrol_config.h"
@@ -68,4 +67,3 @@ void picontrol_uinput_type_keysym(pictrl_uinput_t *uinput, char *keysym);
 int pictrl_uinput_backend_init(pictrl_uinput_t *uinput);
 int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput);
 void pictrl_uinput_backend_free(pictrl_uinput_t *uinput);
-#endif
