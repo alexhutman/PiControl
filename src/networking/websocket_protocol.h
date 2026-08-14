@@ -14,4 +14,5 @@ typedef struct {
   char client_ip[46];
 } SessionData;
 
+extern const struct lws_protocols protocols[];
 lws_callback_function callback_picontrol;

@@ -10,16 +10,6 @@ static int picontrol_listen(struct lws_context *context);
 
 static volatile sig_atomic_t should_exit = false;
 
-const struct lws_protocols protocols[] = {
-    {
-        .name = "picontrol",
-        .callback = &callback_picontrol,
-        .per_session_data_size = sizeof(SessionData),
-        .rx_buffer_size = 0,
-        .id = 1  // First iteration of the protocol (ignored by lws)
-    },
-    LWS_PROTOCOL_LIST_TERM};
-
 int main() {
   int logs = LLL_USER | LLL_ERR | LLL_WARN | LLL_NOTICE;
   lws_set_log_level(logs, NULL);

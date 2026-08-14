@@ -14,6 +14,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+const struct lws_protocols protocols[] = {
+    {
+        .name = "picontrol",
+        .callback = &callback_picontrol,
+        .per_session_data_size = sizeof(SessionData),
+        .rx_buffer_size = 0,
+        .id = 1  // First iteration of the protocol (ignored by lws)
+    },
+    LWS_PROTOCOL_LIST_TERM
+};
+
 static int handle_message(pictrl_backend *backend, RawPiCtrlMessage *msg) {
   // Handle command
   switch (msg->header.cmd) {
