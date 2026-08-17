@@ -135,7 +135,13 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
   switch (reason) {
     case LWS_CALLBACK_PROTOCOL_INIT:
       vhd = initialize_vhost_data(wsi);
-      if (!vhd) return -1;
+      if (!vhd) {
+        pictrl_app_runtime_t *app = (pictrl_app_runtime_t *)lws_context_user(lws_get_context(wsi));
+        if (app) {
+          app->init_failed = true;
+        }
+        return -1;
+      }
       pictrl_log_debug("Initialized vhost data\n");
 
       // Get our IP
