@@ -140,6 +140,7 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
         if (app) {
           app->init_failed = true;
         }
+        lws_context_destroy(lws_get_context(wsi));
         return -1;
       }
       pictrl_log_debug("Initialized vhost data\n");

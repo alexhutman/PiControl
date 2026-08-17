@@ -3,63 +3,31 @@
 
 #include <libwebsockets.h>
 
-#include <signal.h>
-#include <stdbool.h>
-
-static int picontrol_listen(struct lws_context *context, pictrl_app_runtime_t *app);
-
-static volatile sig_atomic_t should_exit = false;
-
 int main() {
   int logs = LLL_USER | LLL_ERR | LLL_WARN | LLL_NOTICE;
   lws_set_log_level(logs, NULL);
 
-  pictrl_app_runtime_t app_state = { .init_failed = false };
+  struct lws_context *ws_context = NULL;
   struct lws_context_creation_info info = {
       .port = SERVER_PORT,
       .protocols = protocols,
-      .options = LWS_SERVER_OPTION_FALLBACK_TO_APPLY_LISTEN_ACCEPT_CONFIG,
+      .options = LWS_SERVER_OPTION_FALLBACK_TO_APPLY_LISTEN_ACCEPT_CONFIG
+               | LWS_SERVER_OPTION_LIBUV,
       .gid = -1,
       .uid = -1,
-      .user = &app_state
+      .pcontext = &ws_context
   };
-  struct lws_context *ws_context = lws_create_context(&info);
+
+  ws_context = lws_create_context(&info);
   if (!ws_context) {
     lwsl_err("Failed to create LWS context\n");
     return 1;
   }
 
-  int ret = picontrol_listen(ws_context, &app_state);
+  lws_service(ws_context, 0);
 
-  lws_context_destroy(ws_context);
-  return ret;
-}
-
-void sig_handler(int signum) {
-  (void)signum;  // To shut compiler up about unused var
-  should_exit = true;
-}
-
-static int picontrol_listen(struct lws_context *context, pictrl_app_runtime_t *app_state) {
-  // Set SIGINT and SIGTERM handlers
-  struct sigaction old_sigint_handler, old_sigterm_handler;
-  struct sigaction new_sig_handler = {.sa_handler = &sig_handler,
-                                      .sa_flags = 0};
-  sigemptyset(&new_sig_handler.sa_mask);
-  sigaction(SIGINT, &new_sig_handler, &old_sigint_handler);
-  sigaction(SIGTERM, &new_sig_handler, &old_sigterm_handler);
-
-  int n = 0;
-  while (n >= 0 && !should_exit) {
-    n = lws_service(context, 0);
-    if (app_state->init_failed) {
-      lwsl_err("Protocol Initialization failed\n");
-      break;
-    }
+  if (ws_context) {
+    lws_context_destroy(ws_context);
   }
-  // Restore old signal handlers
-  sigaction(SIGINT, &old_sigint_handler, NULL);
-  sigaction(SIGTERM, &old_sigterm_handler, NULL);
-
   return 0;
 }

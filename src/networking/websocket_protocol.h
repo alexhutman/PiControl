@@ -5,12 +5,6 @@
 
 #include <libwebsockets.h>
 
-#include <stdbool.h>
-
-typedef struct {
-    bool init_failed;
-} pictrl_app_runtime_t;
-
 typedef struct {
   pictrl_backend *backend;
 } PerVHostData;
