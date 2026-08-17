@@ -136,10 +136,6 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
     case LWS_CALLBACK_PROTOCOL_INIT:
       vhd = initialize_vhost_data(wsi);
       if (!vhd) {
-        pictrl_app_runtime_t *app = (pictrl_app_runtime_t *)lws_context_user(lws_get_context(wsi));
-        if (app) {
-          app->init_failed = true;
-        }
         lws_context_destroy(lws_get_context(wsi));
         return -1;
       }
