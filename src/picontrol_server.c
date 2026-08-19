@@ -7,6 +7,8 @@
 #include <libwebsockets.h>
 #include <uv.h>
 
+#include <assert.h>
+
 #define DESERIALIZER_POOL_SIZE ((size_t)5)
 
 int main() {
@@ -16,6 +18,10 @@ int main() {
   pictrl_app_runtime_t state = {0};
   pictrl_pool_init(&state.deserializer_pool, DESERIALIZER_POOL_SIZE, sizeof(PiCtrlMsgDeserializer));
   pictrl_queue_init(&state.queue, DESERIALIZER_POOL_SIZE, sizeof(PiCtrlMsgDeserializer *));
+  for (size_t idx = 0; idx < state.deserializer_pool.top; idx++) {
+      // Unsafe since the pool is unlocked but we aren't using it yet
+      initialize_deserializer(state.deserializer_pool.pool[idx]);
+  }
 
   struct lws_context *ws_context = NULL;
   struct lws_context_creation_info info = {
@@ -52,6 +58,13 @@ int main() {
   uv_thread_join(&state.writer_thread);
 
   pictrl_queue_destroy(&state.queue);
+  assert(state.deserializer_pool.top == state.deserializer_pool.capacity && "Not all deserializers were put back");
+  for (size_t idx = 0; idx < state.deserializer_pool.top; idx++) {
+      // Unsafe since the pool is unlocked but we aren't using it anymore
+      destroy_deserializer(state.deserializer_pool.pool[idx]);
+  }
+  pictrl_pool_destroy(&state.deserializer_pool);
+  pictrl_backend_free(state.backend);
   if (ws_context) lws_context_destroy(ws_context);
   return 0;
 }
