@@ -44,13 +44,12 @@ void keyboard_writer_thread(void *arg) {
     PiCtrlMsgDeserializer *des = NULL;
 
     while (true) {
-        pictrl_queue_pop(&state->queue, &des); // blocks
-        lwsl_debug("[Writer Thread]: Processing queue item @%p\n", des);
-
-        if (des == NULL) { // Poison pill
-            lwsl_notice("[Writer Thread]: Poison pill received. Exiting worker thread.\n");
+        bool success = pictrl_queue_pop(&state->queue, &des);
+        if (!success) {
+            lwsl_debug("[Writer Thread]: Queue closed. Exiting\n");
             break;
         }
+        lwsl_debug("[Writer Thread]: Processing queue item @%p\n", des);
 
         if (deserialize_network_data(des) < 0) {
             lwsl_err("[Writer Thread]: Couldn't deserialize message\n");
