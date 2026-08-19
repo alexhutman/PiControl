@@ -45,7 +45,7 @@ void keyboard_writer_thread(void *arg) {
 
     while (true) {
         pictrl_queue_pop(&state->queue, &des); // blocks
-        lwsl_user("[Writer Thread]: Processing queue item\n");
+        lwsl_debug("[Writer Thread]: Processing queue item @%p\n", des);
 
         if (des == NULL) { // Poison pill
             lwsl_notice("[Writer Thread]: Poison pill received. Exiting worker thread.\n");
@@ -75,6 +75,7 @@ void keyboard_writer_thread(void *arg) {
 
 cleanup:
         pictrl_pool_checkin(&state->deserializer_pool, des);
+        lwsl_debug("[Writer Thread]: Pushed queue item @%p back to pool\n", des);
     }
 }
 
@@ -88,6 +89,7 @@ static int receive_data(struct lws *wsi, pictrl_app_runtime_t *state, SessionDat
         assert(pss->cur_deserializer == NULL && "Current deserializer was not null on first fragment!");
         pss->cur_deserializer = pictrl_pool_checkout(&state->deserializer_pool);
         assert(pss->cur_deserializer != NULL && "Couldn't pull a deserializer from the pool!");
+        lwsl_debug("Using deserializer @%p\n", pss->cur_deserializer);
         pss->cur_deserializer->in.rx_buffered_bytes = 0;
     }
 
@@ -107,8 +109,8 @@ static int receive_data(struct lws *wsi, pictrl_app_runtime_t *state, SessionDat
     const int is_final = lws_is_final_fragment(wsi);
 
     if (remaining == 0 && is_final) {
-        lwsl_debug("Received final fragment. Sending serialized message to typing thread...\n");
-        pictrl_queue_push(&state->queue, pss->cur_deserializer); // TODO: Check if this failed?
+        lwsl_debug("Received final fragment. Sending serialized message @%p to typing thread...\n", pss->cur_deserializer);
+        pictrl_queue_push(&state->queue, &pss->cur_deserializer); // TODO: Check if this failed?
         pss->cur_deserializer = NULL;
     } else {
         lwsl_debug("Received fragment slice. Waiting for the remaining %zu pieces...\n", remaining);
@@ -140,15 +142,19 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason,
       lwsl_notice("[CONN] + Established | IP: %s\n", pss->client_ip);
       break;
     }
-    case LWS_CALLBACK_RECEIVE:
+    case LWS_CALLBACK_RECEIVE: {
       if (!pss || !in || len == 0) break;
       pictrl_app_runtime_t *app_state = (pictrl_app_runtime_t *)lws_context_user(lws_get_context(wsi));
       receive_data(wsi, app_state, pss, in, len);
       break;
-    case LWS_CALLBACK_CLOSED:
+    }
+    case LWS_CALLBACK_CLOSED: {
       if (!pss) break;
+      pictrl_app_runtime_t *app_state = (pictrl_app_runtime_t *)lws_context_user(lws_get_context(wsi));
+      if (pss->cur_deserializer) pictrl_pool_checkin(&app_state->deserializer_pool, pss->cur_deserializer);
       lwsl_notice("[CONN] - Disconnected | IP: %s\n", pss->client_ip);
       break;
+    }
     default:
       break;
   }
