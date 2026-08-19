@@ -10,10 +10,13 @@
 #include <libwebsockets.h>
 
 #include <assert.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+sig_atomic_t kb_thread_interrupted = false;
 
 static int handle_message(pictrl_backend *backend, RawPiCtrlMessage *msg) {
   // Handle command
@@ -43,14 +46,9 @@ void keyboard_writer_thread(void *arg) {
     pictrl_app_runtime_t *state = (pictrl_app_runtime_t *)arg;
     PiCtrlMsgDeserializer *des = NULL;
 
-    while (true) {
+    while (!kb_thread_interrupted) {
         pictrl_queue_pop(&state->queue, &des); // blocks
         lwsl_debug("[Writer Thread]: Processing queue item @%p\n", des);
-
-        if (des == NULL) { // Poison pill
-            lwsl_notice("[Writer Thread]: Poison pill received. Exiting worker thread.\n");
-            break;
-        }
 
         if (deserialize_network_data(des) < 0) {
             lwsl_err("[Writer Thread]: Couldn't deserialize message\n");
@@ -77,6 +75,7 @@ cleanup:
         pictrl_pool_checkin(&state->deserializer_pool, des);
         lwsl_debug("[Writer Thread]: Pushed queue item @%p back to pool\n", des);
     }
+    lwsl_debug("[Writer Thread]: Shutting down\n");
 }
 
 static bool initialize_session_data(struct lws *wsi, SessionData *pss) {

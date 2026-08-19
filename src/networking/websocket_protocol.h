@@ -6,6 +6,7 @@
 #include "serialize/protocol.h"
 
 #include <libwebsockets.h>
+#include <signal.h>
 #include <uv.h>
 
 #define MAX_CLIENT_IP_SIZE (46)
@@ -23,4 +24,5 @@ typedef struct {
 } SessionData;
 
 extern const struct lws_protocols protocols[];
+extern sig_atomic_t kb_thread_interrupted;
 void keyboard_writer_thread(void *arg);

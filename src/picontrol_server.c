@@ -53,8 +53,7 @@ int main() {
 
   lws_service(ws_context, 0);
 
-  const PiCtrlMsgDeserializer *poison_pill = NULL;
-  pictrl_queue_push(&state.queue, poison_pill); // Stop queue from waiting for work
+  kb_thread_interrupted = true;
   uv_thread_join(&state.writer_thread);
 
   pictrl_queue_destroy(&state.queue);
