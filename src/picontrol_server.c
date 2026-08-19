@@ -1,11 +1,21 @@
+#include "data_structures/multithread_pool.h"
+#include "data_structures/multithread_queue.h"
 #include "networking/websocket_protocol.h"
+#include "serialize/protocol.h"
 #include "picontrol_config.h"
 
 #include <libwebsockets.h>
+#include <uv.h>
+
+#define DESERIALIZER_POOL_SIZE ((size_t)5)
 
 int main() {
   int logs = LLL_USER | LLL_ERR | LLL_WARN | LLL_NOTICE;
   lws_set_log_level(logs, NULL);
+
+  pictrl_app_runtime_t state = {0};
+  pictrl_pool_init(&state.deserializer_pool, DESERIALIZER_POOL_SIZE, sizeof(PiCtrlMsgDeserializer));
+  pictrl_queue_init(&state.queue, DESERIALIZER_POOL_SIZE, sizeof(PiCtrlMsgDeserializer *));
 
   struct lws_context *ws_context = NULL;
   struct lws_context_creation_info info = {
@@ -15,8 +25,17 @@ int main() {
                | LWS_SERVER_OPTION_LIBUV,
       .gid = -1,
       .uid = -1,
-      .pcontext = &ws_context
+      .pcontext = &ws_context,
+      .user = &state
   };
+
+  state.backend = pictrl_backend_new();
+  if (!state.backend) {
+    lwsl_err("Unable to create PiControl backend!\n");
+    return 1;
+  }
+  lwsl_user("Using %s backend\n",
+            pictrl_backend_name(state.backend->type));
 
   ws_context = lws_create_context(&info);
   if (!ws_context) {
@@ -24,10 +43,15 @@ int main() {
     return 1;
   }
 
+  uv_thread_create(&state.writer_thread, &keyboard_writer_thread, &state);
+
   lws_service(ws_context, 0);
 
-  if (ws_context) {
-    lws_context_destroy(ws_context);
-  }
+  const PiCtrlMsgDeserializer *poison_pill = NULL;
+  pictrl_queue_push(&state.queue, poison_pill); // Stop queue from waiting for work
+  uv_thread_join(&state.writer_thread);
+
+  pictrl_queue_destroy(&state.queue);
+  if (ws_context) lws_context_destroy(ws_context);
   return 0;
 }

@@ -1,18 +1,26 @@
 #pragma once
 
 #include "backend/picontrol_backend.h"
+#include "data_structures/multithread_pool.h"
+#include "data_structures/multithread_queue.h"
 #include "serialize/protocol.h"
 
 #include <libwebsockets.h>
+#include <uv.h>
+
+#define MAX_CLIENT_IP_SIZE (46)
 
 typedef struct {
+  pictrl_pool_t deserializer_pool;
+  pictrl_queue_t queue;
+  uv_thread_t writer_thread;
   pictrl_backend *backend;
-} PerVHostData;
+} pictrl_app_runtime_t;
 
 typedef struct {
-  PiCtrlMsgDeserializer des;
-  char client_ip[46];
+  char client_ip[MAX_CLIENT_IP_SIZE];
+  PiCtrlMsgDeserializer *cur_deserializer;
 } SessionData;
 
 extern const struct lws_protocols protocols[];
-lws_callback_function callback_picontrol;
+void keyboard_writer_thread(void *arg);
