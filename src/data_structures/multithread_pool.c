@@ -6,10 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-bool pictrl_pool_init(pictrl_pool_t *p, size_t capacity, size_t item_size) {
-    p->top = 0;
-
-    void **pool = calloc(capacity, sizeof(*(p->pool)));
+bool pictrl_pool_init(pictrl_pool_t *p, const pictrl_pool_opts *opts) {
+    void **pool = calloc(opts->capacity, sizeof(*(p->pool)));
     if (!pool) return false;
 
     if (uv_mutex_init(&p->mutex) < 0) {
@@ -17,10 +15,21 @@ bool pictrl_pool_init(pictrl_pool_t *p, size_t capacity, size_t item_size) {
         return false;
     }
 
-    for (size_t i = 0; i < capacity; i++) {
-        pool[i] = calloc(1, item_size);
+    for (size_t i = 0; i < opts->capacity; i++) {
+        pool[i] = calloc(1, opts->item_size);
         if (!pool[i]) {
             for (size_t j = 0; j < i; j++) free(pool[j]);
+            free(pool);
+            uv_mutex_destroy(&p->mutex);
+            return false;
+        }
+
+        if (opts->init_cb &&
+            opts->init_cb(pool[i], opts->user_data) < 0) {
+            for (size_t j = 0; j <= i; j++) {
+                if (opts->destroy_cb) opts->destroy_cb(pool[j], opts->user_data);
+                free(pool[j]);
+            }
             free(pool);
             uv_mutex_destroy(&p->mutex);
             return false;
@@ -28,8 +37,10 @@ bool pictrl_pool_init(pictrl_pool_t *p, size_t capacity, size_t item_size) {
     }
 
     p->pool = pool;
-    p->capacity = capacity;
-    p->top = capacity;
+    p->capacity = opts->capacity;
+    p->top = opts->capacity;
+    p->destroy_cb = opts->destroy_cb;
+    p->user_data = opts->user_data;
     return true;
 }
 
@@ -61,7 +72,10 @@ void *pictrl_pool_checkout(pictrl_pool_t *p) {
 }
 
 void pictrl_pool_destroy(pictrl_pool_t *p) {
+    if (!p) return;
+
     for (size_t i = 0; i < p->top; i++) {
+        if (p->destroy_cb) p->destroy_cb(p->pool[i], p->user_data);
         free(p->pool[i]);
     }
     free(p->pool);

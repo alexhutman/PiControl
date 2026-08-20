@@ -46,7 +46,7 @@ void keyboard_writer_thread(void *arg) {
     while (pictrl_queue_pop(&state->queue, &des)) {
         lwsl_debug("[Writer Thread]: Processing queue item @%p\n", des);
 
-        if (deserialize_network_data(des) < 0) {
+        if (pictrl_deserialize_network_data(des) < 0) {
             lwsl_err("[Writer Thread]: Couldn't deserialize message\n");
             goto cleanup;
         } else {

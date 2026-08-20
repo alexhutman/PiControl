@@ -11,37 +11,57 @@
 
 #define DESERIALIZER_POOL_SIZE ((size_t)5)
 
-bool initialize_state(pictrl_app_runtime_t *state) {
-  pictrl_pool_init(&state->deserializer_pool, DESERIALIZER_POOL_SIZE, sizeof(PiCtrlMsgDeserializer));
-  pictrl_queue_init(&state->queue, DESERIALIZER_POOL_SIZE, sizeof(PiCtrlMsgDeserializer *));
-  for (size_t idx = 0; idx < state->deserializer_pool.top; idx++) {
-      // Unsafe since the pool is unlocked but we aren't using it yet
-      initialize_deserializer(state->deserializer_pool.pool[idx]);
+static int init_deserializer(void *item, void *user_data) {
+  (void)user_data;
+  return pictrl_initialize_deserializer((PiCtrlMsgDeserializer *)item);
+}
+
+static int destroy_deserializer(void *item, void *user_data) {
+  (void)user_data;
+  return pictrl_destroy_deserializer((PiCtrlMsgDeserializer *)item);
+}
+
+static bool initialize_state(pictrl_app_runtime_t *state) {
+  void *usr_data = NULL;
+  const pictrl_pool_opts pool_opts = {
+      DESERIALIZER_POOL_SIZE,
+      sizeof(PiCtrlMsgDeserializer),
+      &init_deserializer,
+      &destroy_deserializer,
+      usr_data
+  };
+
+  if (!pictrl_pool_init(&state->deserializer_pool, &pool_opts)) {
+    lwsl_err("Unable to create deserializer pool\n");
+    return false;
+  }
+  if (!pictrl_queue_init(&state->queue, DESERIALIZER_POOL_SIZE, sizeof(PiCtrlMsgDeserializer *))) {
+    lwsl_err("Unable to create worker thread's deserializer queue\n");
+    pictrl_pool_destroy(&state->deserializer_pool);
+    return false;
   }
 
   state->backend = pictrl_backend_new();
   if (!state->backend) {
     lwsl_err("Unable to create PiControl backend!\n");
-    // TODO: Destroy pool + queue
+    pictrl_queue_destroy(&state->queue);
+    pictrl_pool_destroy(&state->deserializer_pool);
     return false;
   }
-  lwsl_user("Using %s backend\n",
-            pictrl_backend_name(state->backend->type));
+  lwsl_notice("Initialized app state. Using %s backend\n",
+              pictrl_backend_name(state->backend->type));
   return true;
 }
 
-void cleanup_state(pictrl_app_runtime_t *state) {
+static void clean_up_state(pictrl_app_runtime_t *state) {
   pictrl_queue_close(&state->queue);
   uv_thread_join(&state->writer_thread);
 
+  pictrl_backend_free(state->backend);
   pictrl_queue_destroy(&state->queue);
   assert(state->deserializer_pool.top == state->deserializer_pool.capacity && "Not all deserializers were put back");
-  for (size_t idx = 0; idx < state->deserializer_pool.top; idx++) {
-      // Unsafe since the pool is unlocked but we aren't using it anymore
-      destroy_deserializer(state->deserializer_pool.pool[idx]);
-  }
   pictrl_pool_destroy(&state->deserializer_pool);
-  pictrl_backend_free(state->backend);
+  lwsl_notice("Destroyed app state\n");
 }
 
 int main() {
@@ -76,6 +96,6 @@ int main() {
 
   lws_service(ws_context, 0);
 
-  cleanup_state(&state);
+  clean_up_state(&state);
   return 0;
 }

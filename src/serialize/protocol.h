@@ -21,8 +21,8 @@ typedef struct {
   } out;
 } PiCtrlMsgDeserializer;
 
-int initialize_deserializer(PiCtrlMsgDeserializer *des);
-int destroy_deserializer(PiCtrlMsgDeserializer *des);
+int pictrl_initialize_deserializer(PiCtrlMsgDeserializer *des);
+int pictrl_destroy_deserializer(PiCtrlMsgDeserializer *des);
 
 // All bytes are unsigned
 //
@@ -30,4 +30,4 @@ int destroy_deserializer(PiCtrlMsgDeserializer *des);
 // -------------------------------------------------------------------------
 // | CMD (1 byte) | PAYLOAD_SIZE (1 byte) | PAYLOAD (MAX: UINT8_MAX bytes) |
 // -------------------------------------------------------------------------
-int deserialize_network_data(PiCtrlMsgDeserializer *des);
+int pictrl_deserialize_network_data(PiCtrlMsgDeserializer *des);

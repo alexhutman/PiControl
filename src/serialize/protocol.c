@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int initialize_deserializer(PiCtrlMsgDeserializer *des) {
+int pictrl_initialize_deserializer(PiCtrlMsgDeserializer *des) {
     if (!des) return -1;
     des->in.rx_buffer = calloc(1, MAX_PICTRL_MSG_SIZE);
     des->in.rx_buffered_bytes = 0;
@@ -27,7 +27,7 @@ int initialize_deserializer(PiCtrlMsgDeserializer *des) {
     return 0;
 }
 
-int destroy_deserializer(PiCtrlMsgDeserializer *des) {
+int pictrl_destroy_deserializer(PiCtrlMsgDeserializer *des) {
     if (!des) return -1;
     if (des->in.rx_buffer) {
         memset(des->in.rx_buffer, 0, MAX_PICTRL_MSG_SIZE);
@@ -42,7 +42,7 @@ int destroy_deserializer(PiCtrlMsgDeserializer *des) {
     return 0;
 }
 
-int deserialize_network_data(PiCtrlMsgDeserializer *des) {
+int pictrl_deserialize_network_data(PiCtrlMsgDeserializer *des) {
     if (!des->in.rx_buffer || !des->out.msg.payload) return -1;
 
     const uint8_t payload_size = des->in.rx_buffer[1];
