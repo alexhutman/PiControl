@@ -11,16 +11,47 @@
 
 #define DESERIALIZER_POOL_SIZE ((size_t)5)
 
+bool initialize_state(pictrl_app_runtime_t *state) {
+  pictrl_pool_init(&state->deserializer_pool, DESERIALIZER_POOL_SIZE, sizeof(PiCtrlMsgDeserializer));
+  pictrl_queue_init(&state->queue, DESERIALIZER_POOL_SIZE, sizeof(PiCtrlMsgDeserializer *));
+  for (size_t idx = 0; idx < state->deserializer_pool.top; idx++) {
+      // Unsafe since the pool is unlocked but we aren't using it yet
+      initialize_deserializer(state->deserializer_pool.pool[idx]);
+  }
+
+  state->backend = pictrl_backend_new();
+  if (!state->backend) {
+    lwsl_err("Unable to create PiControl backend!\n");
+    // TODO: Destroy pool + queue
+    return false;
+  }
+  lwsl_user("Using %s backend\n",
+            pictrl_backend_name(state->backend->type));
+  return true;
+}
+
+void cleanup_state(pictrl_app_runtime_t *state) {
+  pictrl_queue_close(&state->queue);
+  uv_thread_join(&state->writer_thread);
+
+  pictrl_queue_destroy(&state->queue);
+  assert(state->deserializer_pool.top == state->deserializer_pool.capacity && "Not all deserializers were put back");
+  for (size_t idx = 0; idx < state->deserializer_pool.top; idx++) {
+      // Unsafe since the pool is unlocked but we aren't using it anymore
+      destroy_deserializer(state->deserializer_pool.pool[idx]);
+  }
+  pictrl_pool_destroy(&state->deserializer_pool);
+  pictrl_backend_free(state->backend);
+}
+
 int main() {
   int logs = LLL_USER | LLL_ERR | LLL_WARN | LLL_NOTICE;
   lws_set_log_level(logs, NULL);
 
   pictrl_app_runtime_t state = {0};
-  pictrl_pool_init(&state.deserializer_pool, DESERIALIZER_POOL_SIZE, sizeof(PiCtrlMsgDeserializer));
-  pictrl_queue_init(&state.queue, DESERIALIZER_POOL_SIZE, sizeof(PiCtrlMsgDeserializer *));
-  for (size_t idx = 0; idx < state.deserializer_pool.top; idx++) {
-      // Unsafe since the pool is unlocked but we aren't using it yet
-      initialize_deserializer(state.deserializer_pool.pool[idx]);
+  if (!initialize_state(&state)) {
+      lwsl_err("Failed to initialize app state\n");
+      return 1;
   }
 
   struct lws_context *ws_context = NULL;
@@ -35,14 +66,6 @@ int main() {
       .user = &state
   };
 
-  state.backend = pictrl_backend_new();
-  if (!state.backend) {
-    lwsl_err("Unable to create PiControl backend!\n");
-    return 1;
-  }
-  lwsl_user("Using %s backend\n",
-            pictrl_backend_name(state.backend->type));
-
   ws_context = lws_create_context(&info);
   if (!ws_context) {
     lwsl_err("Failed to create LWS context\n");
@@ -53,17 +76,6 @@ int main() {
 
   lws_service(ws_context, 0);
 
-  pictrl_queue_close(&state.queue);
-  uv_thread_join(&state.writer_thread);
-
-  pictrl_queue_destroy(&state.queue);
-  assert(state.deserializer_pool.top == state.deserializer_pool.capacity && "Not all deserializers were put back");
-  for (size_t idx = 0; idx < state.deserializer_pool.top; idx++) {
-      // Unsafe since the pool is unlocked but we aren't using it anymore
-      destroy_deserializer(state.deserializer_pool.pool[idx]);
-  }
-  pictrl_pool_destroy(&state.deserializer_pool);
-  pictrl_backend_free(state.backend);
-  if (ws_context) lws_context_destroy(ws_context);
+  cleanup_state(&state);
   return 0;
 }

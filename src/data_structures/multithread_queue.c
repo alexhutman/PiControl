@@ -1,33 +1,34 @@
 #include "data_structures/multithread_queue.h"
 
-#include <stddef.h>
 #include <uv.h>
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 bool pictrl_queue_init(pictrl_queue_t *q, size_t capacity, size_t item_size) {
-    q->items = malloc(capacity * item_size);
     if (!q) return false;
+    void *items = malloc(capacity * item_size);
 
     if (uv_mutex_init(&q->mutex) < 0) {
-        free(q->items);
+        free(items);
         return false;
     }
     if (uv_cond_init(&q->not_empty) < 0) {
-        free(q->items);
+        free(items);
         uv_mutex_destroy(&q->mutex);
         return false;
     }
     if (uv_cond_init(&q->not_full) < 0) {
-        free(q->items);
+        free(items);
         uv_mutex_destroy(&q->mutex);
         uv_cond_destroy(&q->not_empty);
         return false;
     }
 
+    q->items = items;
     q->capacity = capacity;
     q->item_size = item_size;
     q->head = 0;
@@ -36,7 +37,6 @@ bool pictrl_queue_init(pictrl_queue_t *q, size_t capacity, size_t item_size) {
 }
 
 bool pictrl_queue_push(pictrl_queue_t *q, const void *item) {
-    // TODO: Keep mutex lock/unlocking here and in dequeue()?
     uv_mutex_lock(&q->mutex);
 
     if (q->is_closed) {

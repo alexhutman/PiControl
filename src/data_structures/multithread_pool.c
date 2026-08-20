@@ -8,25 +8,26 @@
 
 bool pictrl_pool_init(pictrl_pool_t *p, size_t capacity, size_t item_size) {
     p->top = 0;
-    
-    p->pool = calloc(capacity, sizeof(*(p->pool)));
-    if (!p->pool) return false;
-    
+
+    void **pool = calloc(capacity, sizeof(*(p->pool)));
+    if (!pool) return false;
+
     if (uv_mutex_init(&p->mutex) < 0) {
-        free(p->pool);
+        free(pool);
         return false;
     }
-    
+
     for (size_t i = 0; i < capacity; i++) {
-        p->pool[i] = calloc(1, item_size);
-        if (!p->pool[i]) {
-            for (size_t j = 0; j < i; j++) free(p->pool[j]);
-            free(p->pool);
+        pool[i] = calloc(1, item_size);
+        if (!pool[i]) {
+            for (size_t j = 0; j < i; j++) free(pool[j]);
+            free(pool);
             uv_mutex_destroy(&p->mutex);
             return false;
         }
     }
-    
+
+    p->pool = pool;
     p->capacity = capacity;
     p->top = capacity;
     return true;

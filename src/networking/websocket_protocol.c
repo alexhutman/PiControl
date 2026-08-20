@@ -43,12 +43,7 @@ void keyboard_writer_thread(void *arg) {
     pictrl_app_runtime_t *state = (pictrl_app_runtime_t *)arg;
     PiCtrlMsgDeserializer *des = NULL;
 
-    while (true) {
-        bool success = pictrl_queue_pop(&state->queue, &des);
-        if (!success) {
-            lwsl_debug("[Writer Thread]: Queue closed. Exiting\n");
-            break;
-        }
+    while (pictrl_queue_pop(&state->queue, &des)) {
         lwsl_debug("[Writer Thread]: Processing queue item @%p\n", des);
 
         if (deserialize_network_data(des) < 0) {
@@ -76,6 +71,7 @@ cleanup:
         pictrl_pool_checkin(&state->deserializer_pool, des);
         lwsl_debug("[Writer Thread]: Pushed queue item @%p back to pool\n", des);
     }
+    lwsl_debug("[Writer Thread]: Queue is empty and closed. Exiting\n");
 }
 
 static bool initialize_session_data(struct lws *wsi, SessionData *pss) {

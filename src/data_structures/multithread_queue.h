@@ -3,6 +3,7 @@
 #include <uv.h>
 
 #include <stdbool.h>
+#include <stdint.h>
 
 // Thread-safe generic circular queue
 typedef struct {
