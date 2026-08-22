@@ -38,7 +38,7 @@ jobs:
           path: libwebsockets
           ref: v5.0-stable
       - name: Build + install libwebsockets
-        working-directory: ~/libwebsockets
+        working-directory: libwebsockets
         run: |
           mkdir build && cd build
           cmake -DLWS_WITH_LIBUV=1 ..
@@ -52,7 +52,7 @@ jobs:
         with:
           path: picontrol
       - name: Build server
-        working-directory: ~/picontrol
+        working-directory: picontrol
         run: |
           make server
   test:
