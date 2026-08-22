@@ -47,6 +47,7 @@ jobs:
         run: |
           mkdir build && cd build
           cmake -DLWS_WITH_LIBUV=1 ..
+          make -j$(nproc)
           sudo make install
           sudo ldconfig
       - name: Checkout PiControl
