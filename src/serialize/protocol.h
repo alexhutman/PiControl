@@ -5,11 +5,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define MAX_PAYLOAD_SIZE (UINT8_MAX)
-#define MAX_PICTRL_MSG_SIZE (sizeof(uint8_t) \
-                           + sizeof(uint8_t) \
-                           + MAX_PAYLOAD_SIZE)
-
 typedef struct {
   struct {
       uint8_t *rx_buffer;

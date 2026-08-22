@@ -3,6 +3,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define MAX_PAYLOAD_SIZE (UINT8_MAX)
+#define MAX_PICTRL_MSG_SIZE (sizeof(uint8_t) \
+                           + sizeof(uint8_t) \
+                           + MAX_PAYLOAD_SIZE)
+
 typedef enum {
   PI_CTRL_HEARTBEAT,  // Client: Send heartbeat so server can disconnect if
                       //         connection is lost
