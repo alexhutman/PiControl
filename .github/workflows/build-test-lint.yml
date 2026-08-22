@@ -44,9 +44,16 @@ jobs:
           sudo apt install libgnutls28-dev
       - name: Build + install libwebsockets
         working-directory: libwebsockets
+        env:
+          CMAKE_FLAGS: >
+            -DLWS_WITH_LIBUV=1
+            -DLWS_WITH_TESTS=OFF
+            -DLWS_WITHOUT_TESTAPPS=ON
+            -DLWS_WITHOUT_TEST_PLUGINS=ON
+            -DLWS_WITH_MINIMAL_EXAMPLES=OFF
         run: |
           mkdir build && cd build
-          cmake -DLWS_WITH_LIBUV=1 ..
+          cmake $CMAKE_FLAGS ..
           make -j$(nproc)
           sudo make install
           sudo ldconfig
