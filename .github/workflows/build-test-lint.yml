@@ -37,6 +37,12 @@ jobs:
           repository: warmcat/libwebsockets
           path: libwebsockets
           ref: v5.0-stable
+      - name: Install libuv headers
+        run: |
+          sudo apt install libuv1-dev
+      - name: Install gnutls headers
+        run: |
+          sudo apt install libgnutls28-dev
       - name: Build + install libwebsockets
         working-directory: libwebsockets
         run: |
@@ -44,9 +50,6 @@ jobs:
           cmake -DLWS_WITH_LIBUV=1 ..
           sudo make install
           sudo ldconfig
-      - name: Install libuv headers
-        run: |
-          sudo apt install libuv1-dev
       - name: Checkout PiControl
         uses: actions/checkout@v7.0.1
         with:
