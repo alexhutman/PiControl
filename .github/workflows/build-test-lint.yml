@@ -36,19 +36,24 @@ jobs:
         with:
           repository: warmcat/libwebsockets
           path: libwebsockets
-          ref: v4.3-stable
+          ref: v5.0-stable
       - name: Build + install libwebsockets
+        working-directory: ~/libwebsockets
         run: |
-          cd libwebsockets
-          cmake .
+          mkdir build && cd build
+          cmake -DLWS_WITH_LIBUV=1 ..
           sudo make install
+          sudo ldconfig
+      - name: Install libuv headers
+        run: |
+          sudo apt install libuv1-dev
       - name: Checkout PiControl
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v7.0.1
         with:
           path: picontrol
       - name: Build server
+        working-directory: ~/picontrol
         run: |
-          cd picontrol
           make server
   test:
     needs: dedupe
