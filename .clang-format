@@ -1,0 +1,47 @@
+Language: Cpp
+BasedOnStyle: LLVM
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve
+
+UseTab: false
+ColumnLimit: 100
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: false
+  AfterControlStatement: false
+  AfterStruct: false
+  AfterEnum: false
+  BeforeElse: false
+
+PointerAlignment: Right
+
+AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: true
+AlignConsecutiveDeclarations: false
+
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+
+IndentPPDirectives: BeforeHash
+
+IncludeCategories:
+  # 1. Header for current implementation file
+  - Regex: '^"([^"]*\.h)"$'
+    Priority: -1
+    SortPriority: 1
+
+  # 2. Project headers (Quoted paths, matching subdirectories or flat names)
+  - Regex: '^"[^<.]*/.*"|^"[a-zA-Z0-9_-]+\.h"$'
+    Priority: 2
+
+  # 3. 3rd party headers (Angle brackets, but not matching known standard library patterns)
+  - Regex: '^<(libwebsockets|uv|xdo|linux|arpa|net|unistd|sys)'
+    Priority: 3
+  # Catch-all for other 3rd party angle-bracket includes that don't look like standard headers
+  - Regex: '^<[a-zA-Z0-9_-]+\.h>$'
+    Priority: 3
+
+  # 4. Standard library headers (Angle brackets with no extension, or standard C headers)
+  - Regex: '^<(a-z|assert|complex|ctype|errno|fenv|float|inttypes|iso646|limits|locale|math|setjmp|signal|stdalign|stdarg|stdatomic|stdbool|stddef|stdint|stdio|stdlib|stdnoreturn|string|tgmath|threads|time|uchar|uintptr|wchar|wctype)\.h>$|^<[a-z0-9_]+>$'
+    Priority: 4

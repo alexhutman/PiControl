@@ -3,18 +3,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MAX_PAYLOAD_SIZE (UINT8_MAX)
-#define MAX_PICTRL_MSG_SIZE (sizeof(uint8_t) \
-                           + sizeof(uint8_t) \
-                           + MAX_PAYLOAD_SIZE)
+#define MAX_PAYLOAD_SIZE    (UINT8_MAX)
+#define MAX_PICTRL_MSG_SIZE (sizeof(uint8_t) + sizeof(uint8_t) + MAX_PAYLOAD_SIZE)
 
 typedef enum {
-  PI_CTRL_HEARTBEAT,  // Client: Send heartbeat so server can disconnect if
-                      //         connection is lost
-  PI_CTRL_MOUSE_MV,   // Client: Send x,y of relative position to move mouse to
-  PI_CTRL_MOUSE_CLICK,  // Client: Say to click (mouseup or mousedown) mouse
-  PI_CTRL_TEXT,         // Client: Send UTF-8 bytes to be typed
-  PI_CTRL_KEYSYM,       // Client: Send keysym (combination)
+  PI_CTRL_HEARTBEAT,   // Client: Send heartbeat so server can disconnect if
+                       //         connection is lost
+  PI_CTRL_MOUSE_MV,    // Client: Send x,y of relative position to move mouse to
+  PI_CTRL_MOUSE_CLICK, // Client: Say to click (mouseup or mousedown) mouse
+  PI_CTRL_TEXT,        // Client: Send UTF-8 bytes to be typed
+  PI_CTRL_KEYSYM,      // Client: Send keysym (combination)
 } PiCtrlCmd;
 
 typedef struct {

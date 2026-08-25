@@ -9,4 +9,6 @@ xdo_t *pictrl_xdo_backend_new() {
   return xdo_new(display);
 }
 
-void pictrl_xdo_backend_free(xdo_t *xdo) { xdo_free(xdo); }
+void pictrl_xdo_backend_free(xdo_t *xdo) {
+  xdo_free(xdo);
+}

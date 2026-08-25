@@ -7,12 +7,12 @@
 
 typedef struct {
   struct {
-      uint8_t *rx_buffer;
-      size_t rx_buffered_bytes;
+    uint8_t *rx_buffer;
+    size_t rx_buffered_bytes;
   } in;
   struct {
-      RawPiCtrlMessage msg;
-      uint8_t payload_buf_size;
+    RawPiCtrlMessage msg;
+    uint8_t payload_buf_size;
   } out;
 } PiCtrlMsgDeserializer;
 

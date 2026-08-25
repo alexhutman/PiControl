@@ -3,13 +3,13 @@
 #include "backend/picontrol_uinput.h"
 #include "serialize/mouse.h"
 
-#ifdef PICTRL_XDO  // TODO: Use an xdo definition directly?
-#include "backend/picontrol_xdo.h"
-#include "logging/logger.h"
+#ifdef PICTRL_XDO // TODO: Use an xdo definition directly?
+  #include "backend/picontrol_xdo.h"
+  #include "logging/logger.h"
 
-#include <xdo.h>
+  #include <xdo.h>
 
-#include <string.h>
+  #include <string.h>
 #endif
 
 #include <stdlib.h>
@@ -27,7 +27,7 @@ pictrl_backend *pictrl_backend_new() {
 #ifdef PICTRL_XDO
   new_backend->backend = (pictrl_backend_t *)pictrl_xdo_backend_new();
   new_backend->type = PICTRL_BACKEND_XDO;
-#else  // default
+#else // default
   new_backend->backend = (pictrl_backend_t *)pictrl_uinput_backend_new();
   new_backend->type = PICTRL_BACKEND_UINPUT;
   init_ret = pictrl_uinput_backend_init(&new_backend->backend->uinput);
@@ -43,7 +43,7 @@ pictrl_backend *pictrl_backend_new() {
 void pictrl_backend_free(pictrl_backend *backend) {
 #ifdef PICTRL_XDO
   pictrl_xdo_backend_free(&backend->backend->xdo);
-#else  // default
+#else // default
   pictrl_uinput_backend_destroy(&backend->backend->uinput);
   pictrl_uinput_backend_free(&backend->backend->uinput);
 #endif
@@ -68,12 +68,9 @@ void handle_mouse_move(pictrl_backend *backend, RawPiCtrlMessage *msg) {
   const PiCtrlMouseCoord coords = pictrl_get_mouse_coords(msg);
 
 #ifdef PICTRL_XDO
-  pictrl_log_debug("Moving mouse (%d, %d) relative units using xdo.\n\n",
-                   coords.x, coords.y);
-  if (xdo_move_mouse_relative(&backend->backend->xdo, coords.x, coords.y) !=
-      0) {
-    pictrl_log_warn("Mouse was unable to be moved (%d, %d) relative units.\n",
-                    coords.x, coords.y);
+  pictrl_log_debug("Moving mouse (%d, %d) relative units using xdo.\n\n", coords.x, coords.y);
+  if (xdo_move_mouse_relative(&backend->backend->xdo, coords.x, coords.y) != 0) {
+    pictrl_log_warn("Mouse was unable to be moved (%d, %d) relative units.\n", coords.x, coords.y);
   }
 #else
   picontrol_uinput_move_mouse_rel(&backend->backend->uinput, coords);
@@ -88,9 +85,8 @@ void handle_text(pictrl_backend *backend, RawPiCtrlMessage *msg) {
   memcpy(text, msg->payload, msg->header.payload_size);
   text[msg->header.payload_size] = 0;
 
-  xdo_enter_text_window(
-      &backend->backend->xdo, CURRENTWINDOW, text,
-      XDO_KEYSTROKE_DELAY);  // TODO: what if sizeof(char) != sizeof(uint8_t)?
+  xdo_enter_text_window(&backend->backend->xdo, CURRENTWINDOW, text,
+                        XDO_KEYSTROKE_DELAY); // TODO: what if sizeof(char) != sizeof(uint8_t)?
 #else
   picontrol_uinput_type_char(&backend->backend->uinput, *msg->payload);
 #endif
@@ -104,8 +100,7 @@ void handle_keysym(pictrl_backend *backend, RawPiCtrlMessage *msg) {
   memcpy(keysym, msg->payload, msg->header.payload_size);
   keysym[msg->header.payload_size] = 0;
 
-  xdo_send_keysequence_window(&backend->backend->xdo, CURRENTWINDOW, keysym,
-                              XDO_KEYSTROKE_DELAY);
+  xdo_send_keysequence_window(&backend->backend->xdo, CURRENTWINDOW, keysym, XDO_KEYSTROKE_DELAY);
 #else
   picontrol_uinput_type_keysym(&backend->backend->uinput, (char *)msg->payload);
 #endif

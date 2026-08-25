@@ -3,8 +3,8 @@
 #include "backend/picontrol_uinput.h"
 #include "model/protocol.h"
 
-#ifdef PICTRL_XDO  // TODO: Use an xdo definition directly?
-#include <xdo.h>
+#ifdef PICTRL_XDO // TODO: Use an xdo definition directly?
+  #include <xdo.h>
 #endif
 
 typedef enum { PICTRL_BACKEND_UINPUT, PICTRL_BACKEND_XDO } pictrl_backend_type;
