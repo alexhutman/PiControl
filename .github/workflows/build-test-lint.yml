@@ -74,6 +74,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
+      - name: Install libuv headers
+        run: |
+          sudo apt install libuv1-dev
       - name: Build tests
         run: |
           make test
