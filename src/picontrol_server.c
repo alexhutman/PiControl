@@ -71,8 +71,7 @@ int main() {
       fprintf(stderr, "Could not initialize logger!\n");
       return 1;
   }
-  int logs = LLL_USER | LLL_ERR | LLL_WARN | LLL_NOTICE;
-  lws_set_log_level(logs, NULL);
+  lws_set_log_level(0, NULL);
 
   pictrl_app_runtime_t state = {0};
   if (!initialize_state(&state)) {
