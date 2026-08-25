@@ -1,5 +1,6 @@
 #include "data_structures/multithread_pool.h"
 #include "data_structures/multithread_queue.h"
+#include "logging/logger.h"
 #include "networking/websocket_protocol.h"
 #include "serialize/protocol.h"
 #include "picontrol_config.h"
@@ -8,6 +9,7 @@
 #include <uv.h>
 
 #include <assert.h>
+#include <stdio.h>
 
 #define DESERIALIZER_POOL_SIZE ((size_t)5)
 
@@ -32,23 +34,23 @@ static bool initialize_state(pictrl_app_runtime_t *state) {
   };
 
   if (!pictrl_pool_init(&state->deserializer_pool, &pool_opts)) {
-    lwsl_err("Unable to create deserializer pool\n");
+    pictrl_log_error("Unable to create deserializer pool\n");
     return false;
   }
   if (!pictrl_queue_init(&state->queue, DESERIALIZER_POOL_SIZE, sizeof(PiCtrlMsgDeserializer *))) {
-    lwsl_err("Unable to create worker thread's deserializer queue\n");
+    pictrl_log_error("Unable to create worker thread's deserializer queue\n");
     pictrl_pool_destroy(&state->deserializer_pool);
     return false;
   }
 
   state->backend = pictrl_backend_new();
   if (!state->backend) {
-    lwsl_err("Unable to create PiControl backend!\n");
+    pictrl_log_error("Unable to create PiControl backend!\n");
     pictrl_queue_destroy(&state->queue);
     pictrl_pool_destroy(&state->deserializer_pool);
     return false;
   }
-  lwsl_notice("Initialized app state. Using %s backend\n",
+  pictrl_log_info("Initialized app state. Using %s backend\n",
               pictrl_backend_name(state->backend->type));
   return true;
 }
@@ -61,16 +63,21 @@ static void clean_up_state(pictrl_app_runtime_t *state) {
   pictrl_queue_destroy(&state->queue);
   assert(state->deserializer_pool.top == state->deserializer_pool.capacity && "Not all deserializers were put back");
   pictrl_pool_destroy(&state->deserializer_pool);
-  lwsl_notice("Destroyed app state\n");
+  pictrl_log_info("Destroyed app state\n");
 }
 
 int main() {
+  if (!pictrl_logger_init()) {
+      fprintf(stderr, "Could not initialize logger!\n");
+      return 1;
+  }
   int logs = LLL_USER | LLL_ERR | LLL_WARN | LLL_NOTICE;
   lws_set_log_level(logs, NULL);
 
   pictrl_app_runtime_t state = {0};
   if (!initialize_state(&state)) {
-      lwsl_err("Failed to initialize app state\n");
+      pictrl_log_critical("Failed to initialize app state\n");
+      pictrl_logger_destroy();
       return 1;
   }
 
@@ -88,7 +95,9 @@ int main() {
 
   ws_context = lws_create_context(&info);
   if (!ws_context) {
-    lwsl_err("Failed to create LWS context\n");
+    pictrl_log_error("Failed to create LWS context\n");
+    clean_up_state(&state);
+    pictrl_logger_destroy();
     return 1;
   }
 
@@ -97,5 +106,6 @@ int main() {
   lws_service(ws_context, 0);
 
   clean_up_state(&state);
+  pictrl_logger_destroy();
   return 0;
 }

@@ -1,6 +1,6 @@
 #include "data_structures/ring_buffer.h"
 
-#include "logging/log_utils.h"
+#include "logging/logger.h"
 
 #include <unistd.h>
 

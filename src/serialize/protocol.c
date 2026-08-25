@@ -1,6 +1,6 @@
 #include "serialize/protocol.h"
 
-#include "logging/log_utils.h"
+#include "logging/logger.h"
 #include "model/protocol.h"
 
 #include <inttypes.h>

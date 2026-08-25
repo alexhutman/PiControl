@@ -5,7 +5,7 @@
 
 #ifdef PICTRL_XDO  // TODO: Use an xdo definition directly?
 #include "backend/picontrol_xdo.h"
-#include "logging/log_utils.h"
+#include "logging/logger.h"
 
 #include <xdo.h>
 
@@ -54,7 +54,7 @@ void handle_mouse_click(pictrl_backend *backend, RawPiCtrlMessage *msg) {
 #ifdef PICTRL_XDO
   (void)msg;
   (void)backend;
-  pictrl_log_stub("Not implemented\n");
+  pictrl_log_warn("[STUBBED] %s is not implemented\n", __func__);
 #else
   // TODO: For all of these functions, put actual functionality in their respective .c files
   // and just call the [backend_type]_{get_mouse_status,handle_mouse_move,...}() functions.

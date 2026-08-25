@@ -16,7 +16,7 @@ SERVER         := $(BIN_DIR)/picontrol_server
 TEST_SCRIPT    := $(BIN_DIR)/run_tests
 PITEST_SO_PATH := $(BIN_DIR)/pitest/pitest.so
 
-SERVER_OBJS    := $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/networking/iputils.o $(SRC_DIR)/networking/websocket_protocol.o $(SRC_DIR)/serialize/protocol.o $(SRC_DIR)/backend/picontrol_uinput.o $(SRC_DIR)/backend/picontrol_backend.o $(SRC_DIR)/model/protocol.o $(SRC_DIR)/data_structures/multithread_pool.o $(SRC_DIR)/data_structures/multithread_queue.o
+SERVER_OBJS    := $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/networking/iputils.o $(SRC_DIR)/networking/websocket_protocol.o $(SRC_DIR)/serialize/protocol.o $(SRC_DIR)/backend/picontrol_uinput.o $(SRC_DIR)/backend/picontrol_backend.o $(SRC_DIR)/model/protocol.o $(SRC_DIR)/data_structures/multithread_pool.o $(SRC_DIR)/data_structures/multithread_queue.o $(SRC_DIR)/logging/logger.o
 
 PITEST_SRC_DIR := $(TEST_DIR)/pitest
 PITEST_C_FILES := $(shell find $(PITEST_SRC_DIR) -type f -name \*.c)

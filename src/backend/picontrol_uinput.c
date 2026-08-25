@@ -1,6 +1,6 @@
 #include "picontrol_uinput.h"
 
-#include "logging/log_utils.h"
+#include "logging/logger.h"
 #include "util.h"
 
 #include <fcntl.h>
@@ -285,7 +285,7 @@ bool picontrol_uinput_type_char(pictrl_uinput_t *uinput, char c) {
 }
 
 void picontrol_uinput_type_keysym(pictrl_uinput_t *uinput, char *keysym) {
-  pictrl_log_stub("FIGURE OUT HOW TO TYPE KEYSYMS\n");
+  pictrl_log_warn("[STUBBED] %s is not implemented yet\n", __func__);
 }
 
 int picontrol_create_virtual_keyboard() {
