@@ -2,7 +2,6 @@ name: Build and Test
 env:
   REF: ${{ github.head_ref || github.ref_name }}
   SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-  DEBUG: true
 on:
   push:
     branches:
@@ -22,7 +21,7 @@ jobs:
             echo "ref/sha = ${{ env.REF }}/${{ env.SHA }}"
       - id: skip_check
         name: Check for duplicate jobs
-        uses: fkirc/skip-duplicate-actions@v5.3.1
+        uses: fkirc/skip-duplicate-actions@v5.3.2
         with:
           concurrent_skipping: 'same_content_newer'
           paths_ignore: '["**/README.md", "**/docs/**"]'
@@ -32,23 +31,41 @@ jobs:
     if: needs.dedupe.outputs.should_skip != 'true'
     steps:
       - name: Checkout libwebsockets
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v7.0.1
         with:
           repository: warmcat/libwebsockets
           path: libwebsockets
-          ref: v4.3-stable
-      - name: Build + install libwebsockets
+          ref: v5.0-stable
+      - name: Install libuv headers
         run: |
-          cd libwebsockets
-          cmake .
+          sudo apt install libuv1-dev
+      - name: Install gnutls headers
+        run: |
+          sudo apt install libgnutls28-dev
+      - name: Build + install libwebsockets
+        working-directory: libwebsockets
+        env:
+          CMAKE_FLAGS: >
+            -DLWS_WITH_LIBUV=1
+            -DLWS_WITH_TESTS=OFF
+            -DLWS_WITHOUT_TESTAPPS=ON
+            -DLWS_WITHOUT_TEST_PLUGINS=ON
+            -DLWS_WITH_MINIMAL_EXAMPLES=OFF
+        run: |
+          mkdir build && cd build
+          cmake $CMAKE_FLAGS ..
+          make -j$(nproc)
           sudo make install
+          sudo ldconfig
       - name: Checkout PiControl
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v7.0.1
         with:
           path: picontrol
       - name: Build server
+        working-directory: picontrol
+        env:
+          DEBUG: true
         run: |
-          cd picontrol
           make server
   test:
     needs: dedupe
@@ -56,7 +73,10 @@ jobs:
     if: needs.dedupe.outputs.should_skip != 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v7.0.1
+      - name: Install libuv headers
+        run: |
+          sudo apt install libuv1-dev
       - name: Build tests
         run: |
           make test
@@ -69,7 +89,7 @@ jobs:
       - ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v7.0.1
       - name: Lint code
         run: |
           find . -type f \( -iname \*.c -o -iname \*.h \) | xargs clang-format -style=google --dry-run --Werror

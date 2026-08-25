@@ -1,77 +1,110 @@
-#include <libwebsockets.h>
-#include <signal.h>
-
-#include "backend/picontrol_backend.h"
+#include "data_structures/multithread_pool.h"
+#include "data_structures/multithread_queue.h"
+#include "logging/logger.h"
 #include "networking/websocket_protocol.h"
+#include "serialize/protocol.h"
+#include "picontrol_config.h"
 
-static int picontrol_listen(struct lws_context *context);
+#include <libwebsockets.h>
+#include <uv.h>
 
-volatile sig_atomic_t should_exit = false;
+#include <assert.h>
+#include <stdio.h>
 
-const struct lws_protocols protocols[] = {
-    {
-        .name = "picontrol",
-        .callback = &callback_picontrol,
-        .per_session_data_size = 0,
-        .rx_buffer_size = 0,
-        .id = 1  // First iteration of the protocol (ignored by lws)
-    },
-    LWS_PROTOCOL_LIST_TERM};
+#define DESERIALIZER_POOL_SIZE ((size_t)5)
+
+static int init_deserializer(void *item, void *user_data) {
+  (void)user_data;
+  return pictrl_initialize_deserializer((PiCtrlMsgDeserializer *)item);
+}
+
+static int destroy_deserializer(void *item, void *user_data) {
+  (void)user_data;
+  return pictrl_destroy_deserializer((PiCtrlMsgDeserializer *)item);
+}
+
+static bool initialize_state(pictrl_app_runtime_t *state) {
+  void *usr_data = NULL;
+  const pictrl_pool_opts pool_opts = {
+      DESERIALIZER_POOL_SIZE,
+      sizeof(PiCtrlMsgDeserializer),
+      &init_deserializer,
+      &destroy_deserializer,
+      usr_data
+  };
+
+  if (!pictrl_pool_init(&state->deserializer_pool, &pool_opts)) {
+    pictrl_log_error("Unable to create deserializer pool\n");
+    return false;
+  }
+  if (!pictrl_queue_init(&state->queue, DESERIALIZER_POOL_SIZE, sizeof(PiCtrlMsgDeserializer *))) {
+    pictrl_log_error("Unable to create worker thread's deserializer queue\n");
+    pictrl_pool_destroy(&state->deserializer_pool);
+    return false;
+  }
+
+  state->backend = pictrl_backend_new();
+  if (!state->backend) {
+    pictrl_log_error("Unable to create PiControl backend!\n");
+    pictrl_queue_destroy(&state->queue);
+    pictrl_pool_destroy(&state->deserializer_pool);
+    return false;
+  }
+  pictrl_log_info("Initialized app state. Using %s backend\n",
+              pictrl_backend_name(state->backend->type));
+  return true;
+}
+
+static void clean_up_state(pictrl_app_runtime_t *state) {
+  pictrl_queue_close(&state->queue);
+  uv_thread_join(&state->writer_thread);
+
+  pictrl_backend_free(state->backend);
+  pictrl_queue_destroy(&state->queue);
+  assert(state->deserializer_pool.top == state->deserializer_pool.capacity && "Not all deserializers were put back");
+  pictrl_pool_destroy(&state->deserializer_pool);
+  pictrl_log_info("Destroyed app state\n");
+}
 
 int main() {
-  int logs = LLL_USER | LLL_ERR | LLL_WARN | LLL_NOTICE;
-  lws_set_log_level(logs, NULL);
+  if (!pictrl_logger_init()) {
+      fprintf(stderr, "Could not initialize logger!\n");
+      return 1;
+  }
+  lws_set_log_level(0, NULL);
 
-  const struct lws_context_creation_info info = {
+  pictrl_app_runtime_t state = {0};
+  if (!initialize_state(&state)) {
+      pictrl_log_critical("Failed to initialize app state\n");
+      pictrl_logger_destroy();
+      return 1;
+  }
+
+  struct lws_context *ws_context = NULL;
+  struct lws_context_creation_info info = {
       .port = SERVER_PORT,
       .protocols = protocols,
-      .options = LWS_SERVER_OPTION_FALLBACK_TO_APPLY_LISTEN_ACCEPT_CONFIG,
+      .options = LWS_SERVER_OPTION_FALLBACK_TO_APPLY_LISTEN_ACCEPT_CONFIG
+               | LWS_SERVER_OPTION_LIBUV,
       .gid = -1,
       .uid = -1,
+      .pcontext = &ws_context,
+      .user = &state
   };
-  struct lws_context *ws_context = lws_create_context(&info);
-  if (ws_context == NULL) {
-    lwsl_err("lws init failed\n");
+
+  ws_context = lws_create_context(&info);
+  if (!ws_context) {
+    pictrl_log_error("Failed to create LWS context\n");
+    clean_up_state(&state);
+    pictrl_logger_destroy();
     return 1;
   }
 
-  int ret = picontrol_listen(ws_context);
+  uv_thread_create(&state.writer_thread, &keyboard_writer_thread, &state);
 
-  lws_context_destroy(ws_context);
-  return ret;
-}
+  lws_service(ws_context, 0);
 
-void interrupt_handler(int signum) {
-  (void)signum;  // To shut compiler up about unused var
-  lwsl_debug("SIGINT received. Shutting down...\n");
-  should_exit = true;
-}
-
-void term_handler(int signum) {
-  (void)signum;
-  lwsl_debug("SIGTERM received. Shutting down...\n");
-  should_exit = true;
-}
-
-static int picontrol_listen(struct lws_context *context) {
-  // Set SIGINT and SIGTERM handlers
-  struct sigaction old_sigint_handler, old_sigterm_handler;
-  struct sigaction new_sigint_handler = {.sa_handler = &interrupt_handler,
-                                         .sa_flags = 0};
-  struct sigaction new_sigterm_handler = {.sa_handler = &term_handler,
-                                          .sa_flags = 0};
-  sigemptyset(&new_sigint_handler.sa_mask);
-  sigemptyset(&new_sigterm_handler.sa_mask);
-  sigaction(SIGINT, &new_sigint_handler, &old_sigint_handler);
-  sigaction(SIGTERM, &new_sigterm_handler, &old_sigterm_handler);
-
-  int n = 0;
-  while (n >= 0 && !should_exit) {
-    n = lws_service(context, 0);
-  }
-  // Restore old signal handlers
-  sigaction(SIGINT, &old_sigint_handler, NULL);
-  sigaction(SIGTERM, &old_sigterm_handler, NULL);
-
+  clean_up_state(&state);
+  pictrl_logger_destroy();
   return 0;
 }

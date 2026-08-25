@@ -1,8 +1,7 @@
-#ifndef _PICTRL_BACKEND_H
-#define _PICTRL_BACKEND_H
+#pragma once
 
 #include "backend/picontrol_uinput.h"
-#include "data_structures/ring_buffer.h"
+#include "model/protocol.h"
 
 #ifdef PICTRL_XDO  // TODO: Use an xdo definition directly?
 #include <xdo.h>
@@ -30,5 +29,3 @@ void handle_mouse_click(pictrl_backend *backend, RawPiCtrlMessage *msg);
 void handle_mouse_move(pictrl_backend *backend, RawPiCtrlMessage *msg);
 void handle_text(pictrl_backend *backend, RawPiCtrlMessage *msg);
 void handle_keysym(pictrl_backend *backend, RawPiCtrlMessage *msg);
-
-#endif

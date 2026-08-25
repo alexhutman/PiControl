@@ -1,18 +1,18 @@
 #include "backend/picontrol_backend.h"
 
-#include <stdlib.h>
-#include <string.h>
-
 #include "backend/picontrol_uinput.h"
-#include "logging/log_utils.h"
-#include "picontrol_config.h"
 #include "serialize/mouse.h"
 
 #ifdef PICTRL_XDO  // TODO: Use an xdo definition directly?
+#include "backend/picontrol_xdo.h"
+#include "logging/logger.h"
+
 #include <xdo.h>
 
-#include "backend/picontrol_xdo.h"
+#include <string.h>
 #endif
+
+#include <stdlib.h>
 
 static const char *PICTRL_BACKEND_NAMES[] = {"uinput", "xdo"};
 
@@ -32,7 +32,7 @@ pictrl_backend *pictrl_backend_new() {
   new_backend->type = PICTRL_BACKEND_UINPUT;
   init_ret = pictrl_uinput_backend_init(&new_backend->backend->uinput);
 #endif
-  if (new_backend->backend == NULL || init_ret < 0) {
+  if (!new_backend->backend || init_ret < 0) {
     free(new_backend);
     return NULL;
   }
@@ -54,8 +54,10 @@ void handle_mouse_click(pictrl_backend *backend, RawPiCtrlMessage *msg) {
 #ifdef PICTRL_XDO
   (void)msg;
   (void)backend;
-  pictrl_log_stub("Not implemented\n");
+  pictrl_log_warn("[STUBBED] %s is not implemented\n", __func__);
 #else
+  // TODO: For all of these functions, put actual functionality in their respective .c files
+  // and just call the [backend_type]_{get_mouse_status,handle_mouse_move,...}() functions.
   const PiCtrlMouseBtnStatus btn = pictrl_get_mouse_status(msg);
   picontrol_uinput_click_mouse(&backend->backend->uinput, btn);
 #endif

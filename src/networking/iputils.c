@@ -1,13 +1,14 @@
+#include "logging/logger.h"
+
 #include <arpa/inet.h>
-#include <errno.h>
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <netdb.h>
+
+#include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "logging/log_utils.h"
 
 #define LOOPBACK_UP_RUNNING (IFF_UP | IFF_RUNNING | IFF_LOOPBACK)
 #define UP_RUNNING (IFF_UP | IFF_RUNNING)
@@ -49,7 +50,7 @@ char *get_ip_address() {
       }
     }
   }
-  if (iface == NULL) {
+  if (!iface) {
     pictrl_log_critical("You seem to not be connected to the internet!\n");
     freeifaddrs(interfaces);
     return NULL;

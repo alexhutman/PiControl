@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "logging/log_utils.h"
+#include "logging/logger.h"
 #include "pitest/api.h"
 #include "pitest/api/assertions.h"
 #include "util.h"

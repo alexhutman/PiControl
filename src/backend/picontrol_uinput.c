@@ -1,16 +1,16 @@
 #include "picontrol_uinput.h"
 
-#include <errno.h>
+#include "logging/logger.h"
+#include "util.h"
+
 #include <fcntl.h>
 #include <linux/input-event-codes.h>
+#include <sys/time.h>
+
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
-#include <sys/time.h>
-
-#include "logging/log_utils.h"
-#include "model/protocol.h"
-#include "util.h"
 
 // `errmsg` currently MUST take exactly 1 param: the string of the error
 #define IOCTL_AND_LOG_ERR(errmsg, fd, ...)       \
@@ -285,7 +285,7 @@ bool picontrol_uinput_type_char(pictrl_uinput_t *uinput, char c) {
 }
 
 void picontrol_uinput_type_keysym(pictrl_uinput_t *uinput, char *keysym) {
-  pictrl_log_stub("FIGURE OUT HOW TO TYPE KEYSYMS\n");
+  pictrl_log_warn("[STUBBED] %s is not implemented yet\n", __func__);
 }
 
 int picontrol_create_virtual_keyboard() {

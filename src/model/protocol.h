@@ -1,8 +1,12 @@
-#ifndef _PICTRL_MODEL_PROTOCOL_H
-#define _PICTRL_MODEL_PROTOCOL_H
+#pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
-#include <unistd.h>
+
+#define MAX_PAYLOAD_SIZE (UINT8_MAX)
+#define MAX_PICTRL_MSG_SIZE (sizeof(uint8_t) \
+                           + sizeof(uint8_t) \
+                           + MAX_PAYLOAD_SIZE)
 
 typedef enum {
   PI_CTRL_HEARTBEAT,  // Client: Send heartbeat so server can disconnect if
@@ -23,4 +27,4 @@ typedef struct {
   uint8_t *payload;
 } RawPiCtrlMessage;
 
-#endif
+bool validate_pictrl_message(RawPiCtrlMessage *msg);

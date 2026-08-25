@@ -1,8 +1,26 @@
-#ifndef _PICTRL_NETWORK_WS_H
-#define _PICTRL_NETWORK_WS_H
+#pragma once
+
+#include "backend/picontrol_backend.h"
+#include "data_structures/multithread_pool.h"
+#include "data_structures/multithread_queue.h"
+#include "serialize/protocol.h"
 
 #include <libwebsockets.h>
+#include <uv.h>
 
-lws_callback_function callback_picontrol;
+#define MAX_CLIENT_IP_SIZE (46)
 
-#endif
+typedef struct {
+  pictrl_pool_t deserializer_pool;
+  pictrl_queue_t queue;
+  uv_thread_t writer_thread;
+  pictrl_backend *backend;
+} pictrl_app_runtime_t;
+
+typedef struct {
+  char client_ip[MAX_CLIENT_IP_SIZE];
+  PiCtrlMsgDeserializer *cur_deserializer;
+} SessionData;
+
+extern const struct lws_protocols protocols[];
+void keyboard_writer_thread(void *arg);

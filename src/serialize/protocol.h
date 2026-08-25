@@ -1,18 +1,28 @@
-#ifndef _PICTRL_SERIALIZE_PROTOCOL_H
-#define _PICTRL_SERIALIZE_PROTOCOL_H
-
-#include <stdint.h>
+#pragma once
 
 #include "model/protocol.h"
 
-// Assumes that rb->data_start is pointing at the beginning of the header in the
-// ring buffer already
-//
+#include <stddef.h>
+#include <stdint.h>
+
+typedef struct {
+  struct {
+      uint8_t *rx_buffer;
+      size_t rx_buffered_bytes;
+  } in;
+  struct {
+      RawPiCtrlMessage msg;
+      uint8_t payload_buf_size;
+  } out;
+} PiCtrlMsgDeserializer;
+
+int pictrl_initialize_deserializer(PiCtrlMsgDeserializer *des);
+int pictrl_destroy_deserializer(PiCtrlMsgDeserializer *des);
+
 // All bytes are unsigned
 //
 // |---------------- HEADER --------------|
-// --------------------------------------------------
-// | CMD (1 byte) | PAYLOAD_SIZE (1 byte) | PAYLOAD |
-// --------------------------------------------------
-RawPiCtrlMessage parse_to_pictrl_msg(void *in, size_t len);
-#endif
+// -------------------------------------------------------------------------
+// | CMD (1 byte) | PAYLOAD_SIZE (1 byte) | PAYLOAD (MAX: UINT8_MAX bytes) |
+// -------------------------------------------------------------------------
+int pictrl_deserialize_network_data(PiCtrlMsgDeserializer *des);
