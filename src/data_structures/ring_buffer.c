@@ -194,7 +194,7 @@ void pictrl_rb_copy(pictrl_rb_t *rb, void *dest) {
 
 // Using `pictrl_rb_read`
 void print_ring_buffer(pictrl_rb_t *rb) {
-  pictrl_log(
+  pictrl_log_info(
       "\n------------------------------\n"
       "Capacity:     %zu\n"
       "Buffer start: %p\n"
@@ -204,33 +204,33 @@ void print_ring_buffer(pictrl_rb_t *rb) {
       rb->capacity, rb->buffer, rb->data_start, rb->num_items);
 
   print_rb_in_order(rb);
-  pictrl_log("RAW buffer:   ");
+  pictrl_log_info("RAW buffer:   ");
   print_raw_buf(rb);
-  pictrl_log("\n");
+  pictrl_log_info("\n");
 }
 
 void print_rb_in_order(pictrl_rb_t *rb) {
   const size_t n_first_pass = rb->capacity - rb->data_start;
 
-  pictrl_log("[");
+  pictrl_log_info("[");
   for (size_t cur = 0; cur < n_first_pass; cur++) {
-    pictrl_log("%u, ", rb->buffer[rb->data_start + cur]);
+    pictrl_log_info("%u, ", rb->buffer[rb->data_start + cur]);
   }
   for (size_t cur = 0; cur < rb->data_start - 1; cur++) {
-    pictrl_log("%u, ", rb->buffer[cur]);
+    pictrl_log_info("%u, ", rb->buffer[cur]);
   }
-  pictrl_log("%u]\n", rb->buffer[rb->data_start - 1]);
+  pictrl_log_info("%u]\n", rb->buffer[rb->data_start - 1]);
 }
 void print_raw_buf(pictrl_rb_t *rb) { print_buf(rb->buffer, rb->num_items); }
 
 void print_buf(void *data, size_t n) {
   if (n == 0) {
-    pictrl_log("(empty)\n");
+    pictrl_log_info("(empty)\n");
     return;
   }
-  pictrl_log("|");
+  pictrl_log_info("|");
   for (size_t cur = 0; cur < n - 1; cur++) {
-    pictrl_log("%02x, ", ((uint8_t *)data)[cur]);
+    pictrl_log_info("%02x, ", ((uint8_t *)data)[cur]);
   }
-  pictrl_log("%02x|\n", ((uint8_t *)data)[n - 1]);
+  pictrl_log_info("%02x|\n", ((uint8_t *)data)[n - 1]);
 }

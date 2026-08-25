@@ -3,8 +3,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-// Function pointer: () -> int (they're all currently the same but don't have to
-// be)
 typedef int (*TestFunction)();
 typedef int (*SetupFunction)();
 typedef int (*TeardownFunction)();
@@ -27,5 +25,4 @@ typedef struct {
   const SetupTeardown before_after_each;
 } TestSuite;
 
-int run_test(const TestCase *);
 size_t run_test_suite(const TestSuite *);

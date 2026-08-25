@@ -91,10 +91,10 @@ $(PITEST_SRC_DIR)/%.o: $(PITEST_SRC_DIR)/%.c $(PITEST_SRC_DIR)/%.h
 
 ################################################################################
 
-$(BIN_TEST_DIR)/%_test: $(SRC_DIR)/%.o $(TEST_DIR)/%_test.o | $(PITEST_SO_PATH)
+$(BIN_TEST_DIR)/%_test: $(SRC_DIR)/%.o $(SRC_DIR)/logging/logger.o $(SRC_DIR)/data_structures/multithread_pool.o $(SRC_DIR)/data_structures/multithread_queue.o $(TEST_DIR)/%_test.o | $(PITEST_SO_PATH)
 	$(info PiControl: Creating test executable $@)
 	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
-	$(CC) $^ -o $@ -L$(dir $|) -l:$(notdir $|)
+	$(CC) $^ -o $@ -L$(dir $|) -l:$(notdir $|) -luv
 ifndef DEBUG
 	strip "$@"
 endif
