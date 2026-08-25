@@ -40,8 +40,7 @@ size_t run_test_suite(const TestSuite *suite) {
   const SetupFunction suite_setup = suite->before_after_all.setup;
   int suite_setup_ret = run_setup_if_exists(suite_setup);
   if (suite_setup_ret != 0) {
-    pictrl_log_error("Setup for suite '%s' failed with code %d\n", suite->name,
-                     suite_setup_ret);
+    pictrl_log_error("Setup for suite '%s' failed with code %d\n", suite->name, suite_setup_ret);
     failed_test_count++;
     goto endtest;
   }
@@ -50,9 +49,8 @@ size_t run_test_suite(const TestSuite *suite) {
     const SetupFunction case_setup = suite->before_after_each.setup;
     int case_setup_ret = run_setup_if_exists(case_setup);
     if (case_setup_ret != 0) {
-      pictrl_log_error(
-          "Setup for test case '%s' failed with code %d\n. Skipping...",
-          suite->test_cases[test_id].test_name, case_setup_ret);
+      pictrl_log_error("Setup for test case '%s' failed with code %d\n. Skipping...",
+                       suite->test_cases[test_id].test_name, case_setup_ret);
       failed_test_count++;
       continue;
     }
@@ -76,8 +74,8 @@ size_t run_test_suite(const TestSuite *suite) {
   const TestFunction suite_teardown = suite->before_after_all.teardown;
   int suite_teardown_ret = run_teardown_if_exists(suite_teardown);
   if (suite_teardown_ret != 0) {
-    pictrl_log_error("Teardown for suite '%s' failed with code %d\n",
-                     suite->name, suite_teardown_ret);
+    pictrl_log_error("Teardown for suite '%s' failed with code %d\n", suite->name,
+                     suite_teardown_ret);
     failed_test_count++;
   }
 

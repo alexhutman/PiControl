@@ -26,13 +26,11 @@ static ssize_t rb_write_until_completion(int fd, size_t count, pictrl_rb_t *rb);
 static size_t read_from_test_file(uint8_t *data, size_t count);
 static size_t write_to_test_file(uint8_t *data, size_t count);
 
-#define RING_BUF_SIZE (size_t)8
-#define TEST_FILE_TEMPLATE_PREFIX "./ring_buffer_testXXXXXX"
-#define TEST_FILE_TEMPLATE_SUFFIX ".tmp"
-#define TEST_FILE_TEMPLATE_SUFFIX_LEN \
-  (int)(sizeof(TEST_FILE_TEMPLATE_SUFFIX) / sizeof(char) - 1)
-static char test_file_name[] =
-    TEST_FILE_TEMPLATE_PREFIX TEST_FILE_TEMPLATE_SUFFIX;
+#define RING_BUF_SIZE                 (size_t)8
+#define TEST_FILE_TEMPLATE_PREFIX     "./ring_buffer_testXXXXXX"
+#define TEST_FILE_TEMPLATE_SUFFIX     ".tmp"
+#define TEST_FILE_TEMPLATE_SUFFIX_LEN (int)(sizeof(TEST_FILE_TEMPLATE_SUFFIX) / sizeof(char) - 1)
+static char test_file_name[] = TEST_FILE_TEMPLATE_PREFIX TEST_FILE_TEMPLATE_SUFFIX;
 
 // Fixtures
 static FILE *test_file = NULL;
@@ -42,16 +40,15 @@ int before_all() {
   // Create temp file
   const int test_fd = mkstemps(test_file_name, TEST_FILE_TEMPLATE_SUFFIX_LEN);
   if (test_fd < 0) {
-    pictrl_log_error("Error creating temp file %s: %s\n", test_file_name,
-                     strerror(errno));
+    pictrl_log_error("Error creating temp file %s: %s\n", test_file_name, strerror(errno));
     return -1;
   }
 
   // Open file, use as fixture
   FILE *test_fp = fdopen(test_fd, "w+");
   if (test_fp == NULL) {
-    pictrl_log_error("Error getting FILE pointer for open file %s: %s\n",
-                     test_file_name, strerror(errno));
+    pictrl_log_error("Error getting FILE pointer for open file %s: %s\n", test_file_name,
+                     strerror(errno));
     return -1;
   }
   test_file = test_fp;
@@ -85,8 +82,7 @@ int after_all() {
   // Close test file
   int ret = fclose(test_file);
   if (ret != 0) {
-    pictrl_log_error("Was not able to close temp file %s: %s\n", test_file_name,
-                     strerror(errno));
+    pictrl_log_error("Was not able to close temp file %s: %s\n", test_file_name, strerror(errno));
     return ret;
   }
   test_file = NULL;
@@ -95,7 +91,7 @@ int after_all() {
   ret = unlink(test_file_name);
   if (ret < 0) {
     pictrl_log_warn("Could not remove temp file %s: %s\n", test_file_name,
-                    strerror(errno));  // Error + return?
+                    strerror(errno)); // Error + return?
   } else {
     pictrl_log_debug("Removed temp file %s\n", test_file_name);
   }
@@ -106,34 +102,32 @@ int after_all() {
 }
 
 int main() {
-  const TestCase test_cases[] = {
-      {
-          .test_name = "Simple write",
-          .test_function = &test_simple_write,
-      },
-      {
-          .test_name = "Simple read (peek)",
-          .test_function = &test_simple_read_peek,
-      },
-      {
-          .test_name = "Write more than free",
-          .test_function = &test_write_more_than_free,
-      },
-      {
-          .test_name = "Simple wraparound",
-          .test_function = &test_simple_wraparound,
-      },
-      {
-          .test_name = "Clear full buffer",
-          .test_function = &test_clear_full_buffer,
-      }};
+  const TestCase test_cases[] = {{
+                                     .test_name = "Simple write",
+                                     .test_function = &test_simple_write,
+                                 },
+                                 {
+                                     .test_name = "Simple read (peek)",
+                                     .test_function = &test_simple_read_peek,
+                                 },
+                                 {
+                                     .test_name = "Write more than free",
+                                     .test_function = &test_write_more_than_free,
+                                 },
+                                 {
+                                     .test_name = "Simple wraparound",
+                                     .test_function = &test_simple_wraparound,
+                                 },
+                                 {
+                                     .test_name = "Clear full buffer",
+                                     .test_function = &test_clear_full_buffer,
+                                 }};
 
-  const TestSuite suite = {
-      .name = "Ring buffer tests",
-      .test_cases = test_cases,
-      .num_tests = PICTRL_SIZE(test_cases),
-      .before_after_all = {.setup = &before_all, .teardown = &after_all},
-      .before_after_each = {.setup = &before_each, .teardown = NULL}};
+  const TestSuite suite = {.name = "Ring buffer tests",
+                           .test_cases = test_cases,
+                           .num_tests = PICTRL_SIZE(test_cases),
+                           .before_after_all = {.setup = &before_all, .teardown = &after_all},
+                           .before_after_each = {.setup = &before_each, .teardown = NULL}};
 
   return run_test_suite(&suite);
 }
@@ -147,8 +141,7 @@ static int test_simple_write() {
     return 1;
   }
   rewind(test_file);
-  pictrl_log_debug("Wrote all %zu bytes of test data to temp file\n",
-                   num_bytes_to_write);
+  pictrl_log_debug("Wrote all %zu bytes of test data to temp file\n", num_bytes_to_write);
 
   // Act
   const int test_fd = fileno(test_file);
@@ -181,13 +174,12 @@ static int test_simple_read_peek() {
   // Populate ring buffer
   memcpy(ring_buffer.buffer, orig_data, num_bytes_to_read);
   ring_buffer.num_items = num_bytes_to_read;
-  pictrl_log_debug("Populated ring buffer with %zu bytes of original data\n",
-                   num_bytes_to_read);
+  pictrl_log_debug("Populated ring buffer with %zu bytes of original data\n", num_bytes_to_read);
 
   // Act
   const int test_fd = fileno(test_file);
-  if (rb_read_until_completion(test_fd, num_bytes_to_read, &ring_buffer,
-                               PICTRL_READ_PEEK) != num_bytes_to_read) {
+  if (rb_read_until_completion(test_fd, num_bytes_to_read, &ring_buffer, PICTRL_READ_PEEK) !=
+      num_bytes_to_read) {
     pictrl_log_error("Error reading from ring buffer\n");
     return 2;
   }
@@ -200,18 +192,15 @@ static int test_simple_read_peek() {
     return 2;
   }
 
-  if (!array_equals(orig_data, num_bytes_to_read, read_data,
-                    num_bytes_to_read)) {
-    pictrl_log_error(
-        "Read data does not match original data.\nExpected data: ");
+  if (!array_equals(orig_data, num_bytes_to_read, read_data, num_bytes_to_read)) {
+    pictrl_log_error("Read data does not match original data.\nExpected data: ");
     print_buf(orig_data, num_bytes_to_read);
     pictrl_log_error("Received: ");
     print_buf(read_data, num_bytes_to_read);
     return 3;
   }
 
-  if (!array_equals(orig_data, num_bytes_to_read, ring_buffer.buffer,
-                    num_bytes_to_read)) {
+  if (!array_equals(orig_data, num_bytes_to_read, ring_buffer.buffer, num_bytes_to_read)) {
     pictrl_log_error("Ring buffer data was somehow modified.\nExpected data: ");
     print_buf(orig_data, num_bytes_to_read);
     print_ring_buffer(&ring_buffer);
@@ -235,20 +224,15 @@ int test_write_more_than_free() {
 
   // Act
   const int test_fd = fileno(test_file);
-  size_t num_bytes_written =
-      rb_write_until_completion(test_fd, num_bytes_to_write, &ring_buffer);
+  size_t num_bytes_written = rb_write_until_completion(test_fd, num_bytes_to_write, &ring_buffer);
   if (errno != ENOBUFS) {
-    pictrl_log_error(
-        "Expected errno to be set to ENOBUFS (%d), but errno is %d\n", ENOBUFS,
-        errno);
+    pictrl_log_error("Expected errno to be set to ENOBUFS (%d), but errno is %d\n", ENOBUFS, errno);
     return 1;
   }
-  if (num_bytes_written !=
-      ring_buffer.capacity) {  // We should've capped out at the rb's capacity
-    pictrl_log_error(
-        "Expected to write %zu bytes to ring buffer, but %zu bytes were "
-        "somehow written\n",
-        ring_buffer.capacity, num_bytes_written);
+  if (num_bytes_written != ring_buffer.capacity) { // We should've capped out at the rb's capacity
+    pictrl_log_error("Expected to write %zu bytes to ring buffer, but %zu bytes were "
+                     "somehow written\n",
+                     ring_buffer.capacity, num_bytes_written);
     return 2;
   }
   pictrl_log_debug("Wrote all %zu bytes to ring buffer\n", num_bytes_written);
@@ -280,22 +264,20 @@ int test_simple_wraparound() {
   // Act
   ring_buffer.data_start += RING_BUF_SIZE - 1;
   const int test_fd = fileno(test_file);
-  const ssize_t num_bytes_written =
-      rb_write_until_completion(test_fd, RING_BUF_SIZE, &ring_buffer);
+  const ssize_t num_bytes_written = rb_write_until_completion(test_fd, RING_BUF_SIZE, &ring_buffer);
   if (num_bytes_written != RING_BUF_SIZE) {
-    pictrl_log_error(
-        "Expected to write %zu bytes, but %zd bytes were somehow written\n",
-        RING_BUF_SIZE, num_bytes_written);
+    pictrl_log_error("Expected to write %zu bytes, but %zd bytes were somehow written\n",
+                     RING_BUF_SIZE, num_bytes_written);
     return 2;
   }
-  pictrl_log_debug(
-      "Wrote all %zd bytes to ring buffer, starting at the last position in "
-      "the internal buffer\n",
-      num_bytes_written);
+  pictrl_log_debug("Wrote all %zd bytes to ring buffer, starting at the last position in "
+                   "the internal buffer\n",
+                   num_bytes_written);
 
   // Assert
   uint8_t expected_data[] = {2, 3, 4, 5, 6, 7, 8, 1};
-  if (!array_equals(ring_buffer.buffer, ring_buffer.capacity, expected_data, ring_buffer.capacity)) {
+  if (!array_equals(ring_buffer.buffer, ring_buffer.capacity, expected_data,
+                    ring_buffer.capacity)) {
     // TODO: Make these logs all go to stderr.. d'oh
     pictrl_log_error("Data mismatch. Expected data: ");
     print_buf(expected_data, RING_BUF_SIZE);
@@ -334,8 +316,7 @@ int test_clear_full_buffer() {
     pictrl_log_error("Expected num_items to be 0. Received: %zu", ring_buffer.num_items);
     return 4;
   } else if (ring_buffer.data_start != 0) {
-    pictrl_log_error("Expected data_start to be 0. Received: %zu",
-                     ring_buffer.data_start);
+    pictrl_log_error("Expected data_start to be 0. Received: %zu", ring_buffer.data_start);
     return 5;
   }
 
@@ -367,8 +348,7 @@ static ssize_t rb_read_until_completion(int fd, size_t count, pictrl_rb_t *rb,
   return (ssize_t)bytes_read;
 }
 
-static ssize_t rb_write_until_completion(int fd, size_t count,
-                                         pictrl_rb_t *rb) {
+static ssize_t rb_write_until_completion(int fd, size_t count, pictrl_rb_t *rb) {
   const bool inserting_more_than_avail = count > (rb->capacity - rb->num_items);
 
   size_t bytes_written = 0;
@@ -398,9 +378,8 @@ static size_t read_from_test_file(uint8_t *data, size_t count) {
   const size_t num_read = fread(data, sizeof(data[0]), count, test_file);
   if (num_read < count) {
     // Should prob log the exact error...
-    pictrl_log_error(
-        "Error reading %zu bytes from test file... read %zu bytes instead\n",
-        count, num_read);
+    pictrl_log_error("Error reading %zu bytes from test file... read %zu bytes instead\n", count,
+                     num_read);
     return 0;
   }
   return num_read;
@@ -410,9 +389,8 @@ static size_t write_to_test_file(uint8_t *data, size_t count) {
   const size_t num_written = fwrite(data, sizeof(data[0]), count, test_file);
   if (num_written < count) {
     // Should prob log the exact error...
-    pictrl_log_error(
-        "Error writing %zu bytes to test file... wrote %zu bytes instead\n",
-        count, num_written);
+    pictrl_log_error("Error writing %zu bytes to test file... wrote %zu bytes instead\n", count,
+                     num_written);
     return 0;
   }
   return num_written;

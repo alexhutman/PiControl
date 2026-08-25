@@ -5,20 +5,21 @@
 #include <stdbool.h>
 
 bool validate_pictrl_message(RawPiCtrlMessage *msg) {
-  if (!msg) return false;
+  if (!msg)
+    return false;
   switch (msg->header.cmd) {
-    case PI_CTRL_HEARTBEAT:
-      return msg->header.payload_size == 0;
-    case PI_CTRL_MOUSE_MV:
-      return msg->header.payload_size == 2;
-    case PI_CTRL_MOUSE_CLICK:
-      return msg->header.payload_size == 1;
-    case PI_CTRL_TEXT:
-      return msg->header.payload_size > 0;
-    case PI_CTRL_KEYSYM:
-      return msg->header.payload_size > 0;
-    default:
-      pictrl_log_debug("Invalid command: %d.\n", msg->header.cmd);
-      return false;
+  case PI_CTRL_HEARTBEAT:
+    return msg->header.payload_size == 0;
+  case PI_CTRL_MOUSE_MV:
+    return msg->header.payload_size == 2;
+  case PI_CTRL_MOUSE_CLICK:
+    return msg->header.payload_size == 1;
+  case PI_CTRL_TEXT:
+    return msg->header.payload_size > 0;
+  case PI_CTRL_KEYSYM:
+    return msg->header.payload_size > 0;
+  default:
+    pictrl_log_debug("Invalid command: %d.\n", msg->header.cmd);
+    return false;
   }
 }

@@ -13,11 +13,11 @@
 #include <string.h>
 
 // `errmsg` currently MUST take exactly 1 param: the string of the error
-#define IOCTL_AND_LOG_ERR(errmsg, fd, ...)       \
-  {                                              \
-    if (ioctl(fd, __VA_ARGS__) < 0) {            \
-      pictrl_log_error(errmsg, strerror(errno)); \
-    }                                            \
+#define IOCTL_AND_LOG_ERR(errmsg, fd, ...)                                                         \
+  {                                                                                                \
+    if (ioctl(fd, __VA_ARGS__) < 0) {                                                              \
+      pictrl_log_error(errmsg, strerror(errno));                                                   \
+    }                                                                                              \
   }
 
 static const pictrl_key_range valid_key_ranges[] = {
@@ -198,49 +198,47 @@ int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput) {
   return 0;
 }
 
-void pictrl_uinput_backend_free(pictrl_uinput_t *uinput) { free(uinput); }
+void pictrl_uinput_backend_free(pictrl_uinput_t *uinput) {
+  free(uinput);
+}
 
-void picontrol_uinput_click_mouse(pictrl_uinput_t *uinput,
-                                  PiCtrlMouseBtnStatus status) {
+void picontrol_uinput_click_mouse(pictrl_uinput_t *uinput, PiCtrlMouseBtnStatus status) {
   struct input_event ie;
   struct timeval cur_time;
   gettimeofday(&cur_time, NULL);
 
   int kernel_btn;
   switch (status.btn) {
-    case PI_CTRL_MOUSE_LEFT:
-      pictrl_log_debug("LEFT MOUSE BUTTON\n");
-      kernel_btn = BTN_LEFT;
-      break;
-    case PI_CTRL_MOUSE_RIGHT:
-      pictrl_log_debug("RIGHT MOUSE BUTTON\n");
-      kernel_btn = BTN_RIGHT;
-      break;
-    default:
-      pictrl_log_error("Invalid mouse button: %d\n", status.btn);
-      return;
+  case PI_CTRL_MOUSE_LEFT:
+    pictrl_log_debug("LEFT MOUSE BUTTON\n");
+    kernel_btn = BTN_LEFT;
+    break;
+  case PI_CTRL_MOUSE_RIGHT:
+    pictrl_log_debug("RIGHT MOUSE BUTTON\n");
+    kernel_btn = BTN_RIGHT;
+    break;
+  default:
+    pictrl_log_error("Invalid mouse button: %d\n", status.btn);
+    return;
   }
 
   switch (status.click) {
-    case PI_CTRL_MOUSE_DOWN:
-      pictrl_log_debug("MOUSE DOWN\n");
-      picontrol_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_DOWN,
-                     &cur_time);
-      picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
-      break;
-    case PI_CTRL_MOUSE_UP:
-      pictrl_log_debug("MOUSE UP\n");
-      picontrol_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_UP,
-                     &cur_time);
-      picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
-      break;
-    default:
-      pictrl_log_error("Invalid mouse click status: %d\n", status.click);
+  case PI_CTRL_MOUSE_DOWN:
+    pictrl_log_debug("MOUSE DOWN\n");
+    picontrol_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_DOWN, &cur_time);
+    picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+    break;
+  case PI_CTRL_MOUSE_UP:
+    pictrl_log_debug("MOUSE UP\n");
+    picontrol_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_UP, &cur_time);
+    picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+    break;
+  default:
+    pictrl_log_error("Invalid mouse click status: %d\n", status.click);
   }
 }
 
-void picontrol_uinput_move_mouse_rel(pictrl_uinput_t *uinput,
-                                     PiCtrlMouseCoord coords) {
+void picontrol_uinput_move_mouse_rel(pictrl_uinput_t *uinput, PiCtrlMouseCoord coords) {
   struct input_event ie;
   struct timeval cur_time;
   gettimeofday(&cur_time, NULL);
@@ -260,26 +258,22 @@ bool picontrol_uinput_type_char(pictrl_uinput_t *uinput, char c) {
 
   // Key down
   for (size_t i = 0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
-    ret &= picontrol_emit(&ie, uinput->fd, EV_KEY,
-                          pictrl_ascii_to_event_codes[(size_t)c].keys[i],
+    ret &= picontrol_emit(&ie, uinput->fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i],
                           PICTRL_KEY_DOWN, &cur_time) == ie_sz;
     cur_time.tv_usec += PICTRL_KEY_DELAY_USEC;
   }
-  ret &= picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) ==
-         ie_sz;
+  ret &= picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
   if (!ret) {
     return false;
   }
 
   // Key up
   for (size_t i = 0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
-    ret &= picontrol_emit(&ie, uinput->fd, EV_KEY,
-                          pictrl_ascii_to_event_codes[(size_t)c].keys[i],
+    ret &= picontrol_emit(&ie, uinput->fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i],
                           PICTRL_KEY_UP, &cur_time) == ie_sz;
     cur_time.tv_usec += PICTRL_KEY_DELAY_USEC;
   }
-  ret &= picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) ==
-         ie_sz;
+  ret &= picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
 
   return ret;
 }
@@ -296,61 +290,49 @@ int picontrol_create_virtual_keyboard() {
   }
 
   // Enable device to pass key events
-  IOCTL_AND_LOG_ERR("Could not enable key events: %s\n", fd, UI_SET_EVBIT,
-                    EV_KEY);
+  IOCTL_AND_LOG_ERR("Could not enable key events: %s\n", fd, UI_SET_EVBIT, EV_KEY);
   for (size_t i = 0; i < PICTRL_SIZE(valid_key_ranges); i++) {
-    for (int key = valid_key_ranges[i].lower_bound;
-         key <= valid_key_ranges[i].upper_bound; key++) {
+    for (int key = valid_key_ranges[i].lower_bound; key <= valid_key_ranges[i].upper_bound; key++) {
       IOCTL_AND_LOG_ERR("Could not enable key: %s\n", fd, UI_SET_KEYBIT, key);
     }
   }
 
   // Enable left, right mouse button clicks, touchpad taps
-  const int buttons[] = {BTN_LEFT, BTN_RIGHT, BTN_TOUCH, BTN_TOOL_DOUBLETAP,
-                         BTN_TOOL_TRIPLETAP};
+  const int buttons[] = {BTN_LEFT, BTN_RIGHT, BTN_TOUCH, BTN_TOOL_DOUBLETAP, BTN_TOOL_TRIPLETAP};
   for (size_t i = 0; i < PICTRL_SIZE(buttons); i++) {
-    IOCTL_AND_LOG_ERR("Could not enable clicks/taps: %s\n", fd, UI_SET_KEYBIT,
-                      buttons[i]);
+    IOCTL_AND_LOG_ERR("Could not enable clicks/taps: %s\n", fd, UI_SET_KEYBIT, buttons[i]);
   }
 
   // Enable mousewheel
-  IOCTL_AND_LOG_ERR("Could not enable mousewheel: %s\n", fd, UI_SET_RELBIT,
-                    REL_WHEEL);
+  IOCTL_AND_LOG_ERR("Could not enable mousewheel: %s\n", fd, UI_SET_RELBIT, REL_WHEEL);
 
   // Enable mouse movement
   IOCTL_AND_LOG_ERR("Could not enable mouse: %s\n", fd, UI_SET_EVBIT, EV_REL);
-  IOCTL_AND_LOG_ERR("Could not enable mouse's X movement: %s\n", fd,
-                    UI_SET_RELBIT, REL_X);
-  IOCTL_AND_LOG_ERR("Could not enable mouse's Y movement: %s\n", fd,
-                    UI_SET_RELBIT, REL_Y);
+  IOCTL_AND_LOG_ERR("Could not enable mouse's X movement: %s\n", fd, UI_SET_RELBIT, REL_X);
+  IOCTL_AND_LOG_ERR("Could not enable mouse's Y movement: %s\n", fd, UI_SET_RELBIT, REL_Y);
 
-  static const struct uinput_setup usetup = {
-      .id =
-          {
-              .bustype = BUS_USB,
-              .vendor = 0x1337,
-              .product = 0x0420,
-          },
-      .name = "PiControl Virtual Keyboard"};
+  static const struct uinput_setup usetup = {.id =
+                                                 {
+                                                     .bustype = BUS_USB,
+                                                     .vendor = 0x1337,
+                                                     .product = 0x0420,
+                                                 },
+                                             .name = "PiControl Virtual Keyboard"};
   // Set up and create device
-  IOCTL_AND_LOG_ERR("Could not set up virtual keyboard: %s\n", fd, UI_DEV_SETUP,
-                    &usetup);
-  IOCTL_AND_LOG_ERR("Could not create virtual keyboard: %s\n", fd,
-                    UI_DEV_CREATE);
+  IOCTL_AND_LOG_ERR("Could not set up virtual keyboard: %s\n", fd, UI_DEV_SETUP, &usetup);
+  IOCTL_AND_LOG_ERR("Could not create virtual keyboard: %s\n", fd, UI_DEV_CREATE);
   return fd;
 }
 
 int picontrol_destroy_virtual_keyboard(int fd) {
   int destroy_ret = ioctl(fd, UI_DEV_DESTROY);
   if (destroy_ret < 0) {
-    pictrl_log_error("Could not destroy virtual keyboard: %s\n",
-                     strerror(errno));
+    pictrl_log_error("Could not destroy virtual keyboard: %s\n", strerror(errno));
   }
 
   int close_ret = close(fd);
   if (close_ret == -1) {
-    pictrl_log_error("Could not close file descriptor %d: %s\n", fd,
-                     strerror(errno));
+    pictrl_log_error("Could not close file descriptor %d: %s\n", fd, strerror(errno));
   }
   return (destroy_ret >= 0 && close_ret == 0) ? 0 : -1;
 }

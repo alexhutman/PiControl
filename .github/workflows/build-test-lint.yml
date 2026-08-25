@@ -92,4 +92,4 @@ jobs:
         uses: actions/checkout@v7.0.1
       - name: Lint code
         run: |
-          find . -type f \( -iname \*.c -o -iname \*.h \) | xargs clang-format -style=google --dry-run --Werror
+          find . -type f \( -iname \*.c -o -iname \*.h \) | xargs clang-format --style=file --dry-run --Werror

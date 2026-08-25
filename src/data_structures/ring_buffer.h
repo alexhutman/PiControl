@@ -11,14 +11,11 @@ typedef struct pictrl_rb_t {
   uint8_t *buffer;
   size_t capacity;
 
-  size_t data_start;  // index of start of the data section
-  size_t num_items;   // TODO: make atomic?
+  size_t data_start; // index of start of the data section
+  size_t num_items;  // TODO: make atomic?
 } pictrl_rb_t;
 
-typedef enum pictrl_read_flag {
-  PICTRL_READ_PEEK,
-  PICTRL_READ_CONSUME
-} pictrl_read_flag;
+typedef enum pictrl_read_flag { PICTRL_READ_PEEK, PICTRL_READ_CONSUME } pictrl_read_flag;
 
 // Prototypes
 pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *, size_t);
@@ -55,8 +52,7 @@ static inline bool pictrl_rb_data_wrapped(pictrl_rb_t *rb) {
  *      |_ data_start (val == idx)
 */
 static inline uint8_t pictrl_rb_get(pictrl_rb_t *rb, size_t idx) {
-  const size_t target_abs_idx =
-      (rb->data_start + (idx % rb->num_items)) % rb->capacity;
+  const size_t target_abs_idx = (rb->data_start + (idx % rb->num_items)) % rb->capacity;
   return rb->buffer[target_abs_idx];
 }
 

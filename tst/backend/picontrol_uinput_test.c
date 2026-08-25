@@ -25,8 +25,7 @@ static pictrl_uinput_t virt_keyboard;
 int before_all() {
   virt_keyboard.fd = picontrol_create_virtual_keyboard();
   if (virt_keyboard.fd < 0) {
-    pictrl_log_error(
-        "Could not open file descriptor for new virtual device.\n");
+    pictrl_log_error("Could not open file descriptor for new virtual device.\n");
     return 1;
   }
 
@@ -66,12 +65,11 @@ int main() {
       },
   };
 
-  const TestSuite suite = {
-      .name = "Uinput tests (manual)",
-      .test_cases = test_cases,
-      .num_tests = PICTRL_SIZE(test_cases),
-      .before_after_all = {.setup = &before_all, .teardown = &after_all},
-      .before_after_each = {.setup = NULL, .teardown = NULL}};
+  const TestSuite suite = {.name = "Uinput tests (manual)",
+                           .test_cases = test_cases,
+                           .num_tests = PICTRL_SIZE(test_cases),
+                           .before_after_all = {.setup = &before_all, .teardown = &after_all},
+                           .before_after_each = {.setup = NULL, .teardown = NULL}};
 
   return run_test_suite(&suite);
 }
@@ -87,12 +85,9 @@ static int test_mv_mouse() {
   bool ret = true;
   for (int i = 0; i < 50; i++) {
     // Move mouse diagonally by about 7 units
-    ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_REL, REL_X, 5, &cur_time) ==
-           ie_sz;
-    ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_REL, REL_Y, 5, &cur_time) ==
-           ie_sz;
-    ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_SYN, SYN_REPORT, 0,
-                          &cur_time) == ie_sz;
+    ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_REL, REL_X, 5, &cur_time) == ie_sz;
+    ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_REL, REL_Y, 5, &cur_time) == ie_sz;
+    ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
     cur_time.tv_usec += delay_us;
   }
 
@@ -108,23 +103,19 @@ static int test_ctrl_g() {
   const size_t delay_us = 1000;
 
   bool ret = true;
-  ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_KEY, KEY_LEFTCTRL,
-                        PICTRL_KEY_DOWN, &cur_time) == ie_sz;
+  ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_KEY, KEY_LEFTCTRL, PICTRL_KEY_DOWN, &cur_time) ==
+         ie_sz;
   cur_time.tv_usec += delay_us;
-  ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_KEY, KEY_G, PICTRL_KEY_DOWN,
-                        &cur_time) == ie_sz;
+  ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_KEY, KEY_G, PICTRL_KEY_DOWN, &cur_time) == ie_sz;
   cur_time.tv_usec += delay_us;
-  ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_SYN, SYN_REPORT, 0,
-                        &cur_time) == ie_sz;
+  ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
   cur_time.tv_usec += delay_us;
-  ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_KEY, KEY_LEFTCTRL,
-                        PICTRL_KEY_UP, &cur_time) == ie_sz;
+  ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_KEY, KEY_LEFTCTRL, PICTRL_KEY_UP, &cur_time) ==
+         ie_sz;
   cur_time.tv_usec += delay_us;
-  ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_KEY, KEY_G, PICTRL_KEY_UP,
-                        &cur_time) == ie_sz;
+  ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_KEY, KEY_G, PICTRL_KEY_UP, &cur_time) == ie_sz;
   cur_time.tv_usec += delay_us;
-  ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_SYN, SYN_REPORT, 0,
-                        &cur_time) == ie_sz;
+  ret &= picontrol_emit(&ie, virt_keyboard.fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
 
   return ret ? 0 : 1;
 }
@@ -140,7 +131,5 @@ static int test_all_ascii_chars() {
 
 static int test_typing() {
   const char str[] = "echo Hello World!\n";
-  return picontrol_uinput_print_str(&virt_keyboard, str) == (sizeof(str) - 1)
-             ? 0
-             : 1;
+  return picontrol_uinput_print_str(&virt_keyboard, str) == (sizeof(str) - 1) ? 0 : 1;
 }
