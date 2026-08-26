@@ -2,6 +2,7 @@ name: Build and Test
 env:
   REF: ${{ github.head_ref || github.ref_name }}
   SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  LIBUV_DEV_PKG: libuv1-dev
 on:
   push:
     branches:
@@ -30,39 +31,16 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.dedupe.outputs.should_skip != 'true'
     steps:
-      - name: Checkout libwebsockets
-        uses: actions/checkout@v7.0.1
-        with:
-          repository: warmcat/libwebsockets
-          path: libwebsockets
-          ref: v5.0-stable
-      - name: Install libuv headers
-        run: |
-          sudo apt install libuv1-dev
-      - name: Install gnutls headers
-        run: |
-          sudo apt install libgnutls28-dev
-      - name: Build + install libwebsockets
-        working-directory: libwebsockets
+      - name: Install libuv headers + libwebsockets-uv library
         env:
-          CMAKE_FLAGS: >
-            -DLWS_WITH_LIBUV=1
-            -DLWS_WITH_TESTS=OFF
-            -DLWS_WITHOUT_TESTAPPS=ON
-            -DLWS_WITHOUT_TEST_PLUGINS=ON
-            -DLWS_WITH_MINIMAL_EXAMPLES=OFF
+          LWS_PKGS: >
+            libwebsockets-evlib-uv
+            libwebsockets-dev
         run: |
-          mkdir build && cd build
-          cmake $CMAKE_FLAGS ..
-          make -j$(nproc)
-          sudo make install
-          sudo ldconfig
+          sudo apt install $LIBUV_DEV_PKG $LWS_PKGS
       - name: Checkout PiControl
         uses: actions/checkout@v7.0.1
-        with:
-          path: picontrol
       - name: Build server
-        working-directory: picontrol
         env:
           DEBUG: true
         run: |
@@ -76,7 +54,7 @@ jobs:
         uses: actions/checkout@v7.0.1
       - name: Install libuv headers
         run: |
-          sudo apt install libuv1-dev
+          sudo apt install $LIBUV_DEV_PKG
       - name: Build tests
         run: |
           make test
