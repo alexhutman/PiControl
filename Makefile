@@ -34,8 +34,8 @@ DEPS := $(SERVER_OBJS:.o=.d) $(PITEST_OBJS:.o=.d) $(PER_TEST_OBJS:.o=.d) $(addpr
 ##################################### CORE SETTINGS ######################################
 
 CC       := gcc
-CFLAGS   :=
-CPPFLAGS := -I$(SRC_DIR) -MMD -MP -Wall -Wextra
+CFLAGS   := -Wall -Wextra
+CPPFLAGS := -I$(SRC_DIR) -MMD -MP
 
 LDFLAGS  :=
 LDLIBS   :=
@@ -44,7 +44,7 @@ ifdef DEBUG
 	CPPFLAGS += -DPI_CTRL_DEBUG
 	CFLAGS   += -ggdb -Og
 else
-	CPPFLAGS += -O3
+	CFLAGS += -O3
 endif
 
 ifdef USE_XDO
