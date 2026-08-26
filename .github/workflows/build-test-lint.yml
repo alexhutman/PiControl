@@ -85,8 +85,8 @@ jobs:
           sudo ./bin/run_tests
   lint:
     needs: dedupe
-    runs-on:
-      - ubuntu-latest
+    runs-on: ubuntu-latest
+    if: needs.dedupe.outputs.should_skip != 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v7.0.1
