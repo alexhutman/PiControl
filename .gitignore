@@ -1,5 +1,7 @@
 # Targets
 bin/*
+obj/*
+lib/*
 
 # Artifacts
 **/*.d

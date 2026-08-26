@@ -1,58 +1,73 @@
-MAKEFLAGS += --no-builtin-rules --no-builtin-variables
-.DEFAULT_GOAL := server
+MAKEFLAGS      += --no-builtin-rules --no-builtin-variables
+.DEFAULT_GOAL  := server
 
-################################## Variables ###################################
-BASE_DIR       := .
+####################################### Variables ########################################
 
-#All relative
 SRC_DIR        := src
+OBJ_DIR        := obj
 BIN_DIR        := bin
+LIB_DIR        := lib
 TEST_DIR       := tst
-BIN_TEST_DIR   := $(BIN_DIR)/$(TEST_DIR)
-INSTALL_DIR    := /usr/local/bin
-SYSTEMD_DIR    := $(shell pkg-config systemd --variable=systemduserunitdir)
-
-SERVER         := $(BIN_DIR)/picontrol_server
-TEST_SCRIPT    := $(BIN_DIR)/run_tests
-PITEST_SO_PATH := $(BIN_DIR)/pitest/pitest.so
-
-SERVER_OBJS    := $(SRC_DIR)/picontrol_server.o $(SRC_DIR)/networking/iputils.o $(SRC_DIR)/networking/websocket_protocol.o $(SRC_DIR)/serialize/protocol.o $(SRC_DIR)/backend/picontrol_uinput.o $(SRC_DIR)/backend/picontrol_backend.o $(SRC_DIR)/model/protocol.o $(SRC_DIR)/data_structures/multithread_pool.o $(SRC_DIR)/data_structures/multithread_queue.o $(SRC_DIR)/logging/logger.o
 
 PITEST_SRC_DIR := $(TEST_DIR)/pitest
+BIN_TEST_DIR   := $(BIN_DIR)/$(TEST_DIR)
+INSTALL_DIR    := /usr/local/bin
+SYSTEMD_DIR    ?= $(shell pkg-config systemd --variable=systemduserunitdir 2>/dev/null || echo "/usr/lib/systemd/user")
+
 PITEST_C_FILES := $(shell find $(PITEST_SRC_DIR) -type f -name \*.c)
-PITEST_OBJ     := $(PITEST_C_FILES:.c=.o)
+TEST_C_FILES   := $(shell find $(TEST_DIR) -type f -name \*_test.c)
 
-TEST_FILES     := $(shell find $(TEST_DIR) -type f -name \*_test.c)
-TEST_TARGETS   := $(addprefix $(BIN_DIR)/,$(TEST_FILES:.c=))
+PITEST_TARGET  := $(LIB_DIR)/libpitest.so
+TEST_TARGETS   := $(addprefix $(BIN_DIR)/,$(TEST_C_FILES:.c=))
+SERVER_TARGET  := $(BIN_DIR)/picontrol_server
 
-# Full paths
-SRC_DIR_FULL   := $(BASE_DIR)/$(SRC_DIR)
-TEST_DIR_FULL  := $(BASE_DIR)/$(TEST_DIR)
+PITEST_OBJS    := $(patsubst $(TEST_DIR)/%.c,$(OBJ_DIR)/%.o,$(PITEST_C_FILES))
+PER_TEST_OBJS  := $(addprefix $(OBJ_DIR)/,logging/logger.o data_structures/multithread_pool.o data_structures/multithread_queue.o)
+SERVER_OBJS    := $(addsuffix .o,$(addprefix $(OBJ_DIR)/,picontrol_server networking/iputils networking/websocket_protocol serialize/protocol backend/picontrol_uinput backend/picontrol_backend model/protocol data_structures/multithread_pool data_structures/multithread_queue logging/logger))
 
-CC             := gcc
-CFLAGS         := -MMD -MP -Wall -Wextra
+ifdef USE_XDO
+	SERVER_OBJS += $(OBJ_DIR)/backend/picontrol_xdo.o
+endif
+
+DEPS := $(SERVER_OBJS:.o=.d) $(PITEST_OBJS:.o=.d) $(PER_TEST_OBJS:.o=.d) $(addprefix $(OBJ_DIR)/,$(TEST_C_FILES:.c=.d))
+
+##################################### CORE SETTINGS ######################################
+
+CC       := gcc
+CFLAGS   :=
+CPPFLAGS := -I$(SRC_DIR) -MMD -MP -Wall -Wextra
+
+LDFLAGS  :=
+LDLIBS   :=
 
 ifdef DEBUG
-	CFLAGS += -DPI_CTRL_DEBUG -ggdb -Og
+	CPPFLAGS += -DPI_CTRL_DEBUG
+	CFLAGS   += -ggdb -Og
 else
-	CFLAGS += -O3
+	CPPFLAGS += -O3
 endif
 
-XDO_FLAG :=
 ifdef USE_XDO
-	CFLAGS      += -DPICTRL_XDO
-	SERVER_OBJS += $(SRC_DIR)/backend/picontrol_xdo.o
-	XDO_FLAG    += -lxdo
+	CPPFLAGS += -DPICTRL_XDO
 endif
 
-################################ Phony Targets #################################
-.PHONY: all server install uninstall pitest test clean
+##################################### Phony Targets ######################################
+
+.PHONY: all server install uninstall pitest test check clean
+
+# Delete target files if the command fails after it has
+# started to update the file.
+.DELETE_ON_ERROR:
+
+# Never delete any intermediate files automatically.
+.SECONDARY:
+
 all: server pitest test
 
-server: $(SERVER)
+server: $(SERVER_TARGET)
 
 install: server
-	cp $(SERVER) $(INSTALL_DIR)
+	cp $(SERVER_TARGET) $(INSTALL_DIR)
 	cp daemon/systemd/picontrol.service $(SYSTEMD_DIR)
 	systemctl enable "$(SYSTEMD_DIR)/picontrol.service"
 	systemctl start "picontrol.service"
@@ -63,55 +78,67 @@ uninstall:
 	rm $(SYSTEMD_DIR)/picontrol.service
 	rm $(INSTALL_DIR)/picontrol_server
 
-pitest: $(PITEST_SO_PATH)
+pitest: $(PITEST_TARGET)
 
-test: $(TEST_TARGETS) | $(TEST_SCRIPT)
+test: $(TEST_TARGETS)
+	@chmod +x $(BIN_DIR)/run_tests || true
+
+check: test
+	@$(BIN_DIR)/run_tests
 
 clean:
-	$(info PiControl: Cleaning)
-	find $(BIN_DIR)/ -mindepth 1 | grep -v "$(TEST_SCRIPT)" | xargs -r rm -rf
-	find $(SRC_DIR)/ $(TEST_DIR)/ -type f \( -name \*.o -o -name \*.d \) | xargs -r rm
+	@echo "PiControl: Cleaning"
+	@rm -rf $(OBJ_DIR) $(LIB_DIR) $(SERVER_TARGET)
+	@find $(BIN_DIR)/ -mindepth 1 -not -name "run_tests" -delete
 
-################################### Targets ####################################
-$(SERVER): $(SERVER_OBJS)
-	$(info PiControl: Making $@)
-	$(CC) $^ -o $@ $(XDO_FLAG) -I$(SRC_DIR_FULL) -lwebsockets -luv
+################################### Compilation Rules ####################################
 
-$(PITEST_SO_PATH): $(PITEST_OBJ)
-	$(info PiControl: Linking pitest library $@ using components: $^)
-	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
-	$(CC) -shared -o $@ $^
-ifndef DEBUG
-	strip "$@"
+ifdef USE_XDO
+$(SERVER_TARGET): LDLIBS += -lxdo
 endif
 
-$(PITEST_SRC_DIR)/%.o: $(PITEST_SRC_DIR)/%.c $(PITEST_SRC_DIR)/%.h
-	$(info PiControl: Compiling pitest library component $@)
-	$(CC) $(CFLAGS) -fPIC -o $@ -c $< -I$(SRC_DIR_FULL) -I$(TEST_DIR_FULL)
+$(SERVER_TARGET): LDLIBS += -lwebsockets -luv
+$(SERVER_TARGET): $(SERVER_OBJS)
+	@echo "PiControl: Making $@"
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-################################################################################
-
-$(BIN_TEST_DIR)/%_test: $(SRC_DIR)/%.o $(SRC_DIR)/logging/logger.o $(SRC_DIR)/data_structures/multithread_pool.o $(SRC_DIR)/data_structures/multithread_queue.o $(TEST_DIR)/%_test.o | $(PITEST_SO_PATH)
-	$(info PiControl: Creating test executable $@)
-	@[ -d "$(@D)" ] || mkdir -p "$(@D)"
-	$(CC) $^ -o $@ -L$(dir $|) -l:$(notdir $|) -luv
+$(PITEST_TARGET): LDFLAGS += -shared
+$(PITEST_TARGET): LDLIBS  += -luv
+$(PITEST_TARGET): $(PITEST_OBJS)
+	@mkdir -p $(dir $@)
+	@echo "PiControl: Linking pitest library $@ using components: $^"
+	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 ifndef DEBUG
-	strip "$@"
+	@strip --strip-unneeded $@
 endif
 
-$(TEST_DIR)/%_test.o: $(TEST_DIR)/%_test.c | $(SRC_DIR)/%.o
-	$(info PiControl: Compiling test object $@)
-	$(CC) $(CFLAGS) -o $@ -c $< -I$(SRC_DIR_FULL) -I$(TEST_DIR_FULL)
+$(BIN_DIR)/$(TEST_DIR)/%_test: LDFLAGS += -L$(dir $(PITEST_TARGET))
+$(BIN_DIR)/$(TEST_DIR)/%_test: LDLIBS  += -lpitest -luv
+$(BIN_DIR)/$(TEST_DIR)/%_test: $(OBJ_DIR)/%.o $(OBJ_DIR)/$(TEST_DIR)/%_test.o $(PER_TEST_OBJS) | $(PITEST_TARGET)
+	@mkdir -p $(dir $@)
+	@echo "PiControl: Making test $@ using components: $^"
+	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+ifndef DEBUG
+	@strip $@
+endif
 
-# If the prereq has an associated header, recompile obj when header changes
-$(SRC_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/%.h
-	$(info PiControl: Compiling source object $@)
-	$(CC) $(CFLAGS) -o $@ -c $< -I$(SRC_DIR_FULL)
+$(OBJ_DIR)/pitest/%.o: CFLAGS   += -fPIC
+$(OBJ_DIR)/pitest/%.o: CPPFLAGS += -I$(TEST_DIR)
+$(OBJ_DIR)/pitest/%.o: $(PITEST_SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	@echo "PiControl: Making PiTest object $@ from $<"
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
 
-# Otherwise, just compile C file when it changes
-$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
-	$(info PiControl: Compiling source object $@)
-	$(CC) $(CFLAGS) -o $@ -c $< -I$(SRC_DIR_FULL)
+$(OBJ_DIR)/$(TEST_DIR)/%.o: CPPFLAGS += -I$(TEST_DIR)
+$(OBJ_DIR)/$(TEST_DIR)/%.o: $(TEST_DIR)/%.c
+	@mkdir -p $(dir $@)
+	@echo "PiControl: Making test object $@ from $<"
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
 
-$(TEST_SCRIPT)::
-	@[ -f "$@" ] && [ ! -x "$@" ] && chmod +x "$@" || true
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	@echo "PiControl: Making object $@ from $<"
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
+
+-include $(DEPS)
