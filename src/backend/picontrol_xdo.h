@@ -1,9 +1,14 @@
 #pragma once
 
-#include <xdo.h>
+#include "model/mouse.h"
+#include "model/protocol.h"
 
-// Delay between xdo keystrokes in microseconds
-#define XDO_KEYSTROKE_DELAY (useconds_t)10000
+#include <xdo.h>
 
 xdo_t *pictrl_xdo_backend_new();
 void pictrl_xdo_backend_free(xdo_t *backend);
+
+void picontrol_xdo_click_mouse(xdo_t *xdo, PiCtrlMouseBtnStatus status);
+void picontrol_xdo_move_mouse_rel(xdo_t *xdo, PiCtrlMouseCoord coords);
+void picontrol_xdo_print_str(xdo_t *xdo, const RawPiCtrlMessage *msg);
+void picontrol_xdo_type_keysym(xdo_t *xdo, const RawPiCtrlMessage *msg);

@@ -7,7 +7,12 @@
   #include <xdo.h>
 #endif
 
-typedef enum { PICTRL_BACKEND_UINPUT, PICTRL_BACKEND_XDO } pictrl_backend_type;
+typedef enum {
+  PICTRL_BACKEND_UINPUT,
+#ifdef PICTRL_XDO
+  PICTRL_BACKEND_XDO
+#endif
+} pictrl_backend_type;
 
 typedef union {
   pictrl_uinput_t uinput;

@@ -1,16 +1,33 @@
 #include "picontrol_uinput.h"
 
 #include "logging/logger.h"
+#include "picontrol_config.h"
 #include "util.h"
 
 #include <fcntl.h>
 #include <linux/input-event-codes.h>
+#include <linux/uinput.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
+
+#define PICTRL_KEY_DELAY_USEC 200000 // 200ms
+
+#define PICTRL_NOOP_KEY_COMB()                                                                     \
+  {                                                                                                \
+    .num_keys = 0, .keys = {}                                                                      \
+  }
+
+// https://stackoverflow.com/a/2124433
+#define PICTRL_KEY_COMB(...)                                                                       \
+  {                                                                                                \
+    .num_keys = (sizeof((int[]){__VA_ARGS__}) / sizeof(int)), .keys = { __VA_ARGS__ }              \
+  }
 
 // `errmsg` currently MUST take exactly 1 param: the string of the error
 #define IOCTL_AND_LOG_ERR(errmsg, fd, ...)                                                         \
@@ -19,6 +36,19 @@
       pictrl_log_error(errmsg, strerror(errno));                                                   \
     }                                                                                              \
   }
+
+typedef struct {
+  // INCLUSIVE ranges (both ends)
+  int lower_bound;
+  int upper_bound;
+} pictrl_key_range;
+
+typedef struct {
+  size_t num_keys;
+  int keys[PICTRL_MAX_SIMUL_KEYS];
+} pictrl_key_combo;
+
+typedef enum { PICTRL_KEY_UP = 0, PICTRL_KEY_DOWN = 1 } pictrl_key_status;
 
 static const pictrl_key_range valid_key_ranges[] = {
     // https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/input-event-codes.h
@@ -167,11 +197,72 @@ static const pictrl_key_combo pictrl_ascii_to_event_codes[] = {
     PICTRL_KEY_COMB(KEY_LEFTSHIFT, KEY_GRAVE),
     PICTRL_KEY_COMB(KEY_BACKSPACE)};
 
-pictrl_uinput_t *pictrl_uinput_backend_new() {
-  return malloc(sizeof(pictrl_uinput_t));
+static inline ssize_t picontrol_emit(struct input_event *ie, int fd, int type, int code,
+                                     pictrl_key_status val, struct timeval *cur_time) {
+  ie->type = type;
+  ie->code = code;
+  ie->value = val;
+  ie->time = *cur_time;
+
+  return write(fd, ie, sizeof(*ie));
 }
 
-int pictrl_uinput_backend_init(pictrl_uinput_t *uinput) {
+static int picontrol_create_virtual_keyboard() {
+  int fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+  if (fd < 0) {
+    pictrl_log_error("Could not open /dev/uinput: %s\n", strerror(errno));
+    return -1;
+  }
+
+  // Enable device to pass key events
+  IOCTL_AND_LOG_ERR("Could not enable key events: %s\n", fd, UI_SET_EVBIT, EV_KEY);
+  for (size_t i = 0; i < PICTRL_SIZE(valid_key_ranges); i++) {
+    for (int key = valid_key_ranges[i].lower_bound; key <= valid_key_ranges[i].upper_bound; key++) {
+      IOCTL_AND_LOG_ERR("Could not enable key: %s\n", fd, UI_SET_KEYBIT, key);
+    }
+  }
+
+  // Enable left, right mouse button clicks, touchpad taps
+  const int buttons[] = {BTN_LEFT, BTN_RIGHT, BTN_TOUCH, BTN_TOOL_DOUBLETAP, BTN_TOOL_TRIPLETAP};
+  for (size_t i = 0; i < PICTRL_SIZE(buttons); i++) {
+    IOCTL_AND_LOG_ERR("Could not enable clicks/taps: %s\n", fd, UI_SET_KEYBIT, buttons[i]);
+  }
+
+  // Enable mousewheel
+  IOCTL_AND_LOG_ERR("Could not enable mousewheel: %s\n", fd, UI_SET_RELBIT, REL_WHEEL);
+
+  // Enable mouse movement
+  IOCTL_AND_LOG_ERR("Could not enable mouse: %s\n", fd, UI_SET_EVBIT, EV_REL);
+  IOCTL_AND_LOG_ERR("Could not enable mouse's X movement: %s\n", fd, UI_SET_RELBIT, REL_X);
+  IOCTL_AND_LOG_ERR("Could not enable mouse's Y movement: %s\n", fd, UI_SET_RELBIT, REL_Y);
+
+  static const struct uinput_setup usetup = {.id =
+                                                 {
+                                                     .bustype = BUS_USB,
+                                                     .vendor = 0x1337,
+                                                     .product = 0x0420,
+                                                 },
+                                             .name = "PiControl Virtual Keyboard"};
+  // Set up and create device
+  IOCTL_AND_LOG_ERR("Could not set up virtual keyboard: %s\n", fd, UI_DEV_SETUP, &usetup);
+  IOCTL_AND_LOG_ERR("Could not create virtual keyboard: %s\n", fd, UI_DEV_CREATE);
+  return fd;
+}
+
+static int picontrol_destroy_virtual_keyboard(int fd) {
+  int destroy_ret = ioctl(fd, UI_DEV_DESTROY);
+  if (destroy_ret < 0) {
+    pictrl_log_error("Could not destroy virtual keyboard: %s\n", strerror(errno));
+  }
+
+  int close_ret = close(fd);
+  if (close_ret == -1) {
+    pictrl_log_error("Could not close file descriptor %d: %s\n", fd, strerror(errno));
+  }
+  return (destroy_ret >= 0 && close_ret == 0) ? 0 : -1;
+}
+
+static int pictrl_uinput_backend_init(pictrl_uinput_t *uinput) {
   int fd = picontrol_create_virtual_keyboard();
   if (fd < 0) {
     pictrl_log_error("Could not create virtual keyboard\n");
@@ -183,7 +274,7 @@ int pictrl_uinput_backend_init(pictrl_uinput_t *uinput) {
   return 0;
 }
 
-int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput) {
+static int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput) {
   if (uinput->fd < 0) {
     pictrl_log_warn("Virtual keyboard was not open...\n");
     return -1;
@@ -198,7 +289,19 @@ int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput) {
   return 0;
 }
 
+pictrl_uinput_t *pictrl_uinput_backend_new() {
+  pictrl_uinput_t *backend = malloc(sizeof(pictrl_uinput_t));
+  if (pictrl_uinput_backend_init(backend) < 0) {
+    free(backend);
+    backend = NULL;
+  }
+  return backend;
+}
+
 void pictrl_uinput_backend_free(pictrl_uinput_t *uinput) {
+  if (!uinput)
+    return;
+  pictrl_uinput_backend_destroy(uinput);
   free(uinput);
 }
 
@@ -279,62 +382,9 @@ bool picontrol_uinput_type_char(pictrl_uinput_t *uinput, char c) {
 }
 
 void picontrol_uinput_type_keysym(pictrl_uinput_t *uinput, char *keysym) {
+  (void)uinput;
+  (void)keysym;
   pictrl_log_warn("[STUBBED] %s is not implemented yet\n", __func__);
-}
-
-int picontrol_create_virtual_keyboard() {
-  int fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
-  if (fd < 0) {
-    pictrl_log_error("Could not open /dev/uinput: %s\n", strerror(errno));
-    return -1;
-  }
-
-  // Enable device to pass key events
-  IOCTL_AND_LOG_ERR("Could not enable key events: %s\n", fd, UI_SET_EVBIT, EV_KEY);
-  for (size_t i = 0; i < PICTRL_SIZE(valid_key_ranges); i++) {
-    for (int key = valid_key_ranges[i].lower_bound; key <= valid_key_ranges[i].upper_bound; key++) {
-      IOCTL_AND_LOG_ERR("Could not enable key: %s\n", fd, UI_SET_KEYBIT, key);
-    }
-  }
-
-  // Enable left, right mouse button clicks, touchpad taps
-  const int buttons[] = {BTN_LEFT, BTN_RIGHT, BTN_TOUCH, BTN_TOOL_DOUBLETAP, BTN_TOOL_TRIPLETAP};
-  for (size_t i = 0; i < PICTRL_SIZE(buttons); i++) {
-    IOCTL_AND_LOG_ERR("Could not enable clicks/taps: %s\n", fd, UI_SET_KEYBIT, buttons[i]);
-  }
-
-  // Enable mousewheel
-  IOCTL_AND_LOG_ERR("Could not enable mousewheel: %s\n", fd, UI_SET_RELBIT, REL_WHEEL);
-
-  // Enable mouse movement
-  IOCTL_AND_LOG_ERR("Could not enable mouse: %s\n", fd, UI_SET_EVBIT, EV_REL);
-  IOCTL_AND_LOG_ERR("Could not enable mouse's X movement: %s\n", fd, UI_SET_RELBIT, REL_X);
-  IOCTL_AND_LOG_ERR("Could not enable mouse's Y movement: %s\n", fd, UI_SET_RELBIT, REL_Y);
-
-  static const struct uinput_setup usetup = {.id =
-                                                 {
-                                                     .bustype = BUS_USB,
-                                                     .vendor = 0x1337,
-                                                     .product = 0x0420,
-                                                 },
-                                             .name = "PiControl Virtual Keyboard"};
-  // Set up and create device
-  IOCTL_AND_LOG_ERR("Could not set up virtual keyboard: %s\n", fd, UI_DEV_SETUP, &usetup);
-  IOCTL_AND_LOG_ERR("Could not create virtual keyboard: %s\n", fd, UI_DEV_CREATE);
-  return fd;
-}
-
-int picontrol_destroy_virtual_keyboard(int fd) {
-  int destroy_ret = ioctl(fd, UI_DEV_DESTROY);
-  if (destroy_ret < 0) {
-    pictrl_log_error("Could not destroy virtual keyboard: %s\n", strerror(errno));
-  }
-
-  int close_ret = close(fd);
-  if (close_ret == -1) {
-    pictrl_log_error("Could not close file descriptor %d: %s\n", fd, strerror(errno));
-  }
-  return (destroy_ret >= 0 && close_ret == 0) ? 0 : -1;
 }
 
 size_t picontrol_uinput_print_str(pictrl_uinput_t *uinput, const char *str) {
