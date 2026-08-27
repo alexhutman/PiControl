@@ -1,7 +1,7 @@
 #pragma once
 
-#include "data_structures/multithread_pool.h"
-#include "data_structures/multithread_queue.h"
+#include "data_structures/pool.h"
+#include "data_structures/queue.h"
 #include "keyboard/virtual_keyboard.h"
 #include "serialize/protocol.h"
 

@@ -1,6 +1,6 @@
 #include "networking/websocket_protocol.h"
 
-#include "data_structures/multithread_queue.h"
+#include "data_structures/queue.h"
 #include "keyboard/virtual_keyboard.h"
 #include "logging/logger.h"
 #include "model/protocol.h"

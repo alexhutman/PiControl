@@ -1,4 +1,4 @@
-#include "data_structures/multithread_queue.h"
+#include "data_structures/queue.h"
 
 #include <uv.h>
 

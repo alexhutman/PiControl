@@ -1,4 +1,4 @@
-#include "data_structures/multithread_pool.h"
+#include "data_structures/pool.h"
 
 #include <uv.h>
 
