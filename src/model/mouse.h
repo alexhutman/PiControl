@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 typedef enum { PI_CTRL_MOUSE_LEFT = 0, PI_CTRL_MOUSE_RIGHT = 1 } MouseButton;
 
 typedef enum {
@@ -13,5 +15,5 @@ typedef struct {
 } MouseBtnStatus;
 
 typedef struct {
-  int x, y;
+  int8_t x, y;
 } MouseCoord;
