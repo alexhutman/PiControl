@@ -17,17 +17,17 @@ static const char *PICTRL_BACKEND_NAMES[] = {"uinput",
 };
 
 const char *pictrl_backend_name(pictrl_keyboard *keyboard) {
-  return PICTRL_BACKEND_NAMES[keyboard->type];
+  return PICTRL_BACKEND_NAMES[keyboard->backend_type];
 }
 
 pictrl_keyboard *pictrl_keyboard_new() {
   pictrl_keyboard *new_keyboard = malloc(sizeof(*new_keyboard));
 #ifdef PICTRL_XDO
   new_keyboard->backend = (pictrl_backend_t *)pictrl_xdo_backend_new();
-  new_keyboard->type = PICTRL_BACKEND_XDO;
+  new_keyboard->backend_type = PICTRL_BACKEND_XDO;
 #else // default
   new_keyboard->backend = (pictrl_backend_t *)pictrl_uinput_backend_new();
-  new_keyboard->type = PICTRL_BACKEND_UINPUT;
+  new_keyboard->backend_type = PICTRL_BACKEND_UINPUT;
 #endif
   if (!new_keyboard->backend) {
     free(new_keyboard);

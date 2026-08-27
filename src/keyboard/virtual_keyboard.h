@@ -22,7 +22,7 @@ typedef union {
 } pictrl_backend_t;
 
 typedef struct {
-  pictrl_backend_type type;
+  pictrl_backend_type backend_type;
   pictrl_backend_t *backend;
 } pictrl_keyboard;
 
