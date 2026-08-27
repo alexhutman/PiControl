@@ -351,7 +351,6 @@ void pictrl_uinput_move_mouse_rel(Uinput *uinput, MouseCoord coords) {
 }
 
 bool pictrl_uinput_type_char(Uinput *uinput, char c) {
-  // TODO: Error handling on `emit_to_device` calls
   struct input_event ie;
   struct timeval cur_time;
   const size_t ie_sz = sizeof(ie);

@@ -17,7 +17,6 @@
 #include <string.h>
 
 static int handle_message(Keyboard *keyboard, Message *msg) {
-  // Handle command
   switch (msg->header.cmd) {
   case PI_CTRL_MOUSE_MV:
     pictrl_handle_mouse_move(keyboard, msg);
@@ -110,7 +109,7 @@ static int receive_data(struct lws *wsi, Runtime *state, SessionData *pss, void 
     pictrl_log_debug(
         "Received final fragment. Sending serialized message @%p to typing thread...\n",
         pss->cur_deserializer);
-    pictrl_queue_push(&state->queue, &pss->cur_deserializer); // TODO: Check if this failed?
+    pictrl_queue_push(&state->queue, &pss->cur_deserializer);
     pss->cur_deserializer = NULL;
   } else {
     pictrl_log_debug("Received fragment slice. Waiting for the remaining %zu pieces...\n",
@@ -126,7 +125,6 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason, void *
 
   switch (reason) {
   case LWS_CALLBACK_PROTOCOL_INIT: {
-    // Get our IP
     char *ip = pictrl_get_ip_address();
     if (!ip) {
       return -2;
