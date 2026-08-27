@@ -45,9 +45,6 @@ int pictrl_destroy_deserializer(MsgDeserializer *des) {
 }
 
 int pictrl_deserialize_network_data(MsgDeserializer *des) {
-  if (!des->in.rx_buffer || !des->out.msg.payload)
-    return -1;
-
   const uint8_t payload_size = des->in.rx_buffer[1];
   const size_t expected_wire_size =
       sizeof(des->out.msg.header.cmd) + sizeof(des->out.msg.header.payload_size) + payload_size;
