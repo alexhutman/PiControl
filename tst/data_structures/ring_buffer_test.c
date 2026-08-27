@@ -20,9 +20,8 @@ static int test_write_more_than_free();
 static int test_simple_wraparound();
 static int test_clear_full_buffer();
 
-static ssize_t rb_read_until_completion(int fd, size_t count, pictrl_rb_t *rb,
-                                        pictrl_read_flag flag);
-static ssize_t rb_write_until_completion(int fd, size_t count, pictrl_rb_t *rb);
+static ssize_t rb_read_until_completion(int fd, size_t count, RingBuffer *rb, RBReadFlag flag);
+static ssize_t rb_write_until_completion(int fd, size_t count, RingBuffer *rb);
 static size_t read_from_test_file(uint8_t *data, size_t count);
 static size_t write_to_test_file(uint8_t *data, size_t count);
 
@@ -34,7 +33,7 @@ static char test_file_name[] = TEST_FILE_TEMPLATE_PREFIX TEST_FILE_TEMPLATE_SUFF
 
 // Fixtures
 static FILE *test_file = NULL;
-static pictrl_rb_t ring_buffer;
+static RingBuffer ring_buffer;
 
 int before_all() {
   // Create temp file
@@ -325,8 +324,7 @@ int test_clear_full_buffer() {
 }
 
 // These are surely not thread-safe
-static ssize_t rb_read_until_completion(int fd, size_t count, pictrl_rb_t *rb,
-                                        pictrl_read_flag flag) {
+static ssize_t rb_read_until_completion(int fd, size_t count, RingBuffer *rb, RBReadFlag flag) {
   const bool reading_more_than_avail = count > rb->num_items;
 
   size_t bytes_read = 0;
@@ -348,7 +346,7 @@ static ssize_t rb_read_until_completion(int fd, size_t count, pictrl_rb_t *rb,
   return (ssize_t)bytes_read;
 }
 
-static ssize_t rb_write_until_completion(int fd, size_t count, pictrl_rb_t *rb) {
+static ssize_t rb_write_until_completion(int fd, size_t count, RingBuffer *rb) {
   const bool inserting_more_than_avail = count > (rb->capacity - rb->num_items);
 
   size_t bytes_written = 0;

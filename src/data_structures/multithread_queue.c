@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-bool pictrl_queue_init(pictrl_queue_t *q, size_t capacity, size_t item_size) {
+bool pictrl_queue_init(Queue *q, size_t capacity, size_t item_size) {
   if (!q)
     return false;
   void *items = malloc(capacity * item_size);
@@ -37,7 +37,7 @@ bool pictrl_queue_init(pictrl_queue_t *q, size_t capacity, size_t item_size) {
   return true;
 }
 
-bool pictrl_queue_push(pictrl_queue_t *q, const void *item) {
+bool pictrl_queue_push(Queue *q, const void *item) {
   uv_mutex_lock(&q->mutex);
 
   if (q->is_closed) {
@@ -66,7 +66,7 @@ bool pictrl_queue_push(pictrl_queue_t *q, const void *item) {
   return true;
 }
 
-bool pictrl_queue_pop(pictrl_queue_t *q, void *out) {
+bool pictrl_queue_pop(Queue *q, void *out) {
   uv_mutex_lock(&q->mutex);
 
   // Wait if empty, but break if closed (while, not if, because of "spurious wakeups")
@@ -89,7 +89,7 @@ bool pictrl_queue_pop(pictrl_queue_t *q, void *out) {
   return true;
 }
 
-void pictrl_queue_close(pictrl_queue_t *q) {
+void pictrl_queue_close(Queue *q) {
   uv_mutex_lock(&q->mutex);
 
   q->is_closed = true;
@@ -101,7 +101,7 @@ void pictrl_queue_close(pictrl_queue_t *q) {
   uv_mutex_unlock(&q->mutex);
 }
 
-void pictrl_queue_destroy(pictrl_queue_t *q) {
+void pictrl_queue_destroy(Queue *q) {
   if (!q)
     return;
 

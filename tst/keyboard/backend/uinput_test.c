@@ -5,7 +5,7 @@
 #include "util.h"
 
 // Fixtures
-static pictrl_uinput_t *uinput_keyboard;
+static Uinput *uinput_keyboard;
 
 static int before_all() {
   uinput_keyboard = pictrl_uinput_backend_new();
@@ -26,7 +26,7 @@ static int after_all() {
 }
 
 static int test_mv_mouse() {
-  PiCtrlMouseCoord coords_diff = {5, 5};
+  MouseCoord coords_diff = {5, 5};
 
   bool ret = true;
   for (int i = 0; i < 50; i++) {

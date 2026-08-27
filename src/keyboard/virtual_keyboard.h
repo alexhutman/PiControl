@@ -12,25 +12,25 @@ typedef enum {
 #ifdef PICTRL_XDO
   PICTRL_BACKEND_XDO
 #endif
-} pictrl_backend_type;
+} BackendType;
 
 typedef union {
-  pictrl_uinput_t *uinput;
+  Uinput *uinput;
 #ifdef PICTRL_XDO
   xdo_t *xdo;
 #endif
-} pictrl_backend_t;
+} Backend;
 
 typedef struct {
-  pictrl_backend_type backend_type;
-  pictrl_backend_t backend;
-} pictrl_keyboard;
+  BackendType backend_type;
+  Backend backend;
+} Keyboard;
 
-pictrl_keyboard *pictrl_keyboard_new(pictrl_backend_type backend_type);
-void pictrl_keyboard_free(pictrl_keyboard *keyboard);
-const char *pictrl_backend_name(pictrl_backend_type backend_type);
+Keyboard *pictrl_keyboard_new(BackendType backend_type);
+void pictrl_keyboard_free(Keyboard *keyboard);
+const char *pictrl_backend_name(BackendType backend_type);
 
-void handle_mouse_click(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg);
-void handle_mouse_move(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg);
-void handle_text(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg);
-void handle_keysym(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg);
+void pictrl_handle_mouse_click(Keyboard *keyboard, Message *msg);
+void pictrl_handle_mouse_move(Keyboard *keyboard, Message *msg);
+void pictrl_handle_text(Keyboard *keyboard, Message *msg);
+void pictrl_handle_keysym(Keyboard *keyboard, Message *msg);

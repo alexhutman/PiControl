@@ -11,15 +11,15 @@
 #define MAX_CLIENT_IP_SIZE (46)
 
 typedef struct {
-  pictrl_pool_t deserializer_pool;
-  pictrl_queue_t queue;
+  Pool deserializer_pool;
+  Queue queue;
   uv_thread_t writer_thread;
-  pictrl_keyboard *keyboard;
-} pictrl_app_runtime_t;
+  Keyboard *keyboard;
+} Runtime;
 
 typedef struct {
   char client_ip[MAX_CLIENT_IP_SIZE];
-  PiCtrlMsgDeserializer *cur_deserializer;
+  MsgDeserializer *cur_deserializer;
 } SessionData;
 
 extern const struct lws_protocols protocols[];

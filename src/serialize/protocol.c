@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int pictrl_initialize_deserializer(PiCtrlMsgDeserializer *des) {
+int pictrl_initialize_deserializer(MsgDeserializer *des) {
   if (!des)
     return -1;
   des->in.rx_buffer = calloc(1, MAX_PICTRL_MSG_SIZE);
@@ -21,14 +21,14 @@ int pictrl_initialize_deserializer(PiCtrlMsgDeserializer *des) {
   const size_t num_initial_bytes = 1;
   des->out.msg.payload = calloc(num_initial_bytes, sizeof(*(des->out.msg.payload)));
   if (!des->out.msg.payload) {
-    pictrl_log_error("Could not allocate RawPiCtrlMessage payload\n");
+    pictrl_log_error("Could not allocate Message payload\n");
     return -3;
   }
   des->out.payload_buf_size = num_initial_bytes;
   return 0;
 }
 
-int pictrl_destroy_deserializer(PiCtrlMsgDeserializer *des) {
+int pictrl_destroy_deserializer(MsgDeserializer *des) {
   if (!des)
     return -1;
   if (des->in.rx_buffer) {
@@ -44,7 +44,7 @@ int pictrl_destroy_deserializer(PiCtrlMsgDeserializer *des) {
   return 0;
 }
 
-int pictrl_deserialize_network_data(PiCtrlMsgDeserializer *des) {
+int pictrl_deserialize_network_data(MsgDeserializer *des) {
   if (!des->in.rx_buffer || !des->out.msg.payload)
     return -1;
 

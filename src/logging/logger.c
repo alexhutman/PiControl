@@ -16,14 +16,14 @@
 #define MSG_POOL_SIZE   (400)
 
 typedef struct {
-  PiLogLevel level;
+  LogLevel level;
   struct timespec time;
   char msg[MAX_LOG_MSG_LEN];
-} PiLogMsg;
+} LogMsg;
 
 static uv_mutex_t log_mutex;
-static pictrl_pool_t msg_pool;
-static pictrl_queue_t msg_queue;
+static Pool msg_pool;
+static Queue msg_queue;
 static uv_thread_t log_thread;
 static atomic_bool is_running = ATOMIC_VAR_INIT(false);
 static const char *log_level_names[] = {
@@ -34,7 +34,7 @@ static void logger_thread_func(void *arg) {
   (void)arg;
   struct tm local_time;
   char base_time_str[20];
-  PiLogMsg *recvd = NULL;
+  LogMsg *recvd = NULL;
 
   while (pictrl_queue_pop(&msg_queue, &recvd)) {
     FILE *stream = recvd->level < LOG_LVL_WARN ? stdout : stderr;
@@ -49,8 +49,8 @@ static void logger_thread_func(void *arg) {
   }
 }
 
-void _pictrl_log_msg(PiLogLevel level, const char *format, ...) {
-  PiLogMsg *msg = pictrl_pool_checkout(&msg_pool);
+void _pictrl_log_msg(LogLevel level, const char *format, ...) {
+  LogMsg *msg = pictrl_pool_checkout(&msg_pool);
   clock_gettime(CLOCK_REALTIME, &msg->time);
   msg->level = level;
 
@@ -70,14 +70,14 @@ bool pictrl_logger_init() {
     return false;
   }
 
-  const pictrl_pool_opts pool_opts = {MSG_POOL_SIZE, sizeof(PiLogMsg), NULL, NULL, NULL};
+  const PoolOpts pool_opts = {MSG_POOL_SIZE, sizeof(LogMsg), NULL, NULL, NULL};
 
   if (!pictrl_pool_init(&msg_pool, &pool_opts)) {
     fprintf(stderr, "Unable to create logger message pool\n");
     uv_mutex_destroy(&log_mutex);
     return false;
   }
-  if (!pictrl_queue_init(&msg_queue, MSG_POOL_SIZE, sizeof(PiLogMsg *))) {
+  if (!pictrl_queue_init(&msg_queue, MSG_POOL_SIZE, sizeof(LogMsg *))) {
     fprintf(stderr, "Unable to create logger thread's print queue\n");
     pictrl_pool_destroy(&msg_pool);
     uv_mutex_destroy(&log_mutex);

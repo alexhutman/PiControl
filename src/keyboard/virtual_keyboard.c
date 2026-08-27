@@ -10,20 +10,20 @@
 
 #include <stdlib.h>
 
-static const char *PICTRL_BACKEND_NAMES[] = {"uinput",
+static const char *BACKEND_NAMES[] = {"uinput",
 #ifdef PICTRL_XDO
-                                             "xdo"
+                                      "xdo"
 #endif
 };
 
-const char *pictrl_backend_name(pictrl_backend_type backend_type) {
-  return PICTRL_BACKEND_NAMES[backend_type];
+const char *pictrl_backend_name(BackendType backend_type) {
+  return BACKEND_NAMES[backend_type];
 }
 
-pictrl_keyboard *pictrl_keyboard_new(pictrl_backend_type backend_type) {
+Keyboard *pictrl_keyboard_new(BackendType backend_type) {
   pictrl_log_debug("Attempting to create keyboard using %s backend\n",
                    pictrl_backend_name(backend_type));
-  pictrl_keyboard *new_keyboard = malloc(sizeof(*new_keyboard));
+  Keyboard *new_keyboard = malloc(sizeof(*new_keyboard));
 
   switch (backend_type) {
   case PICTRL_BACKEND_UINPUT: {
@@ -57,7 +57,7 @@ pictrl_keyboard *pictrl_keyboard_new(pictrl_backend_type backend_type) {
   return new_keyboard;
 }
 
-void pictrl_keyboard_free(pictrl_keyboard *keyboard) {
+void pictrl_keyboard_free(Keyboard *keyboard) {
   switch (keyboard->backend_type) {
   case PICTRL_BACKEND_UINPUT:
     pictrl_uinput_backend_free(keyboard->backend.uinput);
@@ -72,8 +72,8 @@ void pictrl_keyboard_free(pictrl_keyboard *keyboard) {
   pictrl_log_debug("Destroyed keyboard\n");
 }
 
-void handle_mouse_click(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
-  const PiCtrlMouseBtnStatus mouse_buttons = pictrl_get_mouse_status(msg);
+void pictrl_handle_mouse_click(Keyboard *keyboard, Message *msg) {
+  const MouseBtnStatus mouse_buttons = pictrl_get_mouse_status(msg);
 
   switch (keyboard->backend_type) {
   case PICTRL_BACKEND_UINPUT:
@@ -89,8 +89,8 @@ void handle_mouse_click(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
   }
 }
 
-void handle_mouse_move(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
-  const PiCtrlMouseCoord coords = pictrl_get_mouse_coords(msg);
+void pictrl_handle_mouse_move(Keyboard *keyboard, Message *msg) {
+  const MouseCoord coords = pictrl_get_mouse_coords(msg);
 
   switch (keyboard->backend_type) {
   case PICTRL_BACKEND_UINPUT:
@@ -104,7 +104,7 @@ void handle_mouse_move(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
   }
 }
 
-void handle_text(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
+void pictrl_handle_text(Keyboard *keyboard, Message *msg) {
   switch (keyboard->backend_type) {
   case PICTRL_BACKEND_UINPUT:
     pictrl_uinput_type_char(keyboard->backend.uinput, *msg->payload);
@@ -117,7 +117,7 @@ void handle_text(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
   }
 }
 
-void handle_keysym(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
+void pictrl_handle_keysym(Keyboard *keyboard, Message *msg) {
   switch (keyboard->backend_type) {
   case PICTRL_BACKEND_UINPUT:
     pictrl_uinput_type_keysym(keyboard->backend.uinput, (char *)msg->payload);

@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-bool pictrl_pool_init(pictrl_pool_t *p, const pictrl_pool_opts *opts) {
+bool pictrl_pool_init(Pool *p, const PoolOpts *opts) {
   void **pool = calloc(opts->capacity, sizeof(*(p->pool)));
   if (!pool)
     return false;
@@ -46,7 +46,7 @@ bool pictrl_pool_init(pictrl_pool_t *p, const pictrl_pool_opts *opts) {
   return true;
 }
 
-bool pictrl_pool_checkin(pictrl_pool_t *p, void *item) {
+bool pictrl_pool_checkin(Pool *p, void *item) {
   if (!item)
     return false;
 
@@ -63,7 +63,7 @@ bool pictrl_pool_checkin(pictrl_pool_t *p, void *item) {
   return false;
 }
 
-void *pictrl_pool_checkout(pictrl_pool_t *p) {
+void *pictrl_pool_checkout(Pool *p) {
   void *item = NULL;
   uv_mutex_lock(&p->mutex);
   if (p->top > 0) {
@@ -74,7 +74,7 @@ void *pictrl_pool_checkout(pictrl_pool_t *p) {
   return item;
 }
 
-void pictrl_pool_destroy(pictrl_pool_t *p) {
+void pictrl_pool_destroy(Pool *p) {
   if (!p)
     return;
 

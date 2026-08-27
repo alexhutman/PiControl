@@ -43,16 +43,16 @@ typedef struct {
   // INCLUSIVE ranges (both ends)
   int lower_bound;
   int upper_bound;
-} pictrl_key_range;
+} KeyRange;
 
 typedef struct {
   size_t num_keys;
   int keys[PICTRL_MAX_SIMUL_KEYS];
-} pictrl_key_combo;
+} KeyCombo;
 
-typedef enum { PICTRL_KEY_UP = 0, PICTRL_KEY_DOWN = 1 } pictrl_key_status;
+typedef enum { PICTRL_KEY_UP = 0, PICTRL_KEY_DOWN = 1 } KeyStatus;
 
-static const pictrl_key_range valid_key_ranges[] = {
+static const KeyRange valid_key_ranges[] = {
     // https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/input-event-codes.h
     {.lower_bound = KEY_ESC, .upper_bound = KEY_KPDOT},
     {.lower_bound = KEY_F11, .upper_bound = KEY_F12}};
@@ -61,9 +61,9 @@ static const pictrl_key_range valid_key_ranges[] = {
 Index ("key") = ascii char
 Entry ("value") = keyscan combination to produce the ascii
 
-Ex. pictrl_ascii_to_event_codes[(size_t)"H" = 0x48] = [KEY_LEFTSHIFT, KEY_H]
+Ex. ascii_to_event_codes[(size_t)"H" = 0x48] = [KEY_LEFTSHIFT, KEY_H]
 */
-static const pictrl_key_combo pictrl_ascii_to_event_codes[] = {
+static const KeyCombo ascii_to_event_codes[] = {
     // TODO: Make these repetitive ones a macro or something?
     PICTRL_NOOP_KEY_COMB(),
     PICTRL_NOOP_KEY_COMB(),
@@ -199,8 +199,8 @@ static const pictrl_key_combo pictrl_ascii_to_event_codes[] = {
     PICTRL_KEY_COMB(KEY_LEFTSHIFT, KEY_GRAVE),
     PICTRL_KEY_COMB(KEY_BACKSPACE)};
 
-static inline ssize_t pictrl_emit(struct input_event *ie, int fd, int type, int code,
-                                  pictrl_key_status val, struct timeval *cur_time) {
+static inline ssize_t emit_to_device(struct input_event *ie, int fd, int type, int code,
+                                     KeyStatus val, struct timeval *cur_time) {
   ie->type = type;
   ie->code = code;
   ie->value = val;
@@ -209,7 +209,7 @@ static inline ssize_t pictrl_emit(struct input_event *ie, int fd, int type, int 
   return write(fd, ie, sizeof(*ie));
 }
 
-static int pictrl_create_uinput_device() {
+static int create_device() {
   int fd = open(UINPUT_DEV_PATH, O_WRONLY | O_NONBLOCK);
   if (fd < 0) {
     pictrl_log_error("Could not open " UINPUT_DEV_PATH ": %s\n", strerror(errno));
@@ -251,7 +251,7 @@ static int pictrl_create_uinput_device() {
   return fd;
 }
 
-static int pictrl_destroy_uinput_device(int fd) {
+static int destroy_device(int fd) {
   int destroy_ret = ioctl(fd, UI_DEV_DESTROY);
   if (destroy_ret < 0) {
     pictrl_log_error("Could not destroy " UINPUT_DEV_PATH " device: %s\n", strerror(errno));
@@ -264,8 +264,8 @@ static int pictrl_destroy_uinput_device(int fd) {
   return (destroy_ret >= 0 && close_ret == 0) ? 0 : -1;
 }
 
-static int pictrl_uinput_backend_init(pictrl_uinput_t *uinput) {
-  int fd = pictrl_create_uinput_device();
+static int backend_init(Uinput *uinput) {
+  int fd = create_device();
   if (fd < 0) {
     uinput->fd = -1;
     return -1;
@@ -274,13 +274,13 @@ static int pictrl_uinput_backend_init(pictrl_uinput_t *uinput) {
   return 0;
 }
 
-static int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput) {
+static int backend_destroy(Uinput *uinput) {
   if (uinput->fd < 0) {
     pictrl_log_warn(UINPUT_DEV_PATH " was not open...\n");
     return -1;
   }
 
-  int ret = pictrl_destroy_uinput_device(uinput->fd);
+  int ret = destroy_device(uinput->fd);
   if (ret < 0) {
     return -1;
   }
@@ -288,23 +288,23 @@ static int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput) {
   return 0;
 }
 
-pictrl_uinput_t *pictrl_uinput_backend_new() {
-  pictrl_uinput_t *backend = malloc(sizeof(pictrl_uinput_t));
-  if (pictrl_uinput_backend_init(backend) < 0) {
+Uinput *pictrl_uinput_backend_new() {
+  Uinput *backend = malloc(sizeof(*backend));
+  if (backend_init(backend) < 0) {
     free(backend);
     backend = NULL;
   }
   return backend;
 }
 
-void pictrl_uinput_backend_free(pictrl_uinput_t *uinput) {
+void pictrl_uinput_backend_free(Uinput *uinput) {
   if (!uinput)
     return;
-  pictrl_uinput_backend_destroy(uinput);
+  backend_destroy(uinput);
   free(uinput);
 }
 
-void pictrl_uinput_click_mouse(pictrl_uinput_t *uinput, PiCtrlMouseBtnStatus status) {
+void pictrl_uinput_click_mouse(Uinput *uinput, MouseBtnStatus status) {
   struct input_event ie;
   struct timeval cur_time;
   gettimeofday(&cur_time, NULL);
@@ -327,31 +327,31 @@ void pictrl_uinput_click_mouse(pictrl_uinput_t *uinput, PiCtrlMouseBtnStatus sta
   switch (status.click) {
   case PI_CTRL_MOUSE_DOWN:
     pictrl_log_debug("MOUSE DOWN\n");
-    pictrl_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_DOWN, &cur_time);
-    pictrl_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+    emit_to_device(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_DOWN, &cur_time);
+    emit_to_device(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
     break;
   case PI_CTRL_MOUSE_UP:
     pictrl_log_debug("MOUSE UP\n");
-    pictrl_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_UP, &cur_time);
-    pictrl_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+    emit_to_device(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_UP, &cur_time);
+    emit_to_device(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
     break;
   default:
     pictrl_log_warn("Invalid mouse click status: %d\n", status.click);
   }
 }
 
-void pictrl_uinput_move_mouse_rel(pictrl_uinput_t *uinput, PiCtrlMouseCoord coords) {
+void pictrl_uinput_move_mouse_rel(Uinput *uinput, MouseCoord coords) {
   struct input_event ie;
   struct timeval cur_time;
   gettimeofday(&cur_time, NULL);
 
-  pictrl_emit(&ie, uinput->fd, EV_REL, REL_X, coords.x, &cur_time);
-  pictrl_emit(&ie, uinput->fd, EV_REL, REL_Y, coords.y, &cur_time);
-  pictrl_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+  emit_to_device(&ie, uinput->fd, EV_REL, REL_X, coords.x, &cur_time);
+  emit_to_device(&ie, uinput->fd, EV_REL, REL_Y, coords.y, &cur_time);
+  emit_to_device(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
 }
 
-bool pictrl_uinput_type_char(pictrl_uinput_t *uinput, char c) {
-  // TODO: Error handling on `pictrl_emit` calls
+bool pictrl_uinput_type_char(Uinput *uinput, char c) {
+  // TODO: Error handling on `emit_to_device` calls
   struct input_event ie;
   struct timeval cur_time;
   const size_t ie_sz = sizeof(ie);
@@ -359,34 +359,34 @@ bool pictrl_uinput_type_char(pictrl_uinput_t *uinput, char c) {
   bool ret = true;
 
   // Key down
-  for (size_t i = 0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
-    ret &= pictrl_emit(&ie, uinput->fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i],
-                       PICTRL_KEY_DOWN, &cur_time) == ie_sz;
+  for (size_t i = 0; i < ascii_to_event_codes[(size_t)c].num_keys; i++) {
+    ret &= emit_to_device(&ie, uinput->fd, EV_KEY, ascii_to_event_codes[(size_t)c].keys[i],
+                          PICTRL_KEY_DOWN, &cur_time) == ie_sz;
     cur_time.tv_usec += PICTRL_KEY_DELAY_USEC;
   }
-  ret &= pictrl_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
+  ret &= emit_to_device(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
   if (!ret) {
     return false;
   }
 
   // Key up
-  for (size_t i = 0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
-    ret &= pictrl_emit(&ie, uinput->fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i],
-                       PICTRL_KEY_UP, &cur_time) == ie_sz;
+  for (size_t i = 0; i < ascii_to_event_codes[(size_t)c].num_keys; i++) {
+    ret &= emit_to_device(&ie, uinput->fd, EV_KEY, ascii_to_event_codes[(size_t)c].keys[i],
+                          PICTRL_KEY_UP, &cur_time) == ie_sz;
     cur_time.tv_usec += PICTRL_KEY_DELAY_USEC;
   }
-  ret &= pictrl_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
+  ret &= emit_to_device(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
 
   return ret;
 }
 
-void pictrl_uinput_type_keysym(pictrl_uinput_t *uinput, char *keysym) {
+void pictrl_uinput_type_keysym(Uinput *uinput, char *keysym) {
   (void)uinput;
   (void)keysym;
   pictrl_log_warn("[STUBBED] %s is not implemented yet\n", __func__);
 }
 
-size_t pictrl_uinput_print_str(pictrl_uinput_t *uinput, const char *str) {
+size_t pictrl_uinput_print_str(Uinput *uinput, const char *str) {
   char *p = (char *)str;
   size_t chars_written = 0;
   while (*p) {

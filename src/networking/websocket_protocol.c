@@ -16,20 +16,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int handle_message(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
+static int handle_message(Keyboard *keyboard, Message *msg) {
   // Handle command
   switch (msg->header.cmd) {
   case PI_CTRL_MOUSE_MV:
-    handle_mouse_move(keyboard, msg);
+    pictrl_handle_mouse_move(keyboard, msg);
     break;
   case PI_CTRL_MOUSE_CLICK:
-    handle_mouse_click(keyboard, msg);
+    pictrl_handle_mouse_click(keyboard, msg);
     break;
   case PI_CTRL_TEXT:
-    handle_text(keyboard, msg);
+    pictrl_handle_text(keyboard, msg);
     break;
   case PI_CTRL_KEYSYM:
-    handle_keysym(keyboard, msg);
+    pictrl_handle_keysym(keyboard, msg);
     break;
   // TODO: On disconnect command, return 0?
   default:
@@ -41,8 +41,8 @@ static int handle_message(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
 }
 
 void keyboard_writer_thread(void *arg) {
-  pictrl_app_runtime_t *state = (pictrl_app_runtime_t *)arg;
-  PiCtrlMsgDeserializer *des = NULL;
+  Runtime *state = (Runtime *)arg;
+  MsgDeserializer *des = NULL;
 
   while (pictrl_queue_pop(&state->queue, &des)) {
     pictrl_log_debug("[Writer Thread]: Processing queue item @%p\n", des);
@@ -54,7 +54,7 @@ void keyboard_writer_thread(void *arg) {
       pictrl_log_debug("[Writer Thread]: Deserialized PiControlMsg\n");
     }
 
-    if (!validate_pictrl_message(&des->out.msg)) {
+    if (!pictrl_validate_message(&des->out.msg)) {
       pictrl_log_error("[Writer Thread]: Invalid message\n");
       goto cleanup;
     } else {
@@ -80,8 +80,7 @@ static bool initialize_session_data(struct lws *wsi, SessionData *pss) {
   return true;
 }
 
-static int receive_data(struct lws *wsi, pictrl_app_runtime_t *state, SessionData *pss, void *in,
-                        size_t len) {
+static int receive_data(struct lws *wsi, Runtime *state, SessionData *pss, void *in, size_t len) {
   if (lws_is_first_fragment(wsi)) {
     assert(pss->cur_deserializer == NULL && "Current deserializer was not null on first fragment!");
     pss->cur_deserializer = pictrl_pool_checkout(&state->deserializer_pool);
@@ -90,7 +89,7 @@ static int receive_data(struct lws *wsi, pictrl_app_runtime_t *state, SessionDat
     pss->cur_deserializer->in.rx_buffered_bytes = 0;
   }
 
-  PiCtrlMsgDeserializer *des = pss->cur_deserializer;
+  MsgDeserializer *des = pss->cur_deserializer;
   assert(des->in.rx_buffer != NULL && "Deserializer's rx_buffer is null");
 
   if ((des->in.rx_buffered_bytes + len) > MAX_PICTRL_MSG_SIZE) {
@@ -128,7 +127,7 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason, void *
   switch (reason) {
   case LWS_CALLBACK_PROTOCOL_INIT: {
     // Get our IP
-    char *ip = get_ip_address();
+    char *ip = pictrl_get_ip_address();
     if (!ip) {
       return -2;
     }
@@ -149,16 +148,14 @@ int callback_picontrol(struct lws *wsi, enum lws_callback_reasons reason, void *
   case LWS_CALLBACK_RECEIVE: {
     if (!pss || !in || len == 0)
       break;
-    pictrl_app_runtime_t *app_state =
-        (pictrl_app_runtime_t *)lws_context_user(lws_get_context(wsi));
+    Runtime *app_state = (Runtime *)lws_context_user(lws_get_context(wsi));
     receive_data(wsi, app_state, pss, in, len);
     break;
   }
   case LWS_CALLBACK_CLOSED: {
     if (!pss)
       break;
-    pictrl_app_runtime_t *app_state =
-        (pictrl_app_runtime_t *)lws_context_user(lws_get_context(wsi));
+    Runtime *app_state = (Runtime *)lws_context_user(lws_get_context(wsi));
     if (pss->cur_deserializer)
       pictrl_pool_checkin(&app_state->deserializer_pool, pss->cur_deserializer);
     pictrl_log_warn("[CONN] - Disconnected | IP: %s\n", pss->client_ip);

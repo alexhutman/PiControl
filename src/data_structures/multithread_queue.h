@@ -19,10 +19,10 @@ typedef struct {
 
   size_t head;
   size_t tail;
-} pictrl_queue_t;
+} Queue;
 
-bool pictrl_queue_init(pictrl_queue_t *q, size_t capacity, size_t item_size);
-bool pictrl_queue_push(pictrl_queue_t *q, const void *item); // Blocks until not full
-bool pictrl_queue_pop(pictrl_queue_t *q, void *out);         // Blocks until not empty
-void pictrl_queue_close(pictrl_queue_t *q);
-void pictrl_queue_destroy(pictrl_queue_t *q);
+bool pictrl_queue_init(Queue *q, size_t capacity, size_t item_size);
+bool pictrl_queue_push(Queue *q, const void *item); // Blocks until not full
+bool pictrl_queue_pop(Queue *q, void *out);         // Blocks until not empty
+void pictrl_queue_close(Queue *q);
+void pictrl_queue_destroy(Queue *q);

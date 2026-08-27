@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *rb, size_t capacity) {
+RingBuffer *pictrl_rb_init(RingBuffer *rb, size_t capacity) {
   if (capacity == 0) {
     return NULL;
   }
@@ -27,7 +27,7 @@ pictrl_rb_t *pictrl_rb_init(pictrl_rb_t *rb, size_t capacity) {
   return rb;
 }
 
-void pictrl_rb_destroy(pictrl_rb_t *rb) {
+void pictrl_rb_destroy(RingBuffer *rb) {
   if (!rb) {
     return;
   }
@@ -52,7 +52,7 @@ see it in the next call to pictrl_rb_write() for the remaining `num -
 bytes_read` bytes.
 
 */
-ssize_t pictrl_rb_write(int fd, size_t num, pictrl_rb_t *rb) {
+ssize_t pictrl_rb_write(int fd, size_t num, RingBuffer *rb) {
   const size_t available_bytes = rb->capacity - rb->num_items;
   if (num == 0) {
     return 0;
@@ -115,7 +115,7 @@ should see it in the next call to pictrl_rb_read() for the remaining `num -
 bytes_written` bytes.
 
 */
-ssize_t pictrl_rb_read(int fd, size_t num, pictrl_rb_t *rb, pictrl_read_flag flag) {
+ssize_t pictrl_rb_read(int fd, size_t num, RingBuffer *rb, RBReadFlag flag) {
   if (num == 0 || rb->num_items == 0) {
     return 0;
   }
@@ -160,13 +160,13 @@ ssize_t pictrl_rb_read(int fd, size_t num, pictrl_rb_t *rb, pictrl_read_flag fla
   return bytes_written;
 }
 
-void pictrl_rb_clear(pictrl_rb_t *rb) {
+void pictrl_rb_clear(RingBuffer *rb) {
   memset(rb->buffer, 0, rb->capacity * sizeof(uint8_t));
   rb->num_items = 0;
   rb->data_start = 0;
 }
 
-void pictrl_rb_copy(pictrl_rb_t *rb, void *dest) {
+void pictrl_rb_copy(RingBuffer *rb, void *dest) {
   if (!pictrl_rb_data_wrapped(rb)) {
     memcpy(dest, pictrl_rb_data_start_address(rb), rb->num_items * sizeof(uint8_t));
     return;
@@ -179,7 +179,7 @@ void pictrl_rb_copy(pictrl_rb_t *rb, void *dest) {
 }
 
 // Using `pictrl_rb_read`
-void print_ring_buffer(pictrl_rb_t *rb) {
+void print_ring_buffer(RingBuffer *rb) {
   pictrl_log_info("\n------------------------------\n"
                   "Capacity:     %zu\n"
                   "Buffer start: %p\n"
@@ -194,7 +194,7 @@ void print_ring_buffer(pictrl_rb_t *rb) {
   pictrl_log_info("\n");
 }
 
-void print_rb_in_order(pictrl_rb_t *rb) {
+void print_rb_in_order(RingBuffer *rb) {
   const size_t n_first_pass = rb->capacity - rb->data_start;
 
   pictrl_log_info("[");
@@ -206,7 +206,7 @@ void print_rb_in_order(pictrl_rb_t *rb) {
   }
   pictrl_log_info("%u]\n", rb->buffer[rb->data_start - 1]);
 }
-void print_raw_buf(pictrl_rb_t *rb) {
+void print_raw_buf(RingBuffer *rb) {
   print_buf(rb->buffer, rb->num_items);
 }
 
