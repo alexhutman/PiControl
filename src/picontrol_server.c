@@ -1,5 +1,6 @@
 #include "data_structures/multithread_pool.h"
 #include "data_structures/multithread_queue.h"
+#include "keyboard/virtual_keyboard.h"
 #include "logging/logger.h"
 #include "networking/websocket_protocol.h"
 #include "picontrol_config.h"
@@ -12,6 +13,11 @@
 #include <stdio.h>
 
 #define DESERIALIZER_POOL_SIZE ((size_t)5)
+#ifdef PICTRL_XDO
+  #define KEYBOARD_BACKEND PICTRL_BACKEND_XDO
+#else
+  #define KEYBOARD_BACKEND PICTRL_BACKEND_UINPUT
+#endif // PICTRL_XDO
 
 static int init_deserializer(void *item, void *user_data) {
   (void)user_data;
@@ -38,15 +44,14 @@ static bool initialize_state(pictrl_app_runtime_t *state) {
     return false;
   }
 
-  state->keyboard = pictrl_keyboard_new();
+  state->keyboard = pictrl_keyboard_new(KEYBOARD_BACKEND);
   if (!state->keyboard) {
     pictrl_log_error("Unable to create PiControl keyboard!\n");
     pictrl_queue_destroy(&state->queue);
     pictrl_pool_destroy(&state->deserializer_pool);
     return false;
   }
-  pictrl_log_info("Initialized app state. Using %s virtual keyboard backend\n",
-                  pictrl_backend_name(state->keyboard));
+  pictrl_log_debug("Initialized app state\n");
   return true;
 }
 
@@ -59,7 +64,7 @@ static void clean_up_state(pictrl_app_runtime_t *state) {
   assert(state->deserializer_pool.top == state->deserializer_pool.capacity &&
          "Not all deserializers were put back");
   pictrl_pool_destroy(&state->deserializer_pool);
-  pictrl_log_info("Destroyed app state\n");
+  pictrl_log_debug("Destroyed app state\n");
 }
 
 int main() {

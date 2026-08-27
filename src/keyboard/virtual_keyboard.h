@@ -3,7 +3,7 @@
 #include "keyboard/backend/uinput.h"
 #include "model/protocol.h"
 
-#ifdef PICTRL_XDO // TODO: Use an xdo definition directly?
+#ifdef PICTRL_XDO
   #include <xdo.h>
 #endif
 
@@ -26,9 +26,9 @@ typedef struct {
   pictrl_backend_t backend;
 } pictrl_keyboard;
 
-pictrl_keyboard *pictrl_keyboard_new();
+pictrl_keyboard *pictrl_keyboard_new(pictrl_backend_type backend_type);
 void pictrl_keyboard_free(pictrl_keyboard *keyboard);
-const char *pictrl_backend_name(pictrl_keyboard *keyboard);
+const char *pictrl_backend_name(pictrl_backend_type backend_type);
 
 void handle_mouse_click(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg);
 void handle_mouse_move(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg);

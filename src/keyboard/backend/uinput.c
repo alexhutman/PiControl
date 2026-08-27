@@ -16,6 +16,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define UINPUT_DEV_PATH "/dev/uinput"
+
 #define PICTRL_KEY_DELAY_USEC 200000 // 200ms
 
 #define PICTRL_NOOP_KEY_COMB()                                                                     \
@@ -207,10 +209,10 @@ static inline ssize_t picontrol_emit(struct input_event *ie, int fd, int type, i
   return write(fd, ie, sizeof(*ie));
 }
 
-static int picontrol_create_virtual_keyboard() {
-  int fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+static int picontrol_create_uinput_device() {
+  int fd = open(UINPUT_DEV_PATH, O_WRONLY | O_NONBLOCK);
   if (fd < 0) {
-    pictrl_log_error("Could not open /dev/uinput: %s\n", strerror(errno));
+    pictrl_log_error("Could not open " UINPUT_DEV_PATH ": %s\n", strerror(errno));
     return -1;
   }
 
@@ -244,15 +246,15 @@ static int picontrol_create_virtual_keyboard() {
                                                  },
                                              .name = "PiControl Virtual Keyboard"};
   // Set up and create device
-  IOCTL_AND_LOG_ERR("Could not set up virtual keyboard: %s\n", fd, UI_DEV_SETUP, &usetup);
-  IOCTL_AND_LOG_ERR("Could not create virtual keyboard: %s\n", fd, UI_DEV_CREATE);
+  IOCTL_AND_LOG_ERR("Could not set up " UINPUT_DEV_PATH " device: %s\n", fd, UI_DEV_SETUP, &usetup);
+  IOCTL_AND_LOG_ERR("Could not create " UINPUT_DEV_PATH " device: %s\n", fd, UI_DEV_CREATE);
   return fd;
 }
 
-static int picontrol_destroy_virtual_keyboard(int fd) {
+static int picontrol_destroy_uinput_device(int fd) {
   int destroy_ret = ioctl(fd, UI_DEV_DESTROY);
   if (destroy_ret < 0) {
-    pictrl_log_error("Could not destroy virtual keyboard: %s\n", strerror(errno));
+    pictrl_log_error("Could not destroy " UINPUT_DEV_PATH " device: %s\n", strerror(errno));
   }
 
   int close_ret = close(fd);
@@ -263,28 +265,25 @@ static int picontrol_destroy_virtual_keyboard(int fd) {
 }
 
 static int pictrl_uinput_backend_init(pictrl_uinput_t *uinput) {
-  int fd = picontrol_create_virtual_keyboard();
+  int fd = picontrol_create_uinput_device();
   if (fd < 0) {
-    pictrl_log_error("Could not create virtual keyboard\n");
     uinput->fd = -1;
     return -1;
   }
-  pictrl_log_debug("Created virtual keyboard\n");
   uinput->fd = fd;
   return 0;
 }
 
 static int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput) {
   if (uinput->fd < 0) {
-    pictrl_log_warn("Virtual keyboard was not open...\n");
+    pictrl_log_warn(UINPUT_DEV_PATH " was not open...\n");
     return -1;
   }
 
-  int ret = picontrol_destroy_virtual_keyboard(uinput->fd);
+  int ret = picontrol_destroy_uinput_device(uinput->fd);
   if (ret < 0) {
     return -1;
   }
-  pictrl_log_debug("Destroyed virtual keyboard\n");
   uinput->fd = -1;
   return 0;
 }
@@ -321,7 +320,7 @@ void picontrol_uinput_click_mouse(pictrl_uinput_t *uinput, PiCtrlMouseBtnStatus 
     kernel_btn = BTN_RIGHT;
     break;
   default:
-    pictrl_log_error("Invalid mouse button: %d\n", status.btn);
+    pictrl_log_warn("Invalid mouse button: %d\n", status.btn);
     return;
   }
 
@@ -337,7 +336,7 @@ void picontrol_uinput_click_mouse(pictrl_uinput_t *uinput, PiCtrlMouseBtnStatus 
     picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
     break;
   default:
-    pictrl_log_error("Invalid mouse click status: %d\n", status.click);
+    pictrl_log_warn("Invalid mouse click status: %d\n", status.click);
   }
 }
 
