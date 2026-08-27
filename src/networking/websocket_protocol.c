@@ -83,18 +83,17 @@ static int receive_data(struct lws *wsi, Runtime *state, SessionData *pss, void 
   if (lws_is_first_fragment(wsi)) {
     assert(pss->cur_deserializer == NULL && "Current deserializer was not null on first fragment!");
     pss->cur_deserializer = pictrl_pool_checkout(&state->deserializer_pool);
+
     assert(pss->cur_deserializer != NULL && "Couldn't pull a deserializer from the pool!");
-    pictrl_log_debug("Using deserializer @%p\n", pss->cur_deserializer);
     pss->cur_deserializer->in.rx_buffered_bytes = 0;
+    pictrl_log_debug("Using deserializer @%p\n", pss->cur_deserializer);
   }
 
   MsgDeserializer *des = pss->cur_deserializer;
   assert(des->in.rx_buffer != NULL && "Deserializer's rx_buffer is null");
 
   if ((des->in.rx_buffered_bytes + len) > MAX_PICTRL_MSG_SIZE) {
-    pictrl_log_error(
-        "Incoming data exceeds expected boundaries. Dropping connection.\n"); // TODO: Drop
-                                                                              // connection?
+    pictrl_log_error("Incoming data exceeds expected boundaries\n");
     return -1;
   }
 

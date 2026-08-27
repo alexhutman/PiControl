@@ -8,6 +8,7 @@
 typedef int (*pool_item_init_cb)(void *item, void *user_data);
 typedef int (*pool_item_destroy_cb)(void *item, void *user_data);
 
+// Thread-safe generic pool
 typedef struct {
   uv_mutex_t mutex;
   void **pool;
