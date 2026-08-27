@@ -38,15 +38,15 @@ static bool initialize_state(pictrl_app_runtime_t *state) {
     return false;
   }
 
-  state->backend = pictrl_backend_new();
-  if (!state->backend) {
-    pictrl_log_error("Unable to create PiControl backend!\n");
+  state->keyboard = pictrl_keyboard_new();
+  if (!state->keyboard) {
+    pictrl_log_error("Unable to create PiControl keyboard!\n");
     pictrl_queue_destroy(&state->queue);
     pictrl_pool_destroy(&state->deserializer_pool);
     return false;
   }
-  pictrl_log_info("Initialized app state. Using %s backend\n",
-                  pictrl_backend_name(state->backend->type));
+  pictrl_log_info("Initialized app state. Using %s virtual keyboard backend\n",
+                  pictrl_backend_name(state->keyboard));
   return true;
 }
 
@@ -54,7 +54,7 @@ static void clean_up_state(pictrl_app_runtime_t *state) {
   pictrl_queue_close(&state->queue);
   uv_thread_join(&state->writer_thread);
 
-  pictrl_backend_free(state->backend);
+  pictrl_keyboard_free(state->keyboard);
   pictrl_queue_destroy(&state->queue);
   assert(state->deserializer_pool.top == state->deserializer_pool.capacity &&
          "Not all deserializers were put back");

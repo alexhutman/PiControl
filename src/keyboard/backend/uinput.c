@@ -1,4 +1,4 @@
-#include "picontrol_uinput.h"
+#include "keyboard/backend/uinput.h"
 
 #include "logging/logger.h"
 #include "picontrol_config.h"

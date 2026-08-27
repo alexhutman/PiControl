@@ -1,8 +1,8 @@
 #pragma once
 
-#include "backend/picontrol_backend.h"
 #include "data_structures/multithread_pool.h"
 #include "data_structures/multithread_queue.h"
+#include "keyboard/virtual_keyboard.h"
 #include "serialize/protocol.h"
 
 #include <libwebsockets.h>
@@ -14,7 +14,7 @@ typedef struct {
   pictrl_pool_t deserializer_pool;
   pictrl_queue_t queue;
   uv_thread_t writer_thread;
-  pictrl_backend *backend;
+  pictrl_keyboard *keyboard;
 } pictrl_app_runtime_t;
 
 typedef struct {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "backend/picontrol_uinput.h"
+#include "keyboard/backend/uinput.h"
 #include "model/protocol.h"
 
 #ifdef PICTRL_XDO // TODO: Use an xdo definition directly?
@@ -24,13 +24,13 @@ typedef union {
 typedef struct {
   pictrl_backend_type type;
   pictrl_backend_t *backend;
-} pictrl_backend;
+} pictrl_keyboard;
 
-pictrl_backend *pictrl_backend_new();
-void pictrl_backend_free(pictrl_backend *backend);
-const char *pictrl_backend_name(pictrl_backend_type type);
+pictrl_keyboard *pictrl_keyboard_new();
+void pictrl_keyboard_free(pictrl_keyboard *keyboard);
+const char *pictrl_backend_name(pictrl_keyboard *keyboard);
 
-void handle_mouse_click(pictrl_backend *backend, RawPiCtrlMessage *msg);
-void handle_mouse_move(pictrl_backend *backend, RawPiCtrlMessage *msg);
-void handle_text(pictrl_backend *backend, RawPiCtrlMessage *msg);
-void handle_keysym(pictrl_backend *backend, RawPiCtrlMessage *msg);
+void handle_mouse_click(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg);
+void handle_mouse_move(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg);
+void handle_text(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg);
+void handle_keysym(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg);

@@ -1,11 +1,11 @@
-#include "backend/picontrol_backend.h"
+#include "keyboard/virtual_keyboard.h"
 
 #include "serialize/mouse.h"
 
 #ifdef PICTRL_XDO
-  #include "backend/picontrol_xdo.h"
+  #include "keyboard/backend/xdo.h"
 #else
-  #include "backend/picontrol_uinput.h"
+  #include "keyboard/backend/uinput.h"
 #endif
 
 #include <stdlib.h>
@@ -16,69 +16,69 @@ static const char *PICTRL_BACKEND_NAMES[] = {"uinput",
 #endif
 };
 
-const char *pictrl_backend_name(pictrl_backend_type type) {
-  return PICTRL_BACKEND_NAMES[type];
+const char *pictrl_backend_name(pictrl_keyboard *keyboard) {
+  return PICTRL_BACKEND_NAMES[keyboard->type];
 }
 
-pictrl_backend *pictrl_backend_new() {
-  pictrl_backend *new_backend = malloc(sizeof(*new_backend));
+pictrl_keyboard *pictrl_keyboard_new() {
+  pictrl_keyboard *new_keyboard = malloc(sizeof(*new_keyboard));
 #ifdef PICTRL_XDO
-  new_backend->backend = (pictrl_backend_t *)pictrl_xdo_backend_new();
-  new_backend->type = PICTRL_BACKEND_XDO;
+  new_keyboard->backend = (pictrl_backend_t *)pictrl_xdo_backend_new();
+  new_keyboard->type = PICTRL_BACKEND_XDO;
 #else // default
-  new_backend->backend = (pictrl_backend_t *)pictrl_uinput_backend_new();
-  new_backend->type = PICTRL_BACKEND_UINPUT;
+  new_keyboard->backend = (pictrl_backend_t *)pictrl_uinput_backend_new();
+  new_keyboard->type = PICTRL_BACKEND_UINPUT;
 #endif
-  if (!new_backend->backend) {
-    free(new_backend);
+  if (!new_keyboard->backend) {
+    free(new_keyboard);
     return NULL;
   }
 
-  return new_backend;
+  return new_keyboard;
 }
 
-void pictrl_backend_free(pictrl_backend *backend) {
+void pictrl_keyboard_free(pictrl_keyboard *keyboard) {
 #ifdef PICTRL_XDO
-  pictrl_xdo_backend_free(&backend->backend->xdo);
+  pictrl_xdo_backend_free(&keyboard->backend->xdo);
 #else // default
-  pictrl_uinput_backend_free(&backend->backend->uinput);
+  pictrl_uinput_backend_free(&keyboard->backend->uinput);
 #endif
-  free(backend);
+  free(keyboard);
 }
 
-void handle_mouse_click(pictrl_backend *backend, RawPiCtrlMessage *msg) {
+void handle_mouse_click(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
   const PiCtrlMouseBtnStatus mouse_buttons = pictrl_get_mouse_status(msg);
 #ifdef PICTRL_XDO
   (void)msg;
-  (void)backend;
-  picontrol_xdo_click_mouse(&backend->backend->xdo, mouse_buttons);
+  (void)keyboard;
+  picontrol_xdo_click_mouse(&keyboard->backend->xdo, mouse_buttons);
 #else
-  picontrol_uinput_click_mouse(&backend->backend->uinput, mouse_buttons);
+  picontrol_uinput_click_mouse(&keyboard->backend->uinput, mouse_buttons);
 #endif
 }
 
-void handle_mouse_move(pictrl_backend *backend, RawPiCtrlMessage *msg) {
+void handle_mouse_move(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
   const PiCtrlMouseCoord coords = pictrl_get_mouse_coords(msg);
 
 #ifdef PICTRL_XDO
-  picontrol_xdo_move_mouse_rel(&backend->backend->xdo, coords);
+  picontrol_xdo_move_mouse_rel(&keyboard->backend->xdo, coords);
 #else
-  picontrol_uinput_move_mouse_rel(&backend->backend->uinput, coords);
+  picontrol_uinput_move_mouse_rel(&keyboard->backend->uinput, coords);
 #endif
 }
 
-void handle_text(pictrl_backend *backend, RawPiCtrlMessage *msg) {
+void handle_text(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
 #ifdef PICTRL_XDO
-  picontrol_xdo_print_str(&backend->backend->xdo, msg);
+  picontrol_xdo_print_str(&keyboard->backend->xdo, msg);
 #else
-  picontrol_uinput_type_char(&backend->backend->uinput, *msg->payload);
+  picontrol_uinput_type_char(&keyboard->backend->uinput, *msg->payload);
 #endif
 }
 
-void handle_keysym(pictrl_backend *backend, RawPiCtrlMessage *msg) {
+void handle_keysym(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
 #ifdef PICTRL_XDO
-  picontrol_xdo_type_keysym(&backend->backend->xdo, msg);
+  picontrol_xdo_type_keysym(&keyboard->backend->xdo, msg);
 #else
-  picontrol_uinput_type_keysym(&backend->backend->uinput, (char *)msg->payload);
+  picontrol_uinput_type_keysym(&keyboard->backend->uinput, (char *)msg->payload);
 #endif
 }

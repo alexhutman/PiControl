@@ -1,7 +1,7 @@
 #include "networking/websocket_protocol.h"
 
-#include "backend/picontrol_backend.h"
 #include "data_structures/multithread_queue.h"
+#include "keyboard/virtual_keyboard.h"
 #include "logging/logger.h"
 #include "model/protocol.h"
 #include "networking/iputils.h"
@@ -16,20 +16,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int handle_message(pictrl_backend *backend, RawPiCtrlMessage *msg) {
+static int handle_message(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
   // Handle command
   switch (msg->header.cmd) {
   case PI_CTRL_MOUSE_MV:
-    handle_mouse_move(backend, msg);
+    handle_mouse_move(keyboard, msg);
     break;
   case PI_CTRL_MOUSE_CLICK:
-    handle_mouse_click(backend, msg);
+    handle_mouse_click(keyboard, msg);
     break;
   case PI_CTRL_TEXT:
-    handle_text(backend, msg);
+    handle_text(keyboard, msg);
     break;
   case PI_CTRL_KEYSYM:
-    handle_keysym(backend, msg);
+    handle_keysym(keyboard, msg);
     break;
   // TODO: On disconnect command, return 0?
   default:
@@ -61,7 +61,7 @@ void keyboard_writer_thread(void *arg) {
       pictrl_log_debug("[Writer Thread]: Validated PiControlMsg\n");
     }
 
-    if (handle_message(state->backend, &des->out.msg) < 0) {
+    if (handle_message(state->keyboard, &des->out.msg) < 0) {
       pictrl_log_error("[Writer Thread]: Couldn't type message\n");
       goto cleanup;
     } else {
