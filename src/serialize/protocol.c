@@ -11,19 +11,22 @@
 int pictrl_initialize_deserializer(MsgDeserializer *des) {
   if (!des)
     return -1;
-  des->in.rx_buffer = calloc(1, MAX_PICTRL_MSG_SIZE);
-  des->in.rx_buffered_bytes = 0;
-  if (!des->in.rx_buffer) {
+  uint8_t *rx_buffer = calloc(1, MAX_PICTRL_MSG_SIZE);
+  if (!rx_buffer) {
     pictrl_log_error("Could not allocate rx_buffer\n");
     return -2;
   }
 
   const size_t num_initial_bytes = 1;
-  des->out.msg.payload = calloc(num_initial_bytes, sizeof(*(des->out.msg.payload)));
-  if (!des->out.msg.payload) {
+  uint8_t *payload = calloc(num_initial_bytes, sizeof(*(des->out.msg.payload)));
+  if (!payload) {
+    free(rx_buffer);
     pictrl_log_error("Could not allocate Message payload\n");
     return -3;
   }
+  des->in.rx_buffer = rx_buffer;
+  des->in.rx_buffered_bytes = 0;
+  des->out.msg.payload = payload;
   des->out.payload_buf_size = num_initial_bytes;
   return 0;
 }
