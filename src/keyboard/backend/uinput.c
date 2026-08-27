@@ -199,8 +199,8 @@ static const pictrl_key_combo pictrl_ascii_to_event_codes[] = {
     PICTRL_KEY_COMB(KEY_LEFTSHIFT, KEY_GRAVE),
     PICTRL_KEY_COMB(KEY_BACKSPACE)};
 
-static inline ssize_t picontrol_emit(struct input_event *ie, int fd, int type, int code,
-                                     pictrl_key_status val, struct timeval *cur_time) {
+static inline ssize_t pictrl_emit(struct input_event *ie, int fd, int type, int code,
+                                  pictrl_key_status val, struct timeval *cur_time) {
   ie->type = type;
   ie->code = code;
   ie->value = val;
@@ -209,7 +209,7 @@ static inline ssize_t picontrol_emit(struct input_event *ie, int fd, int type, i
   return write(fd, ie, sizeof(*ie));
 }
 
-static int picontrol_create_uinput_device() {
+static int pictrl_create_uinput_device() {
   int fd = open(UINPUT_DEV_PATH, O_WRONLY | O_NONBLOCK);
   if (fd < 0) {
     pictrl_log_error("Could not open " UINPUT_DEV_PATH ": %s\n", strerror(errno));
@@ -251,7 +251,7 @@ static int picontrol_create_uinput_device() {
   return fd;
 }
 
-static int picontrol_destroy_uinput_device(int fd) {
+static int pictrl_destroy_uinput_device(int fd) {
   int destroy_ret = ioctl(fd, UI_DEV_DESTROY);
   if (destroy_ret < 0) {
     pictrl_log_error("Could not destroy " UINPUT_DEV_PATH " device: %s\n", strerror(errno));
@@ -265,7 +265,7 @@ static int picontrol_destroy_uinput_device(int fd) {
 }
 
 static int pictrl_uinput_backend_init(pictrl_uinput_t *uinput) {
-  int fd = picontrol_create_uinput_device();
+  int fd = pictrl_create_uinput_device();
   if (fd < 0) {
     uinput->fd = -1;
     return -1;
@@ -280,7 +280,7 @@ static int pictrl_uinput_backend_destroy(pictrl_uinput_t *uinput) {
     return -1;
   }
 
-  int ret = picontrol_destroy_uinput_device(uinput->fd);
+  int ret = pictrl_destroy_uinput_device(uinput->fd);
   if (ret < 0) {
     return -1;
   }
@@ -304,7 +304,7 @@ void pictrl_uinput_backend_free(pictrl_uinput_t *uinput) {
   free(uinput);
 }
 
-void picontrol_uinput_click_mouse(pictrl_uinput_t *uinput, PiCtrlMouseBtnStatus status) {
+void pictrl_uinput_click_mouse(pictrl_uinput_t *uinput, PiCtrlMouseBtnStatus status) {
   struct input_event ie;
   struct timeval cur_time;
   gettimeofday(&cur_time, NULL);
@@ -327,31 +327,31 @@ void picontrol_uinput_click_mouse(pictrl_uinput_t *uinput, PiCtrlMouseBtnStatus 
   switch (status.click) {
   case PI_CTRL_MOUSE_DOWN:
     pictrl_log_debug("MOUSE DOWN\n");
-    picontrol_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_DOWN, &cur_time);
-    picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+    pictrl_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_DOWN, &cur_time);
+    pictrl_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
     break;
   case PI_CTRL_MOUSE_UP:
     pictrl_log_debug("MOUSE UP\n");
-    picontrol_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_UP, &cur_time);
-    picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+    pictrl_emit(&ie, uinput->fd, EV_KEY, kernel_btn, PICTRL_KEY_UP, &cur_time);
+    pictrl_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
     break;
   default:
     pictrl_log_warn("Invalid mouse click status: %d\n", status.click);
   }
 }
 
-void picontrol_uinput_move_mouse_rel(pictrl_uinput_t *uinput, PiCtrlMouseCoord coords) {
+void pictrl_uinput_move_mouse_rel(pictrl_uinput_t *uinput, PiCtrlMouseCoord coords) {
   struct input_event ie;
   struct timeval cur_time;
   gettimeofday(&cur_time, NULL);
 
-  picontrol_emit(&ie, uinput->fd, EV_REL, REL_X, coords.x, &cur_time);
-  picontrol_emit(&ie, uinput->fd, EV_REL, REL_Y, coords.y, &cur_time);
-  picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
+  pictrl_emit(&ie, uinput->fd, EV_REL, REL_X, coords.x, &cur_time);
+  pictrl_emit(&ie, uinput->fd, EV_REL, REL_Y, coords.y, &cur_time);
+  pictrl_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time);
 }
 
-bool picontrol_uinput_type_char(pictrl_uinput_t *uinput, char c) {
-  // TODO: Error handling on `picontrol_emit` calls
+bool pictrl_uinput_type_char(pictrl_uinput_t *uinput, char c) {
+  // TODO: Error handling on `pictrl_emit` calls
   struct input_event ie;
   struct timeval cur_time;
   const size_t ie_sz = sizeof(ie);
@@ -360,37 +360,37 @@ bool picontrol_uinput_type_char(pictrl_uinput_t *uinput, char c) {
 
   // Key down
   for (size_t i = 0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
-    ret &= picontrol_emit(&ie, uinput->fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i],
-                          PICTRL_KEY_DOWN, &cur_time) == ie_sz;
+    ret &= pictrl_emit(&ie, uinput->fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i],
+                       PICTRL_KEY_DOWN, &cur_time) == ie_sz;
     cur_time.tv_usec += PICTRL_KEY_DELAY_USEC;
   }
-  ret &= picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
+  ret &= pictrl_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
   if (!ret) {
     return false;
   }
 
   // Key up
   for (size_t i = 0; i < pictrl_ascii_to_event_codes[(size_t)c].num_keys; i++) {
-    ret &= picontrol_emit(&ie, uinput->fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i],
-                          PICTRL_KEY_UP, &cur_time) == ie_sz;
+    ret &= pictrl_emit(&ie, uinput->fd, EV_KEY, pictrl_ascii_to_event_codes[(size_t)c].keys[i],
+                       PICTRL_KEY_UP, &cur_time) == ie_sz;
     cur_time.tv_usec += PICTRL_KEY_DELAY_USEC;
   }
-  ret &= picontrol_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
+  ret &= pictrl_emit(&ie, uinput->fd, EV_SYN, SYN_REPORT, 0, &cur_time) == ie_sz;
 
   return ret;
 }
 
-void picontrol_uinput_type_keysym(pictrl_uinput_t *uinput, char *keysym) {
+void pictrl_uinput_type_keysym(pictrl_uinput_t *uinput, char *keysym) {
   (void)uinput;
   (void)keysym;
   pictrl_log_warn("[STUBBED] %s is not implemented yet\n", __func__);
 }
 
-size_t picontrol_uinput_print_str(pictrl_uinput_t *uinput, const char *str) {
+size_t pictrl_uinput_print_str(pictrl_uinput_t *uinput, const char *str) {
   char *p = (char *)str;
   size_t chars_written = 0;
   while (*p) {
-    size_t written = picontrol_uinput_type_char(uinput, *p++) ? 1 : 0;
+    size_t written = pictrl_uinput_type_char(uinput, *p++) ? 1 : 0;
     chars_written += written;
     if (written == 0) {
       break;

@@ -77,13 +77,13 @@ void handle_mouse_click(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
 
   switch (keyboard->backend_type) {
   case PICTRL_BACKEND_UINPUT:
-    picontrol_uinput_click_mouse(keyboard->backend.uinput, mouse_buttons);
+    pictrl_uinput_click_mouse(keyboard->backend.uinput, mouse_buttons);
     break;
 #ifdef PICTRL_XDO
   case PICTRL_BACKEND_XDO:
     (void)msg;
     (void)keyboard;
-    picontrol_xdo_click_mouse(keyboard->backend.xdo, mouse_buttons);
+    pictrl_xdo_click_mouse(keyboard->backend.xdo, mouse_buttons);
     break;
 #endif
   }
@@ -94,11 +94,11 @@ void handle_mouse_move(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
 
   switch (keyboard->backend_type) {
   case PICTRL_BACKEND_UINPUT:
-    picontrol_uinput_move_mouse_rel(keyboard->backend.uinput, coords);
+    pictrl_uinput_move_mouse_rel(keyboard->backend.uinput, coords);
     break;
 #ifdef PICTRL_XDO
   case PICTRL_BACKEND_XDO:
-    picontrol_xdo_move_mouse_rel(keyboard->backend.xdo, coords);
+    pictrl_xdo_move_mouse_rel(keyboard->backend.xdo, coords);
     break;
 #endif
   }
@@ -107,11 +107,11 @@ void handle_mouse_move(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
 void handle_text(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
   switch (keyboard->backend_type) {
   case PICTRL_BACKEND_UINPUT:
-    picontrol_uinput_type_char(keyboard->backend.uinput, *msg->payload);
+    pictrl_uinput_type_char(keyboard->backend.uinput, *msg->payload);
     break;
 #ifdef PICTRL_XDO
   case PICTRL_BACKEND_XDO:
-    picontrol_xdo_print_str(keyboard->backend.xdo, msg);
+    pictrl_xdo_print_str(keyboard->backend.xdo, msg);
     break;
 #endif
   }
@@ -120,11 +120,11 @@ void handle_text(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
 void handle_keysym(pictrl_keyboard *keyboard, RawPiCtrlMessage *msg) {
   switch (keyboard->backend_type) {
   case PICTRL_BACKEND_UINPUT:
-    picontrol_uinput_type_keysym(keyboard->backend.uinput, (char *)msg->payload);
+    pictrl_uinput_type_keysym(keyboard->backend.uinput, (char *)msg->payload);
     break;
 #ifdef PICTRL_XDO
   case PICTRL_BACKEND_XDO:
-    picontrol_xdo_type_keysym(keyboard->backend.xdo, msg);
+    pictrl_xdo_type_keysym(keyboard->backend.xdo, msg);
     break;
 #endif
   }

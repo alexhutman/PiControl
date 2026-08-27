@@ -30,21 +30,21 @@ static int test_mv_mouse() {
 
   bool ret = true;
   for (int i = 0; i < 50; i++) {
-    picontrol_uinput_move_mouse_rel(uinput_keyboard, coords_diff);
+    pictrl_uinput_move_mouse_rel(uinput_keyboard, coords_diff);
   }
 
   return ret ? 0 : 1;
 }
 
 static int test_ctrl_g() {
-  picontrol_uinput_type_keysym(uinput_keyboard, "Ctrl+G");
+  pictrl_uinput_type_keysym(uinput_keyboard, "Ctrl+G");
 
   return 0;
 }
 
 static int test_all_ascii_chars() {
   for (char c = 0x20; c < 0x7F; c++) {
-    if (!picontrol_uinput_type_char(uinput_keyboard, c)) {
+    if (!pictrl_uinput_type_char(uinput_keyboard, c)) {
       return 1;
     }
   }
@@ -53,7 +53,7 @@ static int test_all_ascii_chars() {
 
 static int test_typing() {
   const char str[] = "echo Hello World!\n";
-  return picontrol_uinput_print_str(uinput_keyboard, str) == (sizeof(str) - 1) ? 0 : 1;
+  return pictrl_uinput_print_str(uinput_keyboard, str) == (sizeof(str) - 1) ? 0 : 1;
 }
 
 int main() {
