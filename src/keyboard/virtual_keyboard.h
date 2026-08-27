@@ -15,15 +15,15 @@ typedef enum {
 } pictrl_backend_type;
 
 typedef union {
-  pictrl_uinput_t uinput;
+  pictrl_uinput_t *uinput;
 #ifdef PICTRL_XDO
-  xdo_t xdo;
+  xdo_t *xdo;
 #endif
 } pictrl_backend_t;
 
 typedef struct {
   pictrl_backend_type backend_type;
-  pictrl_backend_t *backend;
+  pictrl_backend_t backend;
 } pictrl_keyboard;
 
 pictrl_keyboard *pictrl_keyboard_new();
