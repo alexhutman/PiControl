@@ -12,7 +12,7 @@
 
 typedef struct {
   Pool deserializer_pool;
-  Queue queue;
+  Queue deserializer_queue;
   uv_thread_t writer_thread;
   Keyboard *keyboard;
 } Runtime;

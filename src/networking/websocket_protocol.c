@@ -43,7 +43,7 @@ void keyboard_writer_thread(void *arg) {
   Runtime *state = (Runtime *)arg;
   MsgDeserializer *des = NULL;
 
-  while (pictrl_queue_pop(&state->queue, &des)) {
+  while (pictrl_queue_pop(&state->deserializer_queue, &des)) {
     pictrl_log_debug("[Writer Thread]: Processing queue item @%p\n", des);
 
     if (pictrl_deserialize_network_data(des) < 0) {
@@ -108,7 +108,7 @@ static int receive_data(struct lws *wsi, Runtime *state, SessionData *pss, void 
     pictrl_log_debug(
         "Received final fragment. Sending serialized message @%p to typing thread...\n",
         pss->cur_deserializer);
-    pictrl_queue_push(&state->queue, &pss->cur_deserializer);
+    pictrl_queue_push(&state->deserializer_queue, &pss->cur_deserializer);
     pss->cur_deserializer = NULL;
   } else {
     pictrl_log_debug("Received fragment slice. Waiting for the remaining %zu pieces...\n",

@@ -38,7 +38,8 @@ static bool initialize_state(Runtime *state) {
     pictrl_log_error("Unable to create deserializer pool\n");
     return false;
   }
-  if (!pictrl_queue_init(&state->queue, DESERIALIZER_POOL_SIZE, sizeof(MsgDeserializer *))) {
+  if (!pictrl_queue_init(&state->deserializer_queue, DESERIALIZER_POOL_SIZE,
+                         sizeof(MsgDeserializer *))) {
     pictrl_log_error("Unable to create worker thread's deserializer queue\n");
     pictrl_pool_destroy(&state->deserializer_pool);
     return false;
@@ -47,7 +48,7 @@ static bool initialize_state(Runtime *state) {
   state->keyboard = pictrl_keyboard_new(KEYBOARD_BACKEND);
   if (!state->keyboard) {
     pictrl_log_error("Unable to create PiControl keyboard!\n");
-    pictrl_queue_destroy(&state->queue);
+    pictrl_queue_destroy(&state->deserializer_queue);
     pictrl_pool_destroy(&state->deserializer_pool);
     return false;
   }
@@ -56,11 +57,11 @@ static bool initialize_state(Runtime *state) {
 }
 
 static void clean_up_state(Runtime *state) {
-  pictrl_queue_close(&state->queue);
+  pictrl_queue_close(&state->deserializer_queue);
   uv_thread_join(&state->writer_thread);
 
   pictrl_keyboard_free(state->keyboard);
-  pictrl_queue_destroy(&state->queue);
+  pictrl_queue_destroy(&state->deserializer_queue);
   assert(state->deserializer_pool.top == state->deserializer_pool.capacity &&
          "Not all deserializers were put back");
   pictrl_pool_destroy(&state->deserializer_pool);
