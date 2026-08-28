@@ -102,6 +102,9 @@ $(SERVER_TARGET): $(SERVER_OBJS)
 	@echo "PiControl: Making $@"
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+ifndef DEBUG
+	@strip $@
+endif
 
 $(PITEST_TARGET): LDFLAGS += -shared
 $(PITEST_TARGET): LDLIBS  += -luv
