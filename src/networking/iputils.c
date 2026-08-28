@@ -26,7 +26,7 @@ static inline bool is_addr_valid(struct sockaddr *addr) {
 
 // Return first existent, non-loopback, data-receiving interface's IP
 // Adapted from https://stackoverflow.com/a/12883978
-char *get_ip_address() {
+char *pictrl_get_ip_address() {
   struct ifaddrs *interfaces;
   if (getifaddrs(&interfaces) != 0) {
     pictrl_log_error("Error retrieving network interfaces: %s\n", strerror(errno));

@@ -11,18 +11,12 @@ typedef struct {
     size_t rx_buffered_bytes;
   } in;
   struct {
-    RawPiCtrlMessage msg;
+    Message msg;
     uint8_t payload_buf_size;
   } out;
-} PiCtrlMsgDeserializer;
+} MsgDeserializer;
 
-int pictrl_initialize_deserializer(PiCtrlMsgDeserializer *des);
-int pictrl_destroy_deserializer(PiCtrlMsgDeserializer *des);
+int pictrl_initialize_deserializer(MsgDeserializer *des);
+int pictrl_destroy_deserializer(MsgDeserializer *des);
 
-// All bytes are unsigned
-//
-// |---------------- HEADER --------------|
-// -------------------------------------------------------------------------
-// | CMD (1 byte) | PAYLOAD_SIZE (1 byte) | PAYLOAD (MAX: UINT8_MAX bytes) |
-// -------------------------------------------------------------------------
-int pictrl_deserialize_network_data(PiCtrlMsgDeserializer *des);
+int pictrl_deserialize_network_data(MsgDeserializer *des);

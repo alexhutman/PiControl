@@ -8,27 +8,30 @@
 #include <stdlib.h>
 #include <string.h>
 
-int pictrl_initialize_deserializer(PiCtrlMsgDeserializer *des) {
+int pictrl_initialize_deserializer(MsgDeserializer *des) {
   if (!des)
     return -1;
-  des->in.rx_buffer = calloc(1, MAX_PICTRL_MSG_SIZE);
-  des->in.rx_buffered_bytes = 0;
-  if (!des->in.rx_buffer) {
+  uint8_t *rx_buffer = calloc(1, MAX_PICTRL_MSG_SIZE);
+  if (!rx_buffer) {
     pictrl_log_error("Could not allocate rx_buffer\n");
     return -2;
   }
 
   const size_t num_initial_bytes = 1;
-  des->out.msg.payload = calloc(num_initial_bytes, sizeof(*(des->out.msg.payload)));
-  if (!des->out.msg.payload) {
-    pictrl_log_error("Could not allocate RawPiCtrlMessage payload\n");
+  uint8_t *payload = calloc(num_initial_bytes, sizeof(*(des->out.msg.payload)));
+  if (!payload) {
+    free(rx_buffer);
+    pictrl_log_error("Could not allocate Message payload\n");
     return -3;
   }
+  des->in.rx_buffer = rx_buffer;
+  des->in.rx_buffered_bytes = 0;
+  des->out.msg.payload = payload;
   des->out.payload_buf_size = num_initial_bytes;
   return 0;
 }
 
-int pictrl_destroy_deserializer(PiCtrlMsgDeserializer *des) {
+int pictrl_destroy_deserializer(MsgDeserializer *des) {
   if (!des)
     return -1;
   if (des->in.rx_buffer) {
@@ -44,10 +47,7 @@ int pictrl_destroy_deserializer(PiCtrlMsgDeserializer *des) {
   return 0;
 }
 
-int pictrl_deserialize_network_data(PiCtrlMsgDeserializer *des) {
-  if (!des->in.rx_buffer || !des->out.msg.payload)
-    return -1;
-
+int pictrl_deserialize_network_data(MsgDeserializer *des) {
   const uint8_t payload_size = des->in.rx_buffer[1];
   const size_t expected_wire_size =
       sizeof(des->out.msg.header.cmd) + sizeof(des->out.msg.header.payload_size) + payload_size;

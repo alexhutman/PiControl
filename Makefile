@@ -22,11 +22,11 @@ TEST_TARGETS   := $(addprefix $(BIN_DIR)/,$(TEST_C_FILES:.c=))
 SERVER_TARGET  := $(BIN_DIR)/picontrol_server
 
 PITEST_OBJS    := $(patsubst $(TEST_DIR)/%.c,$(OBJ_DIR)/%.o,$(PITEST_C_FILES))
-PER_TEST_OBJS  := $(addprefix $(OBJ_DIR)/,logging/logger.o data_structures/multithread_pool.o data_structures/multithread_queue.o)
-SERVER_OBJS    := $(addsuffix .o,$(addprefix $(OBJ_DIR)/,picontrol_server networking/iputils networking/websocket_protocol serialize/protocol backend/picontrol_uinput backend/picontrol_backend model/protocol data_structures/multithread_pool data_structures/multithread_queue logging/logger))
+PER_TEST_OBJS  := $(addprefix $(OBJ_DIR)/,logging/logger.o data_structures/pool.o data_structures/queue.o)
+SERVER_OBJS    := $(addsuffix .o,$(addprefix $(OBJ_DIR)/,picontrol_server networking/iputils networking/websocket_protocol serialize/protocol keyboard/backend/uinput keyboard/virtual_keyboard model/protocol data_structures/pool data_structures/queue logging/logger))
 
 ifdef USE_XDO
-	SERVER_OBJS += $(OBJ_DIR)/backend/picontrol_xdo.o
+	SERVER_OBJS += $(OBJ_DIR)/keyboard/backend/xdo.o
 endif
 
 DEPS := $(SERVER_OBJS:.o=.d) $(PITEST_OBJS:.o=.d) $(PER_TEST_OBJS:.o=.d) $(addprefix $(OBJ_DIR)/,$(TEST_C_FILES:.c=.d))

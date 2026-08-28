@@ -4,7 +4,7 @@
 
 #include <stdbool.h>
 
-bool validate_pictrl_message(RawPiCtrlMessage *msg) {
+bool pictrl_validate_message(Message *msg) {
   if (!msg)
     return false;
   switch (msg->header.cmd) {

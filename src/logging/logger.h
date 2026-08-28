@@ -18,10 +18,10 @@ typedef enum {
   LOG_LVL_WARN,
   LOG_LVL_ERROR,
   LOG_LVL_CRITICAL,
-} PiLogLevel;
+} LogLevel;
 
 bool pictrl_logger_init();
-void _pictrl_log_msg(PiLogLevel level, const char *format, ...) PRINTF_FORMAT(2, 3);
+void _pictrl_log_msg(LogLevel level, const char *format, ...) PRINTF_FORMAT(2, 3);
 void pictrl_logger_destroy();
 
 #ifdef PI_CTRL_DEBUG

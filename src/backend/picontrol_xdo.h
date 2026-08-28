@@ -1,9 +1,0 @@
-#pragma once
-
-#include <xdo.h>
-
-// Delay between xdo keystrokes in microseconds
-#define XDO_KEYSTROKE_DELAY (useconds_t)10000
-
-xdo_t *pictrl_xdo_backend_new();
-void pictrl_xdo_backend_free(xdo_t *backend);
