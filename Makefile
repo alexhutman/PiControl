@@ -9,10 +9,11 @@ BIN_DIR        := bin
 LIB_DIR        := lib
 TEST_DIR       := tst
 
+PREFIX         := /usr/local
+SYSTEMD_DIR    ?= $(shell pkg-config systemd --variable=systemduserunitdir 2>/dev/null || echo "/usr/lib/systemd/user")
+
 PITEST_SRC_DIR := $(TEST_DIR)/pitest
 BIN_TEST_DIR   := $(BIN_DIR)/$(TEST_DIR)
-INSTALL_DIR    := /usr/local/bin
-SYSTEMD_DIR    ?= $(shell pkg-config systemd --variable=systemduserunitdir 2>/dev/null || echo "/usr/lib/systemd/user")
 
 PITEST_C_FILES := $(shell find $(PITEST_SRC_DIR) -type f -name \*.c)
 TEST_C_FILES   := $(shell find $(TEST_DIR) -type f -name \*_test.c)
@@ -67,16 +68,34 @@ all: server pitest test
 server: $(SERVER_TARGET)
 
 install: server
-	cp $(SERVER_TARGET) $(INSTALL_DIR)
-	cp daemon/systemd/picontrol.service $(SYSTEMD_DIR)
-	systemctl enable "$(SYSTEMD_DIR)/picontrol.service"
-	systemctl start "picontrol.service"
+	mkdir -p $(DESTDIR)$(PREFIX)/bin
+	cp $(SERVER_TARGET) $(DESTDIR)$(PREFIX)/bin/
+	chmod 755 $(DESTDIR)$(PREFIX)/bin/$(notdir $(SERVER_TARGET))
+	
+	mkdir -p $(DESTDIR)/etc/udev/rules.d
+	cp udev/99-uinput.rules $(DESTDIR)/etc/udev/rules.d/
+	chmod 644 $(DESTDIR)/etc/udev/rules.d/99-uinput.rules
+	
+	mkdir -p $(DESTDIR)$(SYSTEMD_DIR)
+	cp daemon/systemd/picontrol.service $(DESTDIR)$(SYSTEMD_DIR)/
+	chmod 644 $(DESTDIR)$(SYSTEMD_DIR)/picontrol.service
+	
+	@if [ -z "$(DESTDIR)" ]; then \
+		udevadm control --reload-rules && udevadm trigger 2>/dev/null || true; \
+		systemctl daemon-reload 2>/dev/null || true; \
+		echo "System configurations successfully reloaded."; \
+	fi
 
 uninstall:
-	systemctl stop "picontrol.service"
-	systemctl disable "picontrol.service"
+	rm $(DESTDIR)$(PREFIX)/bin/$(notdir $(SERVER_TARGET))
+	rm $(DESTDIR)/etc/udev/rules.d/99-uinput.rules
 	rm $(SYSTEMD_DIR)/picontrol.service
-	rm $(INSTALL_DIR)/picontrol_server
+	
+	@if [ -z "$(DESTDIR)" ]; then \
+		udevadm control --reload-rules && udevadm trigger 2>/dev/null || true; \
+		systemctl daemon-reload 2>/dev/null || true; \
+		echo "System configurations successfully reloaded."; \
+	fi
 
 pitest: $(PITEST_TARGET)
 
