@@ -36,6 +36,7 @@
   {                                                                                                \
     if (ioctl(fd, __VA_ARGS__) < 0) {                                                              \
       pictrl_log_error(errmsg, strerror(errno));                                                   \
+      return -1;                                                                                   \
     }                                                                                              \
   }
 
