@@ -4,13 +4,16 @@ MAKEFLAGS      += --no-builtin-rules --no-builtin-variables
 ####################################### Variables ########################################
 
 SRC_DIR        := src
+INCLUDE_DIR    := include
 OBJ_DIR        := obj
 BIN_DIR        := bin
+SCRIPTS_DIR    := scripts
 LIB_DIR        := lib
 TEST_DIR       := tst
 
 PREFIX         := /usr/local
-SYSTEMD_DIR    ?= $(shell pkg-config systemd --variable=systemduserunitdir 2>/dev/null || echo "/usr/lib/systemd/user")
+SYSD_SYS_DIR   := /etc/systemd/system
+SYSD_USER_DIR  := $(HOME)/.config/systemd/user
 
 PITEST_SRC_DIR := $(TEST_DIR)/pitest
 BIN_TEST_DIR   := $(BIN_DIR)/$(TEST_DIR)
@@ -21,22 +24,24 @@ TEST_C_FILES   := $(shell find $(TEST_DIR) -type f -name \*_test.c)
 PITEST_TARGET  := $(LIB_DIR)/libpitest.so
 TEST_TARGETS   := $(addprefix $(BIN_DIR)/,$(TEST_C_FILES:.c=))
 SERVER_TARGET  := $(BIN_DIR)/picontrol_server
+KBD_TARGET     := $(BIN_DIR)/picontrol_daemon
 
 PITEST_OBJS    := $(patsubst $(TEST_DIR)/%.c,$(OBJ_DIR)/%.o,$(PITEST_C_FILES))
-PER_TEST_OBJS  := $(addprefix $(OBJ_DIR)/,logging/logger.o data_structures/pool.o data_structures/queue.o)
-SERVER_OBJS    := $(addsuffix .o,$(addprefix $(OBJ_DIR)/,picontrol_server networking/iputils networking/websocket_protocol serialize/protocol keyboard/backend/uinput keyboard/virtual_keyboard model/protocol data_structures/pool data_structures/queue logging/logger))
+PER_TEST_OBJS  := $(addprefix $(OBJ_DIR)/shared/,logging/logger.o data_structures/pool.o data_structures/queue.o)
+SERVER_OBJS    := $(addsuffix .o,$(addprefix $(OBJ_DIR)/server/,picontrol_server networking/iputils networking/websocket_protocol ipc/daemon) $(addprefix $(OBJ_DIR)/shared/,serde/protocol model/protocol data_structures/pool data_structures/queue logging/logger))
+KBD_OBJS       := $(addsuffix .o,$(addprefix $(OBJ_DIR)/daemon/,keyboard_daemon keyboard/backend/uinput keyboard/virtual_keyboard) $(addprefix $(OBJ_DIR)/shared/,logging/logger data_structures/pool data_structures/queue model/protocol))
 
 ifdef USE_XDO
-	SERVER_OBJS += $(OBJ_DIR)/keyboard/backend/xdo.o
+	KBD_OBJS += $(OBJ_DIR)/daemon/keyboard/backend/xdo.o
 endif
 
-DEPS := $(SERVER_OBJS:.o=.d) $(PITEST_OBJS:.o=.d) $(PER_TEST_OBJS:.o=.d) $(addprefix $(OBJ_DIR)/,$(TEST_C_FILES:.c=.d))
+DEPS := $(SERVER_OBJS:.o=.d) $(KBD_OBJS:.o=.d) $(PITEST_OBJS:.o=.d) $(PER_TEST_OBJS:.o=.d) $(addprefix $(OBJ_DIR)/,$(TEST_C_FILES:.c=.d))
 
 ##################################### CORE SETTINGS ######################################
 
 CC       := gcc
 CFLAGS   := -Wall -Wextra
-CPPFLAGS := -I$(SRC_DIR) -MMD -MP
+CPPFLAGS := -I$(INCLUDE_DIR) -MMD -MP
 
 LDFLAGS  :=
 LDLIBS   :=
@@ -54,7 +59,7 @@ endif
 
 ##################################### Phony Targets ######################################
 
-.PHONY: all server install uninstall pitest test check clean
+.PHONY: all server kbd install-binaries install-service uninstall pitest test check clean
 
 # Delete target files if the command fails after it has
 # started to update the file.
@@ -67,57 +72,85 @@ all: server pitest test
 
 server: $(SERVER_TARGET)
 
-install: server
-	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	cp $(SERVER_TARGET) $(DESTDIR)$(PREFIX)/bin/
-	chmod 755 $(DESTDIR)$(PREFIX)/bin/$(notdir $(SERVER_TARGET))
+kbd: $(KBD_TARGET)
+
+install-binaries: server kbd
+	install -d $(DESTDIR)$(PREFIX)/bin
+	install -m 755 $(SERVER_TARGET) $(DESTDIR)$(PREFIX)/bin/$(notdir $(SERVER_TARGET))
+	install -m 755 $(KBD_TARGET) $(DESTDIR)$(PREFIX)/bin/$(notdir $(KBD_TARGET))
+	setcap cap_sys_admin+ep $(DESTDIR)$(PREFIX)/bin/$(notdir $(KBD_TARGET))
 	
-	mkdir -p $(DESTDIR)/etc/udev/rules.d
-	cp udev/99-uinput.rules $(DESTDIR)/etc/udev/rules.d/
-	chmod 644 $(DESTDIR)/etc/udev/rules.d/99-uinput.rules
+	install -d $(DESTDIR)$(SYSD_SYS_DIR)
+	install -m 644 daemon/systemd/picontrol-kbd.service $(DESTDIR)$(SYSD_SYS_DIR)/picontrol-kbd.service
 	
-	mkdir -p $(DESTDIR)$(SYSTEMD_DIR)
-	cp daemon/systemd/picontrol.service $(DESTDIR)$(SYSTEMD_DIR)/
-	chmod 644 $(DESTDIR)$(SYSTEMD_DIR)/picontrol.service
+	#TODO: systemctl stuff in postinstall script?
+	@if [ -z "$(DESTDIR)" ]; then \
+		systemctl daemon-reload; \
+		systemctl enable picontrol-kbd.service; \
+		systemctl start picontrol-kbd.service; \
+		echo "System configurations successfully reloaded."; \
+	fi
+
+install-service:
+	install -d $(DESTDIR)$(SYSD_USER_DIR)
+	install -m 644 daemon/systemd/picontrol-server.service $(DESTDIR)$(SYSD_USER_DIR)/picontrol-server.service
 	
 	@if [ -z "$(DESTDIR)" ]; then \
-		udevadm control --reload-rules && udevadm trigger 2>/dev/null || true; \
-		systemctl daemon-reload 2>/dev/null || true; \
+		systemctl --user daemon-reload; \
+		systemctl --user enable picontrol-server.service; \
+		systemctl --user start picontrol-server.service; \
 		echo "System configurations successfully reloaded."; \
 	fi
 
 uninstall:
-	rm $(DESTDIR)$(PREFIX)/bin/$(notdir $(SERVER_TARGET))
-	rm $(DESTDIR)/etc/udev/rules.d/99-uinput.rules
-	rm $(SYSTEMD_DIR)/picontrol.service
+	@if [ -z "$(DESTDIR)" ]; then \
+		-systemctl --user stop picontrol-server.service; \
+		-systemctl --user disable picontrol-server.service; \
+		-sudo systemctl stop picontrol-kbd.service; \
+		-sudo systemctl disable picontrol-kbd.service; \
+	fi
+	
+	rm -f $(DESTDIR)$(SYSD_USER_DIR)/picontrol-server.service
+	rm -f $(DESTDIR)$(SYSD_SYS_DIR)/picontrol-kbd.service
+	
+	rm -f $(DESTDIR)$(PREFIX)/bin/$(notdir $(SERVER_TARGET))
+	rm -f $(DESTDIR)$(PREFIX)/bin/$(notdir $(KBD_TARGET))
 	
 	@if [ -z "$(DESTDIR)" ]; then \
-		udevadm control --reload-rules && udevadm trigger 2>/dev/null || true; \
-		systemctl daemon-reload 2>/dev/null || true; \
+		systemctl --user daemon-reload; \
+		systemctl daemon-reload; \
 		echo "System configurations successfully reloaded."; \
 	fi
 
 pitest: $(PITEST_TARGET)
 
 test: $(TEST_TARGETS)
-	@chmod +x $(BIN_DIR)/run_tests || true
+	@chmod +x $(SCRIPTS_DIR)/run_tests || true
 
 check: test
-	@$(BIN_DIR)/run_tests
+	@$(SCRIPTS_DIR)/run_tests
 
 clean:
 	@echo "PiControl: Cleaning"
-	@rm -rf $(OBJ_DIR) $(LIB_DIR) $(SERVER_TARGET)
-	@find $(BIN_DIR)/ -mindepth 1 -not -name "run_tests" -delete
+	@rm -rf $(OBJ_DIR) $(LIB_DIR) $(SERVER_TARGET) $(BIN_DIR)
 
 ################################### Compilation Rules ####################################
 
-ifdef USE_XDO
-$(SERVER_TARGET): LDLIBS += -lxdo
-endif
-
 $(SERVER_TARGET): LDLIBS += -lwebsockets -luv
 $(SERVER_TARGET): $(SERVER_OBJS)
+	@echo "PiControl: Making $@"
+	@mkdir -p $(dir $@)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+ifndef DEBUG
+	@strip $@
+endif
+
+ifdef USE_XDO
+$(KBD_TARGET): LDLIBS += -lxdo
+endif
+
+$(KBD_TARGET): LDLIBS += -luv
+$(KBD_TARGET): $(KBD_OBJS)
 	@echo "PiControl: Making $@"
 	@mkdir -p $(dir $@)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
@@ -145,22 +178,17 @@ ifndef DEBUG
 	@strip $@
 endif
 
+$(OBJ_DIR)/server/%.o: CPPFLAGS += -Isrc/server
+$(OBJ_DIR)/daemon/%.o: CPPFLAGS += -Isrc/daemon
+
 $(OBJ_DIR)/pitest/%.o: CFLAGS   += -fPIC
 $(OBJ_DIR)/pitest/%.o: CPPFLAGS += -I$(TEST_DIR)
-$(OBJ_DIR)/pitest/%.o: $(PITEST_SRC_DIR)/%.c
-	@mkdir -p $(dir $@)
-	@echo "PiControl: Making PiTest object $@ from $<"
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
-
 $(OBJ_DIR)/$(TEST_DIR)/%.o: CPPFLAGS += -I$(TEST_DIR)
-$(OBJ_DIR)/$(TEST_DIR)/%.o: $(TEST_DIR)/%.c
-	@mkdir -p $(dir $@)
-	@echo "PiControl: Making test object $@ from $<"
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
 	@echo "PiControl: Making object $@ from $<"
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
+
 
 -include $(DEPS)

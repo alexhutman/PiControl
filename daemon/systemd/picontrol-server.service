@@ -1,0 +1,11 @@
+[Unit]
+Description=PiControl Virtual Keyboard (User)
+After=picontrol-helper.service
+
+[Service]
+Type=exec
+Restart=always
+ExecStart=/usr/local/bin/picontrol_server
+
+[Install]
+WantedBy=default.target
