@@ -47,15 +47,15 @@ static int create_socket(const char *socket_path) {
     }
 
     int server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    unlink(socket_path);
     if (connect(server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         int err = errno;
         if (err == ENOENT) {
-            pictrl_log_error("The socket file does not exist. Is the keyboard daemon running?\n");
+            pictrl_log_error("%s does not exist. Is the keyboard daemon running?\n", socket_path);
         } else if (err == ECONNREFUSED) {
-            pictrl_log_error("The socket file exists, but nothing is listening to it...\n");
+            // Shouldn't really happen as the lifetime should be tied to the daemon's
+            pictrl_log_error("%s exists, but nothing is listening to it...\n", socket_path);
         } else {
-            pictrl_log_error("Socket bind failed: %s\n", strerror(err));
+            pictrl_log_error("Could not bind to %s: %s\n", socket_path, strerror(err));
         }
         close(server_fd);
         return -1;

@@ -13,6 +13,6 @@ static inline bool get_socket_path(char *dst, size_t sz) {
         pictrl_log_error("$XDG_RUNTIME_DIR is not set\n");
         return false;
     }
-    int written = snprintf(dst, sz, "%s", runtime_dir);
+    int written = snprintf(dst, sz, "%s/picontrol.sock", runtime_dir);
     return written > 0 && (size_t)written < sz;
 }
