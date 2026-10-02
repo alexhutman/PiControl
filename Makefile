@@ -12,7 +12,6 @@ LIB_DIR        := lib
 TEST_DIR       := tst
 
 PREFIX         := /usr/local
-SYSD_SYS_DIR   := /etc/systemd/system
 SYSD_USER_DIR  := $(HOME)/.config/systemd/user
 
 PITEST_SRC_DIR := $(TEST_DIR)/pitest
@@ -59,7 +58,9 @@ endif
 
 ##################################### Phony Targets ######################################
 
-.PHONY: all server kbd install-binaries install-service uninstall pitest test check clean
+.PHONY: all server kbd \
+		create-group install-udev-rule install-binaries install-services \
+		uninstall pitest test check clean
 
 # Delete target files if the command fails after it has
 # started to update the file.
@@ -74,31 +75,30 @@ server: $(SERVER_TARGET)
 
 kbd: $(KBD_TARGET)
 
-install-binaries: server kbd
-	install -d $(DESTDIR)$(PREFIX)/bin
-	install -m 755 $(SERVER_TARGET) $(DESTDIR)$(PREFIX)/bin/$(notdir $(SERVER_TARGET))
-	install -m 755 $(KBD_TARGET) $(DESTDIR)$(PREFIX)/bin/$(notdir $(KBD_TARGET))
-	setcap cap_sys_admin+ep $(DESTDIR)$(PREFIX)/bin/$(notdir $(KBD_TARGET))
+install-udev-rule:
+	install -d -m 0755 -o root -g root $(DESTDIR)/etc/udev/rules.d
+	install -m 644 udev/99-uinput.rules $(DESTDIR)/etc/udev/rules.d/99-uinput.rules
 	
-	install -d $(DESTDIR)$(SYSD_SYS_DIR)
-	install -m 644 daemon/systemd/picontrol-kbd.service $(DESTDIR)$(SYSD_SYS_DIR)/picontrol-kbd.service
-	
-	#TODO: systemctl stuff in postinstall script?
 	@if [ -z "$(DESTDIR)" ]; then \
-		systemctl daemon-reload; \
-		systemctl enable picontrol-kbd.service; \
-		systemctl start picontrol-kbd.service; \
-		echo "System configurations successfully reloaded."; \
+		udevadm control --reload-rules && udevadm trigger 2>/dev/null || true; \
 	fi
 
-install-service:
-	install -d $(DESTDIR)$(SYSD_USER_DIR)
-	install -m 644 daemon/systemd/picontrol-server.service $(DESTDIR)$(SYSD_USER_DIR)/picontrol-server.service
+install-binaries: server kbd
+	install -d -m 0755 $(DESTDIR)$(PREFIX)/bin
+	install -m 755 $(SERVER_TARGET) $(DESTDIR)$(PREFIX)/bin/$(notdir $(SERVER_TARGET))
+	install -m 755 $(KBD_TARGET) $(DESTDIR)$(PREFIX)/bin/$(notdir $(KBD_TARGET))
+	
+install-services:
+	install -d -m 0700 $(DESTDIR)$(SYSD_USER_DIR)
+	install -m 600 daemon/systemd/picontrol-kbd.service $(DESTDIR)$(SYSD_USER_DIR)/picontrol-kbd.service
+	install -m 600 daemon/systemd/picontrol-server.service $(DESTDIR)$(SYSD_USER_DIR)/picontrol-server.service
 	
 	@if [ -z "$(DESTDIR)" ]; then \
 		systemctl --user daemon-reload; \
 		systemctl --user enable picontrol-server.service; \
 		systemctl --user start picontrol-server.service; \
+		systemctl --user enable picontrol-kbd.service; \
+		systemctl --user start picontrol-kbd.service; \
 		echo "System configurations successfully reloaded."; \
 	fi
 
@@ -106,17 +106,21 @@ uninstall:
 	@if [ -z "$(DESTDIR)" ]; then \
 		-systemctl --user stop picontrol-server.service; \
 		-systemctl --user disable picontrol-server.service; \
-		-sudo systemctl stop picontrol-kbd.service; \
-		-sudo systemctl disable picontrol-kbd.service; \
+		-systemctl --user stop picontrol-kbd.service; \
+		-systemctl --user disable picontrol-kbd.service; \
+		-echo "Stopped services"; \
 	fi
 	
+	rm -f $(DESTDIR)/etc/udev/rules.d/99-uinput.rules
+	
 	rm -f $(DESTDIR)$(SYSD_USER_DIR)/picontrol-server.service
-	rm -f $(DESTDIR)$(SYSD_SYS_DIR)/picontrol-kbd.service
+	rm -f $(DESTDIR)$(SYSD_USER_DIR)/picontrol-kbd.service
 	
 	rm -f $(DESTDIR)$(PREFIX)/bin/$(notdir $(SERVER_TARGET))
 	rm -f $(DESTDIR)$(PREFIX)/bin/$(notdir $(KBD_TARGET))
 	
 	@if [ -z "$(DESTDIR)" ]; then \
+		udevadm control --reload-rules && udevadm trigger 2>/dev/null || true; \
 		systemctl --user daemon-reload; \
 		systemctl daemon-reload; \
 		echo "System configurations successfully reloaded."; \
