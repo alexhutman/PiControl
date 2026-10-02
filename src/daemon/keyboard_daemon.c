@@ -70,7 +70,7 @@ static bool get_socket_path(char *dst, size_t sz) {
 }
 */
 
-static const mode_t socket_mask = S_IRUSR; // == 0400
+static const mode_t socket_mask = S_IRUSR | S_IWUSR; // == 0600
 
 static bool verify_peer_binary(pid_t pid) {
     char exe_link[25];
@@ -161,11 +161,11 @@ static int handle_message(Keyboard *keyboard, Message *msg) {
 
 static bool read_msg(int server_fd, Message *msg) {
     // TODO: could have partial reads
-    if (read(server_fd, &msg->header.cmd, sizeof(msg->header.cmd)) == -1)
+    if (read(server_fd, &msg->header.cmd, sizeof(msg->header.cmd)) <= 0)
         return false;
-    if (read(server_fd, &msg->header.payload_size, sizeof(msg->header.payload_size)) == -1)
+    if (read(server_fd, &msg->header.payload_size, sizeof(msg->header.payload_size)) <= 0)
         return false;
-    if (read(server_fd, msg->payload, msg->header.payload_size) == -1)
+    if (read(server_fd, msg->payload, msg->header.payload_size) <= 0)
         return false;
     return true;
 }
