@@ -42,17 +42,3 @@ int pictrl_deserialize_network_data(MsgDeserializer *des) {
 
   return 0;
 }
-
-int pictrl_serialize_network_data(MsgDeserializer *des) {
-  const uint8_t payload_size = des->out.msg.header.payload_size;
-
-  des->in.rx_buffer[0] = des->out.msg.header.cmd;
-  des->in.rx_buffer[1] = payload_size;
-  memcpy(&des->in.rx_buffer[2], des->out.msg.payload,
-         payload_size < MAX_PAYLOAD_SIZE ? payload_size : MAX_PAYLOAD_SIZE);
-  des->in.rx_buffered_bytes = sizeof(des->out.msg.header.cmd)
-      + sizeof(des->out.msg.header.payload_size)
-      + payload_size;
-
-  return 0;
-}

@@ -1,11 +1,14 @@
 [Unit]
-Description=PiControl Virtual Keyboard (User)
-After=picontrol-helper.service
+Description=PiControl Virtual Keyboard Server
+After=network.target
 
 [Service]
 Type=exec
-Restart=always
 ExecStart=/usr/local/bin/picontrol_server
+Restart=on-failure
+RestartSec=5s
+StartLimitIntervalSec=20s
+StartLimitBurst=5
 
 [Install]
 WantedBy=default.target

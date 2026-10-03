@@ -1,7 +1,7 @@
 #include "networking/websocket_protocol.h"
 
 #include "config.h"
-#include "ipc/daemon.h"
+#include "keyboard/virtual_keyboard.h"
 #include "networking/iputils.h"
 #include "shared/data_structures/queue.h"
 #include "shared/logging/logger.h"
@@ -20,6 +20,29 @@ typedef struct {
   char client_ip[MAX_CLIENT_IP_SIZE];
   MsgDeserializer *cur_deserializer;
 } SessionData;
+
+static int handle_message(Keyboard *keyboard, Message *msg) {
+  switch (msg->header.cmd) {
+  case PI_CTRL_MOUSE_MV:
+    pictrl_handle_mouse_move(keyboard, msg);
+    break;
+  case PI_CTRL_MOUSE_CLICK:
+    pictrl_handle_mouse_click(keyboard, msg);
+    break;
+  case PI_CTRL_TEXT:
+    pictrl_handle_text(keyboard, msg);
+    break;
+  case PI_CTRL_KEYSYM:
+    pictrl_handle_keysym(keyboard, msg);
+    break;
+  // TODO: On disconnect command, return 0?
+  default:
+    pictrl_log_error("Invalid command: %d.\n", msg->header.cmd);
+    return -1;
+  }
+
+  return 0;
+}
 
 void keyboard_writer_thread(void *arg) {
   Runtime *state = (Runtime *)arg;
@@ -42,11 +65,9 @@ void keyboard_writer_thread(void *arg) {
       pictrl_log_debug("[Writer Thread]: Validated PiControlMsg\n");
     }
 
-    if (!send_msg_to_daemon(&state->daemon, des)) {
-      pictrl_log_error("[Writer Thread]: Couldn't send message to daemon\n");
+    if (handle_message(state->keyboard, &des->out.msg) < 0) {
+      pictrl_log_error("[Writer Thread]: Couldn't type message\n");
       goto cleanup;
-    } else {
-      pictrl_log_debug("[Writer Thread]: Sent message to daemon\n");
     }
 
   cleanup:

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ipc/daemon.h"
+#include "keyboard/virtual_keyboard.h"
 #include "shared/data_structures/pool.h"
 #include "shared/data_structures/queue.h"
 
@@ -12,8 +12,8 @@
 typedef struct {
   Pool deserializer_pool;
   Queue deserializer_queue;
-  Daemon daemon;
   uv_thread_t writer_thread;
+  Keyboard *keyboard;
 } Runtime;
 
 extern const struct lws_protocols protocols[];

@@ -17,5 +17,4 @@ typedef struct {
 
 int pictrl_initialize_deserializer(MsgDeserializer *des);
 
-int pictrl_serialize_network_data(MsgDeserializer *des);
 int pictrl_deserialize_network_data(MsgDeserializer *des);

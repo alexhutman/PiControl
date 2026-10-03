@@ -1,5 +1,5 @@
 #include "config.h"
-#include "ipc/daemon.h"
+#include "keyboard/virtual_keyboard.h"
 #include "networking/websocket_protocol.h"
 #include "shared/data_structures/pool.h"
 #include "shared/data_structures/queue.h"
@@ -13,6 +13,11 @@
 #include <stdio.h>
 
 #define DESERIALIZER_POOL_SIZE ((size_t)5)
+#ifdef PICTRL_XDO
+  #define KEYBOARD_BACKEND PICTRL_BACKEND_XDO
+#else
+  #define KEYBOARD_BACKEND PICTRL_BACKEND_UINPUT
+#endif // PICTRL_XDO
 
 static int init_deserializer(void *item, void *user_data) {
   (void)user_data;
@@ -34,10 +39,12 @@ static bool initialize_state(Runtime *state) {
     pictrl_pool_destroy(&state->deserializer_pool);
     return false;
   }
-  if (!open_daemon_socket(&state->daemon)) {
-    pictrl_log_error("Unable to open keyboard daemon\n");
-    pictrl_pool_destroy(&state->deserializer_pool);
+
+  state->keyboard = pictrl_keyboard_new(KEYBOARD_BACKEND);
+  if (!state->keyboard) {
+    pictrl_log_critical("Unable to create PiControl keyboard\n");
     pictrl_queue_destroy(&state->deserializer_queue);
+    pictrl_pool_destroy(&state->deserializer_pool);
     return false;
   }
 
@@ -49,11 +56,11 @@ static void clean_up_state(Runtime *state) {
   pictrl_queue_close(&state->deserializer_queue);
   uv_thread_join(&state->writer_thread);
 
+  pictrl_keyboard_free(state->keyboard);
   pictrl_queue_destroy(&state->deserializer_queue);
   assert(state->deserializer_pool.top == state->deserializer_pool.capacity &&
          "Not all deserializers were put back");
   pictrl_pool_destroy(&state->deserializer_pool);
-  close_daemon_socket(&state->daemon);
   pictrl_log_debug("Destroyed app state\n");
 }
 
