@@ -73,7 +73,7 @@ server: $(SERVER_TARGET)
 
 install-udev-rule:
 	install -d -m 0755 -o root -g root $(DESTDIR)/etc/udev/rules.d
-	install -m 644 udev/99-uinput.rules $(DESTDIR)/etc/udev/rules.d/99-uinput.rules
+	install -m 644 udev/99-picontrol-uinput.rules $(DESTDIR)/etc/udev/rules.d/99-picontrol-uinput.rules
 	
 	@if [ -z "$(DESTDIR)" ]; then \
 		udevadm control --reload-rules && udevadm trigger 2>/dev/null || true; \
@@ -101,7 +101,7 @@ uninstall:
 		-echo "Stopped service"; \
 	fi
 	
-	rm -f $(DESTDIR)/etc/udev/rules.d/99-uinput.rules
+	rm -f $(DESTDIR)/etc/udev/rules.d/99-picontrol-uinput.rules
 	rm -f $(DESTDIR)$(SYSD_USER_DIR)/picontrol-server.service
 	rm -f $(DESTDIR)$(PREFIX)/bin/$(notdir $(SERVER_TARGET))
 	
