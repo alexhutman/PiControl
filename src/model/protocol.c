@@ -1,6 +1,6 @@
-#include "shared/model/protocol.h"
+#include "model/protocol.h"
 
-#include "shared/logging/logger.h"
+#include "logging/logger.h"
 
 #include <stdbool.h>
 

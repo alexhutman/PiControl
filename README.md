@@ -5,12 +5,15 @@ The source code for the mobile frontends can be found [here](https://github.com/
 
 ## Prerequisites
 1. Create `picontrol` group
+
 `sudo groupadd --system picontrol`
 
 2. Add yourself to the `picontrol` group (logout/reboot might be required to reflect this)
+
 `sudo usermod -aG picontrol [username]`
 
 3. Install udev rule to allow group's access to /dev/uinput
+
 `make install-udev-rule`
 
 ## Dependencies

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shared/model/protocol.h"
+#include "model/protocol.h"
 
 #include <stddef.h>
 #include <stdint.h>

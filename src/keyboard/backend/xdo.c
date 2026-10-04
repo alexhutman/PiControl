@@ -1,8 +1,8 @@
 #include "keyboard/backend/xdo.h"
 
-#include "shared/logging/logger.h"
-#include "shared/model/mouse.h"
-#include "shared/model/protocol.h"
+#include "logging/logger.h"
+#include "model/mouse.h"
+#include "model/protocol.h"
 
 #include <xdo.h>
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "shared/model/mouse.h"
-#include "shared/model/protocol.h"
+#include "model/mouse.h"
+#include "model/protocol.h"
 
 #include <stdint.h>
 

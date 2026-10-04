@@ -1,7 +1,7 @@
 #include "keyboard/virtual_keyboard.h"
 
-#include "shared/logging/logger.h"
-#include "shared/serde/mouse.h"
+#include "logging/logger.h"
+#include "serde/mouse.h"
 
 #include "keyboard/backend/uinput.h"
 #ifdef PICTRL_XDO

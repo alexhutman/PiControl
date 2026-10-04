@@ -1,8 +1,8 @@
 #include "keyboard/backend/uinput.h"
 
 #include "config.h"
-#include "shared/logging/logger.h"
-#include "shared/util.h"
+#include "logging/logger.h"
+#include "util.h"
 
 #include <fcntl.h>
 #include <linux/input-event-codes.h>

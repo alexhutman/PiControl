@@ -1,4 +1,4 @@
-#include "shared/data_structures/queue.h"
+#include "data_structures/queue.h"
 
 #include <uv.h>
 

@@ -1,7 +1,7 @@
-#include "shared/serde/protocol.h"
+#include "serde/protocol.h"
 
-#include "shared/logging/logger.h"
-#include "shared/model/protocol.h"
+#include "logging/logger.h"
+#include "model/protocol.h"
 
 #include <inttypes.h>
 #include <stdint.h>

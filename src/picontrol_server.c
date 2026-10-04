@@ -1,10 +1,10 @@
 #include "config.h"
+#include "data_structures/pool.h"
+#include "data_structures/queue.h"
 #include "keyboard/virtual_keyboard.h"
+#include "logging/logger.h"
 #include "networking/websocket_protocol.h"
-#include "shared/data_structures/pool.h"
-#include "shared/data_structures/queue.h"
-#include "shared/logging/logger.h"
-#include "shared/serde/protocol.h"
+#include "serde/protocol.h"
 
 #include <libwebsockets.h>
 #include <uv.h>

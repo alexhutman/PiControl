@@ -1,7 +1,7 @@
-#include "shared/logging/logger.h"
+#include "logging/logger.h"
 
-#include "shared/data_structures/pool.h"
-#include "shared/data_structures/queue.h"
+#include "data_structures/pool.h"
+#include "data_structures/queue.h"
 
 #include <uv.h>
 

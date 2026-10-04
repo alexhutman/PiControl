@@ -1,8 +1,9 @@
 #pragma once
 
+#include "data_structures/pool.h"
+#include "data_structures/queue.h"
 #include "keyboard/virtual_keyboard.h"
-#include "shared/data_structures/pool.h"
-#include "shared/data_structures/queue.h"
+#include "serde/protocol.h"
 
 #include <libwebsockets.h>
 #include <uv.h>

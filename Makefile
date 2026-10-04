@@ -4,7 +4,6 @@ MAKEFLAGS      += --no-builtin-rules --no-builtin-variables
 ####################################### Variables ########################################
 
 SRC_DIR        := src
-INCLUDE_DIR    := include
 OBJ_DIR        := obj
 BIN_DIR        := bin
 SCRIPTS_DIR    := scripts
@@ -25,11 +24,11 @@ TEST_TARGETS   := $(addprefix $(BIN_DIR)/,$(TEST_C_FILES:.c=))
 SERVER_TARGET  := $(BIN_DIR)/picontrol_server
 
 PITEST_OBJS    := $(patsubst $(TEST_DIR)/%.c,$(OBJ_DIR)/%.o,$(PITEST_C_FILES))
-PER_TEST_OBJS  := $(addprefix $(OBJ_DIR)/shared/,logging/logger.o data_structures/pool.o data_structures/queue.o)
-SERVER_OBJS    := $(addsuffix .o,$(addprefix $(OBJ_DIR)/server/,picontrol_server networking/iputils networking/websocket_protocol keyboard/backend/uinput keyboard/virtual_keyboard) $(addprefix $(OBJ_DIR)/shared/,serde/protocol model/protocol data_structures/pool data_structures/queue logging/logger))
+PER_TEST_OBJS  := $(addprefix $(OBJ_DIR)/,logging/logger.o data_structures/pool.o data_structures/queue.o)
+SERVER_OBJS    := $(addsuffix .o,$(addprefix $(OBJ_DIR)/,picontrol_server networking/iputils networking/websocket_protocol serde/protocol keyboard/backend/uinput keyboard/virtual_keyboard model/protocol data_structures/pool data_structures/queue logging/logger))
 
 ifdef USE_XDO
-	SERVER_OBJS += $(OBJ_DIR)/server/keyboard/backend/xdo.o
+	SERVER_OBJS += $(OBJ_DIR)/keyboard/backend/xdo.o
 endif
 
 DEPS := $(SERVER_OBJS:.o=.d) $(PITEST_OBJS:.o=.d) $(PER_TEST_OBJS:.o=.d) $(addprefix $(OBJ_DIR)/,$(TEST_C_FILES:.c=.d))
@@ -38,7 +37,7 @@ DEPS := $(SERVER_OBJS:.o=.d) $(PITEST_OBJS:.o=.d) $(PER_TEST_OBJS:.o=.d) $(addpr
 
 CC       := gcc
 CFLAGS   := -Wall -Wextra
-CPPFLAGS := -I$(INCLUDE_DIR) -MMD -MP
+CPPFLAGS := -I$(SRC_DIR) -MMD -MP
 
 LDFLAGS  :=
 LDLIBS   :=
@@ -158,11 +157,18 @@ ifndef DEBUG
 	@strip $@
 endif
 
-$(OBJ_DIR)/server/%.o: CPPFLAGS += -Isrc/server
-
 $(OBJ_DIR)/pitest/%.o: CFLAGS   += -fPIC
 $(OBJ_DIR)/pitest/%.o: CPPFLAGS += -I$(TEST_DIR)
+$(OBJ_DIR)/pitest/%.o: $(PITEST_SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	@echo "PiControl: Making PiTest object $@ from $<"
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
+
 $(OBJ_DIR)/$(TEST_DIR)/%.o: CPPFLAGS += -I$(TEST_DIR)
+$(OBJ_DIR)/$(TEST_DIR)/%.o: $(TEST_DIR)/%.c
+	@mkdir -p $(dir $@)
+	@echo "PiControl: Making test object $@ from $<"
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)

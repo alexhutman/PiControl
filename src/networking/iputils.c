@@ -1,4 +1,4 @@
-#include "shared/logging/logger.h"
+#include "logging/logger.h"
 
 #include <arpa/inet.h>
 #include <ifaddrs.h>

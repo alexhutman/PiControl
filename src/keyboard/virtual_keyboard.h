@@ -1,7 +1,7 @@
 #pragma once
 
 #include "keyboard/backend/uinput.h"
-#include "shared/model/protocol.h"
+#include "model/protocol.h"
 
 #ifdef PICTRL_XDO
   #include <xdo.h>

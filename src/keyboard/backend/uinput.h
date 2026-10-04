@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shared/model/mouse.h"
+#include "model/mouse.h"
 
 #include <stdbool.h>
 #include <stddef.h>
