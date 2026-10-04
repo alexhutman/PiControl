@@ -75,7 +75,7 @@ install-udev-rule:
 	install -m 644 udev/99-picontrol-uinput.rules $(DESTDIR)/etc/udev/rules.d/99-picontrol-uinput.rules
 	
 	if [ -z "$(DESTDIR)" ]; then \
-		udevadm control --reload-rules && udevadm trigger || true; \
+		udevadm control --reload-rules && udevadm trigger --verbose --sysname-match=uinput --action=change || true; \
 	fi
 
 install-binary: server
@@ -105,7 +105,7 @@ uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/$(notdir $(SERVER_TARGET))
 	
 	if [ -z "$(DESTDIR)" ]; then \
-		udevadm control --reload-rules && udevadm trigger || true; \
+		udevadm control --reload-rules && udevadm trigger --verbose --sysname-match=uinput --action=change || true; \
 		systemctl --user daemon-reload; \
 		echo "System configuration successfully reloaded."; \
 	fi
