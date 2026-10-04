@@ -58,11 +58,11 @@ jobs:
       - name: Build tests
         run: |
           make test
-          #- name: Create group and install uinput rules
-          #run: |
-          #sudo groupadd --system picontrol
-          #sudo usermod -aG picontrol runner
-          #make install-udev-rule
+      - name: Create group and install udev rule
+        run: |
+          sudo groupadd --system picontrol
+          sudo usermod -aG picontrol runner
+          make install-udev-rule
       - name: Run tests
         run: |
           sudo -u runner make check
