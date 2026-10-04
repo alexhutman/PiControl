@@ -60,7 +60,7 @@ jobs:
           make test
       - name: Run tests
         run: |
-          sudo ./bin/run_tests
+          sudo make check
   lint:
     needs: dedupe
     runs-on: ubuntu-latest
