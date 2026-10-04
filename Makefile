@@ -120,7 +120,7 @@ check: test
 
 clean:
 	@echo "PiControl: Cleaning"
-	@rm -rf $(OBJ_DIR) $(LIB_DIR) $(SERVER_TARGET) $(BIN_DIR)
+	@rm -rf $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR)
 
 ################################### Compilation Rules ####################################
 
