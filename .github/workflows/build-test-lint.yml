@@ -58,9 +58,6 @@ jobs:
       - name: Build tests
         run: |
           make test
-      - name: Sanity check
-        run: |
-          whoami
       - name: Create group and install udev rule
         run: |
           sudo groupadd --system picontrol

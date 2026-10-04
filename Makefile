@@ -74,8 +74,8 @@ install-udev-rule:
 	install -d -m 0755 -o root -g root $(DESTDIR)/etc/udev/rules.d
 	install -m 644 udev/99-picontrol-uinput.rules $(DESTDIR)/etc/udev/rules.d/99-picontrol-uinput.rules
 	
-	@if [ -z "$(DESTDIR)" ]; then \
-		udevadm control --reload-rules && udevadm trigger 2>/dev/null || true; \
+	if [ -z "$(DESTDIR)" ]; then \
+		udevadm control --reload-rules && udevadm trigger || true; \
 	fi
 
 install-binary: server
@@ -86,7 +86,7 @@ install-service:
 	install -d -m 0700 $(DESTDIR)$(SYSD_USER_DIR)
 	install -m 600 daemon/systemd/picontrol-server.service $(DESTDIR)$(SYSD_USER_DIR)/picontrol-server.service
 	
-	@if [ -z "$(DESTDIR)" ]; then \
+	if [ -z "$(DESTDIR)" ]; then \
 		systemctl --user daemon-reload; \
 		systemctl --user enable picontrol-server.service; \
 		systemctl --user start picontrol-server.service; \
@@ -94,7 +94,7 @@ install-service:
 	fi
 
 uninstall:
-	@if [ -z "$(DESTDIR)" ]; then \
+	if [ -z "$(DESTDIR)" ]; then \
 		-systemctl --user stop picontrol-server.service; \
 		-systemctl --user disable picontrol-server.service; \
 		-echo "Stopped service"; \
@@ -104,8 +104,8 @@ uninstall:
 	rm -f $(DESTDIR)$(SYSD_USER_DIR)/picontrol-server.service
 	rm -f $(DESTDIR)$(PREFIX)/bin/$(notdir $(SERVER_TARGET))
 	
-	@if [ -z "$(DESTDIR)" ]; then \
-		udevadm control --reload-rules && udevadm trigger 2>/dev/null || true; \
+	if [ -z "$(DESTDIR)" ]; then \
+		udevadm control --reload-rules && udevadm trigger || true; \
 		systemctl --user daemon-reload; \
 		echo "System configuration successfully reloaded."; \
 	fi
