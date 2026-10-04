@@ -1,10 +1,10 @@
+#include "config.h"
 #include "data_structures/pool.h"
 #include "data_structures/queue.h"
 #include "keyboard/virtual_keyboard.h"
 #include "logging/logger.h"
 #include "networking/websocket_protocol.h"
-#include "picontrol_config.h"
-#include "serialize/protocol.h"
+#include "serde/protocol.h"
 
 #include <libwebsockets.h>
 #include <uv.h>
@@ -24,15 +24,10 @@ static int init_deserializer(void *item, void *user_data) {
   return pictrl_initialize_deserializer((MsgDeserializer *)item);
 }
 
-static int destroy_deserializer(void *item, void *user_data) {
-  (void)user_data;
-  return pictrl_destroy_deserializer((MsgDeserializer *)item);
-}
-
 static bool initialize_state(Runtime *state) {
   void *usr_data = NULL;
   const PoolOpts pool_opts = {DESERIALIZER_POOL_SIZE, sizeof(MsgDeserializer), &init_deserializer,
-                              &destroy_deserializer, usr_data};
+                              NULL, usr_data};
 
   if (!pictrl_pool_init(&state->deserializer_pool, &pool_opts)) {
     pictrl_log_error("Unable to create deserializer pool\n");
@@ -47,11 +42,12 @@ static bool initialize_state(Runtime *state) {
 
   state->keyboard = pictrl_keyboard_new(KEYBOARD_BACKEND);
   if (!state->keyboard) {
-    pictrl_log_error("Unable to create PiControl keyboard!\n");
+    pictrl_log_critical("Unable to create PiControl keyboard\n");
     pictrl_queue_destroy(&state->deserializer_queue);
     pictrl_pool_destroy(&state->deserializer_pool);
     return false;
   }
+
   pictrl_log_debug("Initialized app state\n");
   return true;
 }

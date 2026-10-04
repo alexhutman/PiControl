@@ -22,7 +22,7 @@ typedef struct {
 
 typedef struct {
   Header header;
-  uint8_t *payload;
+  uint8_t payload[MAX_PAYLOAD_SIZE];
 } Message;
 
 bool pictrl_validate_message(Message *msg);

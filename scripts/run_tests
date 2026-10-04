@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-BIN_DIR="$(dirname "$0")"
+BIN_DIR="$(dirname $(dirname "$0"))/bin"
 BIN_TEST_DIR="$BIN_DIR/tst" #TODO: Inject these relative paths from Makefile?
 PITEST_DIR="$(dirname "$BIN_DIR")/lib"
 

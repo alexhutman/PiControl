@@ -1,12 +1,12 @@
 #include "networking/websocket_protocol.h"
 
+#include "config.h"
 #include "data_structures/queue.h"
 #include "keyboard/virtual_keyboard.h"
 #include "logging/logger.h"
 #include "model/protocol.h"
 #include "networking/iputils.h"
-#include "picontrol_config.h"
-#include "serialize/protocol.h"
+#include "serde/protocol.h"
 
 #include <libwebsockets.h>
 
@@ -15,6 +15,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+typedef struct {
+  char client_ip[MAX_CLIENT_IP_SIZE];
+  MsgDeserializer *cur_deserializer;
+} SessionData;
 
 static int handle_message(Keyboard *keyboard, Message *msg) {
   switch (msg->header.cmd) {
@@ -63,8 +68,6 @@ void keyboard_writer_thread(void *arg) {
     if (handle_message(state->keyboard, &des->out.msg) < 0) {
       pictrl_log_error("[Writer Thread]: Couldn't type message\n");
       goto cleanup;
-    } else {
-      pictrl_log_debug("[Writer Thread]: PiControlMsg typed\n");
     }
 
   cleanup:

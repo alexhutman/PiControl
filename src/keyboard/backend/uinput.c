@@ -1,7 +1,7 @@
 #include "keyboard/backend/uinput.h"
 
+#include "config.h"
 #include "logging/logger.h"
-#include "picontrol_config.h"
 #include "util.h"
 
 #include <fcntl.h>
@@ -36,6 +36,7 @@
   {                                                                                                \
     if (ioctl(fd, __VA_ARGS__) < 0) {                                                              \
       pictrl_log_error(errmsg, strerror(errno));                                                   \
+      return -1;                                                                                   \
     }                                                                                              \
   }
 
