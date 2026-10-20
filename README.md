@@ -28,4 +28,4 @@ The source code for the mobile frontends can be found [here](https://github.com/
     ```
 ### (Optional) (Limited functionality)
 - libxdo - `sudo apt install libxdo-dev`
-  - `USE_XDO=true make picontrol_server`
+  - `USE_XDO=true make server`
